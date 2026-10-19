@@ -139,6 +139,16 @@ account ID, ticket, Story ID or old session is never accepted as proof.
 - Owner of the account: `POST /api/account/close` with password; revokes every session and denies the
   account. Erasure/export remain CRD Issue 22's.
 
+### Provisioning shared Rules authority (once per deployment, app stopped)
+
+`python -m afterworlds.remote.rules_provisioning` (same environment as the app). It holds both store
+locks, requires the content/control/vector pairing, refuses a pending restore, and runs the existing
+publication owners: the source corpus release from the repository's pinned source, then the
+committed accepted oracle for that release. Output names the package and release; a re-run reports
+`corpus reused, authority already_published`. It writes only Rules SQL tables and the Rules corpus
+collection — never Story memory, accounts or Story data — and imports nothing local. RPG Stories can
+then select the package during setup. The local `reset_corpus_baseline.py` remains refused remotely.
+
 ### Backup, restore and fence
 
 1. Stop the app (the commands need both store locks).
@@ -178,9 +188,6 @@ account ID, ticket, Story ID or old session is never accepted as proof.
 - CRD Issue 22 fulfillment (export, deletion, suppression creation, retention expiry, anomalies) and CRD
   Issue 23 payments.
 - Multiworker coordination, if ever required.
-- **Remote Rules Package provisioning:** a fresh remote deployment has no shared Rules data, and no
-  lock-aware path publishes it into the remote content and vector stores (the local
-  `reset_corpus_baseline.py` refuses remotely). RPG play needs this before remote activation.
 - **Accepting an unprovable restore (Owner decision):** "When a content restore cannot prove that the restored entitlement ledger contains every recorded event (the live store is lost, or events were recorded after capture), what authority and reconciliation accept the restored money/access state before hosted service resumes?" The foundation guarantee is
   implemented: a restore that would rewind, diverge from or cannot read the live entitlement ledger
   is refused (§7). In practice that blocks restoring an older snapshot of an active hosted store.

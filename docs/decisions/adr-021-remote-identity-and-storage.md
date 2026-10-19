@@ -116,8 +116,12 @@ therefore unchanged. Because the writer is one process, an in-process per-accoun
 (`AccountFence`) orders effects against closure and suppression: every remote Sojourner request
 holds its account's fence shared for its whole handler and revalidates its session under it;
 closure (and CRD Issue 22 suppression) take it exclusive with a bounded wait, admitting no new
-request meanwhile and changing nothing on timeout. No effect of an admitted request can land after
-closure returns. Multiple workers, replicas or hosts remain unauthorized until a separately reviewed
+request meanwhile and changing nothing on timeout. The fence is owned at the service boundaries,
+not only by HTTP: every scoped owning-service call (orchestrator, RPG actions) holds it shared for
+its lifetime (re-entrant within a request), and `IdentityService.close_account` and
+`record_suppression_fenced` take it exclusive themselves. No effect of admitted work — HTTP or
+direct — can land after closure or suppression returns. An account under account-scope suppression
+admits no new state-changing request. Multiple workers, replicas or hosts remain unauthorized until a separately reviewed
 shared-coordination contract exists (the fence would then need a shared equivalent).
 
 ### D7. Fresh remote stores and unknown ownership
@@ -127,11 +131,13 @@ marker that matches its control store. A store with a `sojourner_identity` row, 
 events or no matching marker is refused **before** migration. The vector directory is held to the
 same rule: it must be absent/empty (then bound to the deployment by a marker file) or carry this
 deployment's marker; an unmarked, foreign or missing vector store is refused untouched and never
-adopted. A fresh deployment therefore starts without shared Rules Package data (SQL or vectors).
-#205 provides no lock-aware path to provision it remotely, and the local corpus-baseline reset
-refuses in remote mode (it would erase every account's Story memory); remote Rules provisioning is
-an open activation dependency, so RPG authority is unavailable in a fresh remote deployment until
-it is designed and reviewed. No import, claim or reassignment path exists. Rows without
+adopted. A fresh deployment therefore starts without shared Rules Package data (SQL or vectors);
+`python -m afterworlds.remote.rules_provisioning` gives it the qualified shared authority by running
+only the existing publication owners (`finalize_source_release`, then the committed accepted oracle
+through `publish_from_committed_oracle`) inside both store locks, against the bound vector store,
+idempotently and without touching Story memory or account data. The local corpus-baseline reset
+stays refused remotely (it would erase every account's Story memory). Running provisioning against
+a real deployment is an Owner-controlled activation step. No import, claim or reassignment path exists. Rows without
 an active ownership mapping are invisible and inaccessible. Account-wide enumeration survives parent
 detachment through `account_resources`; Turn IDs are captured by the pre-detachment inventory seam
 (`remote.inventory`), and no ordinary path detaches Story children.
@@ -184,8 +190,12 @@ preserve. Every maintenance step records its state before touching files:
   never evidence of a successful restore.
 - **Verification** proves every active suppression holds (no `story_id`-bearing content row, zero
   story-memory chunks; an unavailable read fails).
-- **Disposal** removes files, then records; a retry records a verifiably absent path, and an
-  unverifiable one is marked `inaccessible`.
+- **Disposal** removes files, then records its evidence (`removed` / `verified_absent`); a retry
+  records a verifiably absent path, an unverifiable one is marked `inaccessible`, and only recorded
+  evidence discharges a backup's obligation (an interrupted or once-inaccessible capture included).
+- **Pairing:** every maintenance command first requires the configured content, control and vector
+  stores — and a restore's snapshot — to carry one deployment's identity; a swapped store is refused
+  untouched. Restore cleanup never removes the vector marker, so an interruption stays retryable.
 
 Suppressed Stories are also denied by the ownership guard at all times. CRD Issue 22 supplies the
 operational suppression records and deletion orchestration; the prerequisite proves the hooks with a
