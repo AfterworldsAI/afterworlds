@@ -12,7 +12,8 @@ vice versa, even for the same principal and browser.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
@@ -151,12 +152,8 @@ class IdentityService:
         is already enrolled; only an unverified address receives a code."""
         address = normalize_address(contact_address)
         now = self._now()
-        with self._factory.begin() as s:
-            principal = s.scalar(
-                sa.select(IdentityPrincipalORM).where(
-                    IdentityPrincipalORM.contact_address == address
-                )
-            )
+        with self._locked() as s:
+            principal = self._principal_by_address(s, address)
             if principal is not None and principal.address_verified_at is not None:
                 return
             if principal is None:
@@ -178,13 +175,10 @@ class IdentityService:
         """Prove the address with its code, set the password, open the account."""
         _check_password(password)
         address = normalize_address(contact_address)
+        verifier = hash_password(password)  # outside the write lock
         now = self._now()
-        with self._factory() as s:
-            principal = s.scalar(
-                sa.select(IdentityPrincipalORM).where(
-                    IdentityPrincipalORM.contact_address == address
-                )
-            )
+        with self._locked() as s:
+            principal = self._principal_by_address(s, address)
             if principal is None or principal.address_verified_at is not None:
                 raise _failed()
             if not self._consume_code(
@@ -205,7 +199,7 @@ class IdentityService:
             )
             s.flush()
             principal.account_id = account_id
-            principal.password_verifier = hash_password(password)
+            principal.password_verifier = verifier
             principal.address_verified_at = iso(now)
             principal.updated_at = iso(now)
             self._audit(
@@ -215,27 +209,31 @@ class IdentityService:
                 target_ref=account_id,
                 now=now,
             )
-            s.commit()
 
     # -- sessions ----------------------------------------------------------
 
     def sign_in(
         self, contact_address: str, password: str, context: SessionContext
     ) -> SignInResult:
+        """Issue a session for a proven credential.
+
+        scrypt runs outside the write lock against the verifier read first;
+        under the lock the verifier must be unchanged, so a sign-in racing a
+        completed recovery (or closure) can never mint a usable session."""
         try:
             address = normalize_address(contact_address)
         except IdentityError:
             verify_password(password, None)
             raise _failed() from None
+        with self._factory() as s:
+            principal = self._principal_by_address(s, address)
+            proven = principal.password_verifier if principal else None
+        if not verify_password(password, proven) or proven is None:
+            raise _failed()
         now = self._now()
-        with self._factory.begin() as s:
-            principal = s.scalar(
-                sa.select(IdentityPrincipalORM).where(
-                    IdentityPrincipalORM.contact_address == address
-                )
-            )
-            verifier = principal.password_verifier if principal else None
-            if not verify_password(password, verifier) or principal is None:
+        with self._locked() as s:
+            principal = self._principal_by_address(s, address)
+            if principal is None or principal.password_verifier != proven:
                 raise _failed()
             account = self._active_account(s, principal)
             if account is None:
@@ -360,16 +358,15 @@ class IdentityService:
         """Set a new password after proving the address; revoke every session.
 
         Never touches ownership, provenance, closure or the administrator
-        binding, and refuses a closed account."""
+        binding, and refuses a closed account. Code consumption, the verifier
+        change and revocation happen under one write lock, so a code is
+        consumed once and no session issued before it survives."""
         _check_password(new_password)
         address = normalize_address(contact_address)
+        verifier = hash_password(new_password)  # outside the write lock
         now = self._now()
-        with self._factory() as s:
-            principal = s.scalar(
-                sa.select(IdentityPrincipalORM).where(
-                    IdentityPrincipalORM.contact_address == address
-                )
-            )
+        with self._locked() as s:
+            principal = self._principal_by_address(s, address)
             if principal is None or self._active_account(s, principal) is None:
                 raise _failed()
             if not self._consume_code(
@@ -377,7 +374,7 @@ class IdentityService:
             ):
                 s.commit()  # keep the counted attempt
                 raise _failed()
-            principal.password_verifier = hash_password(new_password)
+            principal.password_verifier = verifier
             principal.updated_at = iso(now)
             revoked = self._revoke_principal_sessions(
                 s, principal.principal_ref, now, "recovered"
@@ -390,21 +387,25 @@ class IdentityService:
                 reason_code=f"sessions_revoked_{revoked}",
                 now=now,
             )
-            s.commit()
 
     def close_account(self, actor: Actor, password: str) -> None:
-        """Self-service closure: re-authenticate, close, revoke every session."""
+        """Self-service closure: re-authenticate, close, revoke every session.
+
+        The Actor is revalidated against the store under the write lock; a
+        stale or forged Actor is refused."""
         self._require_kind(actor, ActorKind.SOJOURNER)
-        now = self._now()
-        with self._factory.begin() as s:
+        with self._factory() as s:
             principal = s.get(IdentityPrincipalORM, actor.principal_ref)
-            if principal is None or not verify_password(
-                password, principal.password_verifier
-            ):
+            proven = principal.password_verifier if principal else None
+        if not verify_password(password, proven) or proven is None:
+            raise _failed()
+        now = self._now()
+        with self._locked() as s:
+            principal = self._require_current(s, actor, SessionContext.SOJOURNER)
+            if principal.password_verifier != proven:
                 raise _failed()
             account = self._active_account(s, principal)
-            if account is None:
-                raise _failed()
+            assert account is not None  # _require_current checked it
             account.status = "closed"
             account.closed_at = iso(now)
             account.updated_at = iso(now)
@@ -424,7 +425,10 @@ class IdentityService:
     def revoke_account_sessions(
         self, actor: Actor, target_account_id: UUID, reason_text: str
     ) -> int:
-        """Staff action: revoke every session of the targeted hosted account."""
+        """Staff action: revoke every session of the targeted hosted account.
+
+        The staff Actor is revalidated (session current, binding active)
+        under the same write lock as the effect."""
         self._require_kind(actor, ActorKind.STAFF)
         reason = reason_text.strip()
         if not reason or len(reason) > REASON_MAX_LENGTH:
@@ -433,7 +437,8 @@ class IdentityService:
                 f"A reason of 1-{REASON_MAX_LENGTH} characters is required.",
             )
         now = self._now()
-        with self._factory.begin() as s:
+        with self._locked() as s:
+            staff = self._require_current(s, actor, SessionContext.STAFF)
             account = s.get(HostedAccountORM, str(target_account_id))
             if account is None:
                 raise IdentityError(
@@ -444,7 +449,7 @@ class IdentityService:
             )
             self._audit(
                 s,
-                actor_ref=str(actor.principal_ref),
+                actor_ref=staff.principal_ref,
                 action_code="account_sessions_revoked",
                 target_ref=account.account_id,
                 reason_code="administrator",
@@ -452,6 +457,21 @@ class IdentityService:
                 now=now,
             )
         return revoked
+
+    def actor_is_current(self, actor: Actor) -> bool:
+        """Whether *actor*'s session is still current right now (not revoked
+        or expired, account active, staff binding active for staff)."""
+        context = (
+            SessionContext.STAFF
+            if actor.kind is ActorKind.STAFF
+            else SessionContext.SOJOURNER
+        )
+        with self._factory() as s:
+            try:
+                self._require_current(s, actor, context)
+            except IdentityError:
+                return False
+        return True
 
     def get_account(self, account_id: UUID) -> AccountRecord | None:
         with self._factory() as s:
@@ -495,7 +515,7 @@ class IdentityService:
         """
         address = normalize_address(contact_address)
         now = self._now()
-        with self._factory() as s:
+        with self._locked() as s:
             principal = s.scalar(
                 sa.select(IdentityPrincipalORM).where(
                     IdentityPrincipalORM.contact_address == address
@@ -557,6 +577,50 @@ class IdentityService:
         return BootstrapOutcome.PROVISIONED
 
     # -- internals ---------------------------------------------------------
+
+    @contextmanager
+    def _locked(self) -> Iterator[Session]:
+        """A control-store transaction holding SQLite's write lock from its
+        first read, so a decision and its effect cannot interleave with
+        another identity transition. Commits on normal exit."""
+        with self._factory() as s:
+            s.connection().exec_driver_sql("BEGIN IMMEDIATE")
+            yield s
+            s.commit()
+
+    @staticmethod
+    def _principal_by_address(s: Session, address: str) -> IdentityPrincipalORM | None:
+        return s.scalar(
+            sa.select(IdentityPrincipalORM).where(
+                IdentityPrincipalORM.contact_address == address
+            )
+        )
+
+    def _require_current(
+        self, s: Session, actor: Actor, context: SessionContext
+    ) -> IdentityPrincipalORM:
+        """Revalidate *actor* against stored state; never trust its fields."""
+        row = s.get(AuthSessionORM, actor.session_id) if actor.session_id else None
+        if (
+            row is None
+            or row.context != context.value
+            or row.principal_ref != actor.principal_ref
+            or row.account_id != str(actor.account_id)
+            or row.revoked_at is not None
+            or parse_iso(row.expires_at) <= self._now()
+        ):
+            raise self._required()
+        principal = s.get(IdentityPrincipalORM, row.principal_ref)
+        if principal is None or self._active_account(s, principal) is None:
+            raise self._required()
+        if context is SessionContext.STAFF and not self._has_binding(
+            s, row.principal_ref
+        ):
+            raise IdentityError(
+                IdentityErrorKind.STAFF_AUTHORITY_REQUIRED,
+                "Staff authority is required.",
+            )
+        return principal
 
     @staticmethod
     def _required() -> IdentityError:
