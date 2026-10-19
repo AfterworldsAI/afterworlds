@@ -1213,6 +1213,8 @@ def test_a_disjoint_public_root_still_serves_its_assets(remote_env: Path) -> Non
         SharedSystemClient.clear_system_cache()
         app.state.store_lock.close()
         app.state.vector_lock.close()
+        if getattr(app.state, "control_lock", None) is not None:
+            app.state.control_lock.close()
 
 
 @pytest.mark.parametrize("spelling", ["inside", "alias", "around"])
@@ -1286,6 +1288,8 @@ def test_startup_refuses_a_public_root_exposing_an_undisposed_backup(
     SharedSystemClient.clear_system_cache()
     app.state.store_lock.close()
     app.state.vector_lock.close()
+    if getattr(app.state, "control_lock", None) is not None:
+        app.state.control_lock.close()
 
 
 def test_register_copy_and_restore_refuse_public_locations(
@@ -1638,3 +1642,115 @@ def test_unavailable_schema_authority_fails_typed_before_any_connection(
     assert str(remote_env) not in str(exc.value)
     assert "no-repo" not in str(exc.value)
     assert engines == []  # nothing acquired, nothing left open
+
+
+# -- review 5575284483: configured writer identity ----------------------------
+
+
+@pytest.mark.parametrize("store", ["content", "control"])
+def test_a_hard_linked_configured_store_is_refused_before_it_is_opened(
+    remote_env: Path, capsys: pytest.CaptureFixture[str], store: str
+) -> None:
+    """r4316817796: a store file reachable under a second name could be
+    served by a second writer with different pathname locks."""
+    import hashlib
+    import os
+
+    from afterworlds.api.config import ApiSettings
+    from afterworlds.remote.control_store import (
+        ControlStoreUnavailable,
+        connect_control_store,
+    )
+    from afterworlds.remote.storage import acquire_store_lock, acquire_vector_lock
+
+    make_remote(remote_env).close()
+    name = "content.db" if store == "content" else "control.db"
+    os.link(remote_env / name, remote_env / f"alias-{name}")
+    before = hashlib.sha256((remote_env / name).read_bytes()).hexdigest()
+    settings = remote_settings(remote_env)
+    key = "database_url" if store == "content" else "control_database_url"
+    for target in (name, f"alias-{name}"):
+        configured = ApiSettings(
+            **{**settings.__dict__, key: f"sqlite:///{remote_env / target}"}
+        )
+        with pytest.raises(StoreRefused, match="more than one hard link"):
+            create_app(configured)
+    assert hashlib.sha256((remote_env / name).read_bytes()).hexdigest() == before
+    acquire_store_lock(settings.database_url).close()
+    acquire_vector_lock(remote_env / "chroma").close()
+    if store == "control":
+        with pytest.raises(ControlStoreUnavailable, match="hard link"):
+            connect_control_store(f"sqlite:///{remote_env / name}")
+        assert storage_cli.main(["due"]) == 1
+    else:
+        # Live-store maintenance refuses; cleanup that never opens it works.
+        with pytest.raises(StoreRefused, match="hard link"):
+            storage_cli.main(["capture", "--to", str(remote_env / "b1")])
+        assert not (remote_env / "b1").exists()
+        assert storage_cli.main(["due"]) == 0
+
+
+@pytest.mark.parametrize("spelling", ["same_path", "canonical_alias"])
+def test_a_second_deployment_sharing_the_control_store_is_refused(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    spelling: str,
+) -> None:
+    """Sibling: a copied, validly marked content/vector pair configured with
+    the serving app's control store gets no writer lease -- startup and
+    maintenance refuse before any effect, releasing only their own locks."""
+    import hashlib
+    import shutil
+
+    from afterworlds.api.config import ApiSettings
+    from afterworlds.remote.storage import acquire_store_lock, acquire_vector_lock
+
+    make_remote(remote_env).close()
+    copy = remote_env / "copy"
+    copy.mkdir()
+    shutil.copyfile(remote_env / "content.db", copy / "content.db")
+    shutil.copytree(
+        remote_env / "chroma",
+        copy / "chroma",
+        ignore=shutil.ignore_patterns(".afterworlds-serve.lock"),
+    )
+    (remote_env / "elsewhere").mkdir()  # a traversable alias on every OS
+    control = (
+        remote_env / "control.db"
+        if spelling == "same_path"
+        else remote_env / "elsewhere" / ".." / "control.db"
+    )
+    serving = make_remote(remote_env)
+    try:
+        before = hashlib.sha256((copy / "content.db").read_bytes()).hexdigest()
+        second = ApiSettings(
+            **{
+                **serving.settings.__dict__,
+                "database_url": f"sqlite:///{copy / 'content.db'}",
+                "control_database_url": f"sqlite:///{control}",
+                "notice_outbox_dir": copy / "outbox",
+            }
+        )
+        monkeypatch.setenv(
+            "AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY", str(copy / "chroma")
+        )
+        with pytest.raises(StoreRefused, match="control store"):
+            create_app(second)
+        monkeypatch.setenv("AFTERWORLDS_DATABASE_URL", second.database_url)
+        monkeypatch.setenv("AFTERWORLDS_CONTROL_DATABASE_URL", f"sqlite:///{control}")
+        with pytest.raises(StoreRefused, match="control store"):
+            storage_cli.main(["capture", "--to", str(remote_env / "b1")])
+        assert not (remote_env / "b1").exists()
+        assert hashlib.sha256((copy / "content.db").read_bytes()).hexdigest() == before
+        # The refused attempts released their own locks only.
+        acquire_store_lock(second.database_url).close()
+        acquire_vector_lock(copy / "chroma").close()
+        with pytest.raises(StoreRefused, match="another process"):
+            acquire_store_lock(serving.settings.database_url)
+        serving.enroll("still-serving@example.test")
+    finally:
+        serving.close()
+    # With the first owner gone the copied pair could start (supported layout
+    # check aside), and the original deployment restarts normally.
+    make_remote(remote_env).close()

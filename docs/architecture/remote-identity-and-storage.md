@@ -92,8 +92,9 @@ never by its timestamp. CRD Issue 22 orchestrates the operations; the hooks prov
 ## 5. Topology
 
 One uvicorn worker process per deployment (Binding Decision 8, ADR-021 D6). `create_app` holds
-exclusive OS locks on the content store (`<db>.serve.lock`) and the bound vector store for the
-process lifetime and releases them if startup is refused; a second process, a storage command or the
+exclusive OS locks on the content store (`<db>.serve.lock`), the bound vector store and the control store
+(`<control>.serve.lock`) for the process lifetime -- a second deployment configured with the same control
+store is therefore refused, and a hard-linked content or control file is refused before opening -- and releases them if startup is refused; a second process, a storage command or the
 backfill job fails while they are held. Per-Story turn locks, durable RPG leases (and their
 owner-process proof), entitlement idempotency and SQL/vector sequencing are therefore unchanged.
 Startup migration runs only after the fresh-store, vector-binding and restore-gate checks, inside the

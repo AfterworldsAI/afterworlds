@@ -58,6 +58,7 @@ from afterworlds.remote.identity import IdentityService
 from afterworlds.remote.notices import OutboxDirectoryTransport
 from afterworlds.remote.storage import (
     StoreRefused,
+    acquire_control_lock,
     acquire_store_lock,
     acquire_vector_lock,
     bind_vector_store,
@@ -66,6 +67,7 @@ from afterworlds.remote.storage import (
     complete_remote_initialization,
     initialize_remote_content_store,
     pending_restores,
+    refuse_multiply_linked,
     refuse_notice_store_exposure,
     refuse_public_backups,
     refuse_public_overlap,
@@ -94,6 +96,7 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     app = FastAPI(title="Afterworlds API", dependencies=[Depends(enforce_access)])
     app.state.store_lock = None
     app.state.vector_lock = None
+    app.state.control_lock = None
     app.state.engine = None
     # Chroma clients that already exist in this process (and their refcounts)
     # are not this construction's: only systems it creates are its own.
@@ -138,7 +141,7 @@ def _release_construction(app: FastAPI, chroma_before: dict[str, int]) -> None:
             if ident in refcounts:
                 refcounts[ident] = count
     gc.collect()
-    for name in ("vector_lock", "store_lock"):
+    for name in ("control_lock", "vector_lock", "store_lock"):
         handle = getattr(app.state, name)
         if handle is not None:
             with contextlib.suppress(Exception):
@@ -170,9 +173,17 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
                 (sqlite_path(settings.control_database_url), "the control store")
             )
         refuse_public_overlap(settings.frontend_dist_dir, private)
+        # One physical file as both stores is refused first (a path check).
+        refuse_store_aliasing(settings.database_url, settings.control_database_url)
+        refuse_multiply_linked(sqlite_path(settings.database_url), "the content store")
+        control_path: Path | None = None
+        with contextlib.suppress(StoreRefused):  # a non-file control store
+            control_path = sqlite_path(settings.control_database_url)
+        if control_path is not None:
+            refuse_multiply_linked(control_path, "the control store")
         app.state.store_lock = acquire_store_lock(settings.database_url)
         app.state.vector_lock = acquire_vector_lock(vector_dir)
-        refuse_store_aliasing(settings.database_url, settings.control_database_url)
+        app.state.control_lock = acquire_control_lock(settings.control_database_url)
         control_factory = open_control_store(settings.control_database_url)
         app.state.control_factory = control_factory
         # ...nor any undisposed backup, before anything is mounted.

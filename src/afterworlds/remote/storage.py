@@ -748,6 +748,35 @@ def acquire_store_lock(database_url: str) -> IO[bytes]:
     return handle
 
 
+def refuse_multiply_linked(path: Path, what: str) -> None:
+    """A configured store file with more than one hard link could be opened
+    under another name by a second writer whose pathname locks differ:
+    refused before it is opened (a missing, fresh file is fine)."""
+    if path.is_file() and path.stat().st_nlink > 1:
+        raise StoreRefused(
+            f"{what} {path} has more than one hard link; configure a store file "
+            "with a single name"
+        )
+
+
+def acquire_control_lock(control_database_url: str) -> IO[bytes] | None:
+    """The control store's single-writer lease (ADR-021 D6), held beside the
+    content and vector leases by the serving app and by maintenance: two
+    deployments configured with one control store never write it at once.
+    ``None`` for a control store that is not a SQLite file."""
+    try:
+        path = sqlite_path(control_database_url)
+    except StoreRefused:
+        return None
+    handle = path.with_name(path.name + ".serve.lock").open("a+b")
+    if not _try_lock(handle):
+        handle.close()
+        raise StoreRefused(
+            "another process is serving or maintaining this control store"
+        )
+    return handle
+
+
 _FOREIGN_DATA_TABLES = ("sojourner_identity", "stories", "entitlement_event")
 #: Written into a content store this initialization itself created (while it
 #: had no tables), before migration; replaced by ``remote_store_marker``.
@@ -1081,10 +1110,22 @@ def maintenance_locks(
     control and vector stores to be one deployment's. Backup expiry and
     disposal touch only backup copies and the control store, so they need
     just the control binding and stay possible while a live store is damaged
-    (the 21-day obligation must remain enforceable during an outage)."""
+    (the 21-day obligation must remain enforceable during an outage).
+
+    Locks are taken content, vector, control -- the serving app's order -- and
+    each one acquired here is released here, whatever fails later."""
+    if touches_live_stores:
+        refuse_multiply_linked(sqlite_path(database_url), "the content store")
     content_lock = acquire_store_lock(database_url)
     try:
         vector_lock = acquire_vector_lock(vector_dir)
+        try:
+            control_lock = acquire_control_lock(
+                control.kw["bind"].url.render_as_string(hide_password=False)
+            )
+        except BaseException:
+            vector_lock.close()
+            raise
         try:
             if touches_live_stores:
                 check_store_pairing(database_url, vector_dir, control)
@@ -1096,6 +1137,8 @@ def maintenance_locks(
                         )
             yield
         finally:
+            if control_lock is not None:
+                control_lock.close()
             vector_lock.close()
     finally:
         content_lock.close()

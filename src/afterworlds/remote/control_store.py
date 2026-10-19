@@ -72,6 +72,8 @@ def connect_control_store(database_url: str) -> sessionmaker[Session]:
     path = url.database if url.get_backend_name() == "sqlite" else None
     if path not in (None, "", ":memory:") and not Path(str(path)).is_file():
         raise ControlStoreUnavailable("the control store does not exist")
+    if path not in (None, "", ":memory:") and Path(str(path)).stat().st_nlink > 1:
+        raise ControlStoreUnavailable("the control store has more than one hard link")
     engine = create_engine(database_url)
     try:
         with engine.connect() as conn:

@@ -109,8 +109,12 @@ preserved by D6.
 ### D6. Topology: one writer process
 
 Remote mode retains the single-uvicorn-worker envelope (Binding Decision 8). `create_app()` holds an
-exclusive OS lock on the content store **and** on the bound vector store for the process lifetime
-(released if startup is refused); a second app process, a storage command or the backfill job fails
+exclusive OS lock on the content store, on the bound vector store **and** on the control store
+(`<control>.serve.lock`, canonical path) for the process lifetime, acquired in that order before the
+control store is opened or migrated (released if startup fails); a configured content or control
+SQLite file with more than one hard link is refused before it is opened, so no second name can carry
+different pathname locks. Storage maintenance, Rules provisioning and remote backfill take the same three
+leases; bootstrap and direct authority reads take none and never migrate; a second app process, a storage command or the backfill job fails
 while they are held. Per-Story turn locks, RPG lease recovery and entitlement idempotency are
 therefore unchanged. Because the writer is one process, an in-process per-account fence
 (`AccountFence`) orders effects against closure and suppression: every remote Sojourner request
