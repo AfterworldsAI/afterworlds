@@ -31,6 +31,7 @@ from afterworlds.remote.control_orm import (
     VerificationOperationORM,
 )
 from afterworlds.remote.control_store import POLICY_VERSION, iso, parse_iso, utc_now
+from afterworlds.remote.fence import AccountFence
 from afterworlds.remote.notices import NoticeTransport
 from afterworlds.remote.verifiers import (
     hash_password,
@@ -140,10 +141,15 @@ class IdentityService:
         notices: NoticeTransport,
         *,
         now: Callable[[], datetime] = utc_now,
+        fence: AccountFence | None = None,
     ) -> None:
         self._factory = control_factory
         self._notices = notices
         self._now = now
+        #: The process's account fence (ADR-021 D6); closure takes it exclusive.
+        self.fence = fence or AccountFence()
+        #: Bounded wait for an account's in-flight effects at closure.
+        self.close_fence_timeout = 30.0
 
     # -- enrollment --------------------------------------------------------
 
@@ -391,14 +397,22 @@ class IdentityService:
     def close_account(self, actor: Actor, password: str) -> None:
         """Self-service closure: re-authenticate, close, revoke every session.
 
-        The Actor is revalidated against the store under the write lock; a
-        stale or forged Actor is refused."""
+        Holds the account's fence exclusive, whoever calls it: it waits
+        (bounded) for every admitted request or scoped service call of the
+        account, so none of their effects lands after closure returns; on
+        timeout it raises :class:`FenceBusy` and changes nothing. The Actor is
+        revalidated against the store under the write lock; a stale or forged
+        Actor is refused."""
         self._require_kind(actor, ActorKind.SOJOURNER)
         with self._factory() as s:
             principal = s.get(IdentityPrincipalORM, actor.principal_ref)
             proven = principal.password_verifier if principal else None
         if not verify_password(password, proven) or proven is None:
             raise _failed()
+        with self.fence.exclusive(actor.account_id, timeout=self.close_fence_timeout):
+            self._close(actor, proven)
+
+    def _close(self, actor: Actor, proven: str) -> None:
         now = self._now()
         with self._locked() as s:
             principal = self._require_current(s, actor, SessionContext.SOJOURNER)

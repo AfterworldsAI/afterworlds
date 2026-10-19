@@ -16,6 +16,9 @@ import pytest
 import sqlalchemy as sa
 
 from afterworlds.api.fake_pipeline import FakeProviderAdapter
+from afterworlds.api.story_bootstrap import ensure_story_turn_anchor_node
+from afterworlds.entitlement.enums import RuntimeAccessPath
+from afterworlds.models.enums import StoryMode
 from afterworlds.persistence.orm.node import TurnORM
 from afterworlds.remote.access import (
     DelayedWorkScope,
@@ -25,6 +28,17 @@ from afterworlds.remote.access import (
 from afterworlds.remote.storage import record_suppression
 from tests.api._remote import PASSWORD, RemoteHarness
 from tests.api.test_remote_isolation import _branching_in_play, _seed_hosted
+
+HOSTED = RuntimeAccessPath.HOSTED
+
+
+def _anchor(remote: RemoteHarness, sid: Any) -> uuid.UUID:
+    with remote.app.state.session_factory() as s:
+        node = ensure_story_turn_anchor_node(
+            s, uuid.UUID(str(sid)), StoryMode.BRANCHING
+        )
+        s.commit()
+        return node.node_id
 
 
 def _turns(remote: RemoteHarness) -> int:
@@ -103,7 +117,7 @@ def test_closure_that_cannot_drain_changes_nothing(
 ) -> None:
     writer = _PausedWriter(monkeypatch)
     a, closer, sid = _turn_setup(remote)
-    remote.app.state.close_fence_timeout = 0.3
+    remote.app.state.identity.close_fence_timeout = 0.3
     writer.armed = True
     turn, turn_out = _in_thread(
         lambda: a.post(f"/api/stories/{sid}/turns", json={"user_input": "I wait."})
@@ -182,8 +196,9 @@ def test_owning_service_seams_refuse_unscoped_and_cross_account_calls(
     a_id, b_id = uuid.UUID(remote.account_id(a)), uuid.UUID(remote.account_id(b))
     orchestrator = remote.app.state.orchestrator
     actions = remote.app.state.rpg_actions
+    node = _anchor(remote, sid)
     for call in (
-        lambda: orchestrator.orchestrate_turn(sid, "x", sojourner_id=a_id),
+        lambda: orchestrator.orchestrate_turn(sid, node, "x", a_id, HOSTED),
         lambda: actions.current(sid),
     ):
         with pytest.raises(StoryAccessDenied):
@@ -194,9 +209,30 @@ def test_owning_service_seams_refuse_unscoped_and_cross_account_calls(
         ):
             call()  # another account's scope
     with work_scope(DelayedWorkScope(a_id, None, "direct")):
-        with pytest.raises(StoryAccessDenied):
-            # The scope's account must be the entitlement subject passed.
-            orchestrator.orchestrate_turn(sid, "x", sojourner_id=b_id)
+        # The scope's account must be the entitlement subject, however the
+        # caller spells the arguments (review P1-A).
+        for mismatched in (
+            lambda: orchestrator.orchestrate_turn(sid, node, "x", b_id, HOSTED),
+            lambda: orchestrator.orchestrate_turn(
+                sid, node, "x", sojourner_id=b_id, access_path=HOSTED
+            ),
+            lambda: orchestrator.orchestrate_turn(
+                story_id=sid,
+                node_id=node,
+                user_input="x",
+                sojourner_id=b_id,
+                access_path=HOSTED,
+            ),
+            lambda: orchestrator.orchestrate_branching_start(sid, node, b_id, HOSTED),
+            lambda: orchestrator.orchestrate_branching_start(
+                sid, node, sojourner_id=b_id, access_path=HOSTED
+            ),
+            lambda: orchestrator.orchestrate_rpg_resume(
+                sid, node, uuid.uuid4(), access_path=HOSTED, sojourner_id=b_id
+            ),
+        ):
+            with pytest.raises(StoryAccessDenied):
+                mismatched()
         assert actions.current(sid) is None  # owner's own scope passes
 
 
@@ -243,3 +279,103 @@ def test_fenced_suppression_waits_for_the_in_flight_turn(
     _sup, turns_at_return = out[0]
     assert turns_at_return == _turns(remote) > before  # nothing landed after
     assert a.get(f"/api/stories/{sid}").status_code == 404
+
+
+def test_direct_scoped_work_holds_the_fence_against_http_closure(
+    remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review P1-B (1): an accepted direct service call holds the account
+    fence for its lifetime, so HTTP closure waits for its late commit."""
+    writer = _PausedWriter(monkeypatch)
+    a, closer, sid = _turn_setup(remote)
+    account = uuid.UUID(remote.account_id(a))
+    node = _anchor(remote, sid)
+    before = _turns(remote)
+    writer.armed = True
+
+    def direct_turn() -> Any:
+        with work_scope(DelayedWorkScope(account, None, "direct")):
+            return remote.app.state.orchestrator.orchestrate_turn(
+                uuid.UUID(sid), node, "I act directly.", account, HOSTED
+            )
+
+    work, work_out = _in_thread(direct_turn)
+    assert writer.entered.wait(30)
+
+    def close() -> tuple[int, int]:
+        resp = closer.post("/api/account/close", json={"password": PASSWORD})
+        return resp.status_code, _turns(remote)
+
+    closing, close_out = _in_thread(close)
+    closing.join(0.5)
+    assert closing.is_alive()
+    writer.release.set()
+    work.join(60)
+    closing.join(60)
+    assert work_out[0].disposition.value == "delivered"
+    status, turns_at_close = close_out[0]
+    assert status == 200
+    assert turns_at_close == _turns(remote) > before
+
+
+def test_direct_service_closure_waits_for_the_http_turn(
+    remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review P1-B (2): IdentityService.close_account takes the fence itself."""
+    from afterworlds.remote.identity import SessionContext
+
+    writer = _PausedWriter(monkeypatch)
+    a, closer, sid = _turn_setup(remote)
+    identity = remote.app.state.identity
+    actor = identity.resolve(closer.cookies.get("aw_session"), SessionContext.SOJOURNER)
+    before = _turns(remote)
+    writer.armed = True
+    turn, turn_out = _in_thread(
+        lambda: a.post(f"/api/stories/{sid}/turns", json={"user_input": "I wait."})
+    )
+    assert writer.entered.wait(30)
+
+    def close() -> int:
+        identity.close_account(actor, PASSWORD)
+        return _turns(remote)
+
+    closing, close_out = _in_thread(close)
+    closing.join(0.5)
+    assert closing.is_alive()
+    writer.release.set()
+    turn.join(60)
+    closing.join(60)
+    assert turn_out[0].status_code == 200
+    assert close_out[0] == _turns(remote) > before
+    assert a.get("/api/stories").status_code == 401
+
+
+def test_account_suppression_admits_no_new_story(remote: RemoteHarness) -> None:
+    """Review P1-C: after an account-scope suppression returns, a still-valid
+    session cannot create account-owned data; other accounts are unaffected."""
+    from afterworlds.remote.access import record_suppression_fenced
+
+    a = remote.enroll("a@example.test")
+    b = remote.enroll("b@example.test")
+    account = uuid.UUID(remote.account_id(a))
+    record_suppression_fenced(
+        remote.app.state.account_fence,
+        remote.app.state.control_factory,
+        account_id=account,
+        story_refs=[],
+        request_id="r",
+        scope="account",
+        effective_boundary_at=datetime.now(UTC),
+        now=datetime.now(UTC),
+        timeout=5,
+    )
+    resp = a.post("/api/stories", json={"title": "late", "mode": "branching"})
+    assert resp.status_code == 409
+    assert resp.json()["error_code"] == "account_operation_in_progress"
+    assert a.get("/api/stories").json()["stories"] == []
+    with remote.app.state.session_factory() as s:
+        assert s.execute(sa.text("SELECT COUNT(*) FROM stories")).scalar() == 0
+    assert (
+        b.post("/api/stories", json={"title": "B", "mode": "branching"}).status_code
+        == 201
+    )

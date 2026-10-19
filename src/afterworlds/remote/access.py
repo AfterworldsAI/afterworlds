@@ -18,7 +18,7 @@ admitted before them can land after they complete.
 
 from __future__ import annotations
 
-import threading
+import inspect
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -32,8 +32,13 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from afterworlds.persistence.orm.ownership import AccountResourceORM
 from afterworlds.remote.control_store import iso
+from afterworlds.remote.fence import AccountFence, FenceBusy
 from afterworlds.remote.identity import Actor, ActorKind, IdentityService
-from afterworlds.remote.storage import is_suppressed, record_suppression
+from afterworlds.remote.storage import (
+    active_suppressions,
+    is_suppressed,
+    record_suppression,
+)
 
 STORY = "story"
 
@@ -79,54 +84,6 @@ def bind_story(story_id: UUID) -> None:
     scope = _SCOPE.get()
     if scope is not None:
         _SCOPE.set(replace(scope, story_id=story_id))
-
-
-class FenceBusy(Exception):
-    """An exclusive account operation holds, or could not obtain, the fence."""
-
-
-class AccountFence:
-    """Per-account shared/exclusive gate for the single writer process."""
-
-    def __init__(self) -> None:
-        self._cond = threading.Condition()
-        self._shared: dict[UUID, int] = {}
-        self._exclusive: set[UUID] = set()
-
-    @contextmanager
-    def shared(self, account_id: UUID) -> Iterator[None]:
-        with self._cond:
-            if account_id in self._exclusive:
-                raise FenceBusy(str(account_id))
-            self._shared[account_id] = self._shared.get(account_id, 0) + 1
-        try:
-            yield
-        finally:
-            with self._cond:
-                self._shared[account_id] -= 1
-                self._cond.notify_all()
-
-    @contextmanager
-    def exclusive(self, account_id: UUID, *, timeout: float) -> Iterator[None]:
-        """Admit no new shared holder, wait (bounded) for current ones to
-        finish, then run the block. On timeout nothing is changed."""
-        with self._cond:
-            if account_id in self._exclusive:
-                raise FenceBusy(str(account_id))
-            self._exclusive.add(account_id)
-            drained = self._cond.wait_for(
-                lambda: self._shared.get(account_id, 0) == 0, timeout
-            )
-            if not drained:
-                self._exclusive.discard(account_id)
-                self._cond.notify_all()
-                raise FenceBusy(str(account_id))
-        try:
-            yield
-        finally:
-            with self._cond:
-                self._exclusive.discard(account_id)
-                self._cond.notify_all()
 
 
 def record_story_owner(
@@ -213,6 +170,17 @@ class AccessPolicy:
             raise StoryAccessDenied("unscoped")
         self.check_delayed_work(session, replace(scope, story_id=story_id))
 
+    def account_suppressed(self, account_id: UUID) -> bool:
+        """An account-scope deletion suppression is in force for *account_id*:
+        no new account-owned effect may be admitted."""
+        if not self.remote:
+            return False
+        assert self._control is not None
+        return any(
+            sup.scope == "account" and sup.subject_ref == str(account_id)
+            for sup in active_suppressions(self._control)
+        )
+
     def _servable(self, owner: str, story_id: UUID) -> bool:
         assert self._identity is not None and self._control is not None
         if not self._identity.active_account_ids({owner}):
@@ -238,28 +206,43 @@ class ScopedSeam:
         policy: AccessPolicy,
         session_factory: sessionmaker[Session],
         methods: frozenset[str],
+        fence: AccountFence,
     ) -> None:
         self._inner = inner
         self._policy = policy
         self._factory = session_factory
         self._methods = methods
+        self._fence = fence
 
     def __getattr__(self, name: str) -> Any:
         attr = getattr(self._inner, name)
         if name not in self._methods:
             return attr
+        signature = inspect.signature(attr)
 
         def guarded(*args: Any, **kwargs: Any) -> Any:
-            story_id = kwargs.get("story_id", args[0] if args else None)
-            if not isinstance(story_id, UUID):
-                raise StoryAccessDenied(name)
+            # Bind exactly as Python will, so positional and keyword calling
+            # conventions are checked identically.
+            try:
+                bound = signature.bind(*args, **kwargs)
+            except TypeError:
+                raise StoryAccessDenied(name) from None
+            story_id = bound.arguments.get("story_id")
             scope = current_scope()
-            sojourner = kwargs.get("sojourner_id")
-            if scope is not None and sojourner not in (None, scope.account_id):
+            if not isinstance(story_id, UUID) or scope is None:
                 raise StoryAccessDenied(name)
-            with self._factory() as session:
-                self._policy.check_current(session, story_id)
-            return attr(*args, **kwargs)
+            sojourner = bound.arguments.get("sojourner_id", scope.account_id)
+            if sojourner != scope.account_id:
+                raise StoryAccessDenied(name)
+            # The fence is held for the call's whole lifetime: closure or
+            # suppression of the account waits for it (or refuses it).
+            try:
+                with self._fence.held(scope.account_id):
+                    with self._factory() as session:
+                        self._policy.check_current(session, story_id)
+                    return attr(*args, **kwargs)
+            except FenceBusy:
+                raise StoryAccessDenied(name) from None
 
         return guarded
 

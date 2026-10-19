@@ -28,12 +28,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
 from afterworlds.remote.access import (
     AccessPolicy,
-    AccountFence,
     DelayedWorkScope,
-    FenceBusy,
     bind_story,
     work_scope,
 )
+from afterworlds.remote.fence import AccountFence, FenceBusy, mark_fence_held
 from afterworlds.remote.identity import (
     Actor,
     ActorKind,
@@ -160,6 +159,16 @@ async def enforce_access(request: Request) -> AsyncIterator[None]:
             raise ApiErrorResponse(
                 401, ApiErrorCode.AUTHENTICATION_REQUIRED, "Authentication required."
             )
+        # An account under deletion admits no new account-owned effect.
+        if request.method not in _SAFE_METHODS and await run_in_threadpool(
+            access_policy(request).account_suppressed, actor.account_id
+        ):
+            raise ApiErrorResponse(
+                409,
+                ApiErrorCode.ACCOUNT_OPERATION_IN_PROGRESS,
+                "This account is being deleted; no changes are accepted.",
+            )
+        mark_fence_held(actor.account_id)
         with work_scope(DelayedWorkScope(actor.account_id, None, "request")):
             yield
     finally:

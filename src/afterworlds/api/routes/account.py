@@ -45,7 +45,7 @@ from afterworlds.pipeline.provider import (
     ByokCredentialReadinessProvider,
     ByokSettingsService,
 )
-from afterworlds.remote.access import AccountFence, FenceBusy
+from afterworlds.remote.fence import FenceBusy
 from afterworlds.remote.identity import Actor, IdentityError
 
 router = APIRouter(prefix="/api/account", tags=["account"])
@@ -178,15 +178,10 @@ async def close_account(
     returns; on timeout nothing changes and the typed error says so."""
     identity = identity_service(request)
     assert identity is not None  # enforce_access refuses this route locally
-    fence: AccountFence = request.app.state.account_fence
-    timeout: float = request.app.state.close_fence_timeout
-
-    def close() -> None:
-        with fence.exclusive(actor.account_id, timeout=timeout):
-            identity.close_account(actor, body.password.get_secret_value())
-
     try:
-        await run_in_threadpool(close)
+        await run_in_threadpool(
+            identity.close_account, actor, body.password.get_secret_value()
+        )
     except FenceBusy:
         raise ApiErrorResponse(
             409,
