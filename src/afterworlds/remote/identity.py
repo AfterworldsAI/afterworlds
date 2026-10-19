@@ -11,6 +11,7 @@ vice versa, even for the same principal and browser.
 
 from __future__ import annotations
 
+import logging
 import re
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -39,6 +40,8 @@ from afterworlds.remote.verifiers import (
     token_verifier,
     verify_password,
 )
+
+logger = logging.getLogger("afterworlds.remote.identity")
 
 SOJOURNER_SESSION_LIFETIME = timedelta(hours=24)
 STAFF_SESSION_LIFETIME = timedelta(hours=1)
@@ -178,7 +181,7 @@ class IdentityService:
                 s.add(principal)
                 s.flush()
             code = self._issue_code(s, principal.principal_ref, "enrollment", now)
-        self._notices.send(contact_address=address, kind="enrollment", code=code)
+        self._deliver(address, "enrollment", code)
 
     def complete_enrollment(
         self, contact_address: str, code: str, password: str
@@ -352,7 +355,9 @@ class IdentityService:
         except IdentityError:
             return
         now = self._now()
-        with self._factory.begin() as s:
+        # Eligibility, supersession of every open code and the new code are
+        # one serialized transition: overlapping requests leave one open code.
+        with self._locked() as s:
             principal = s.scalar(
                 sa.select(IdentityPrincipalORM).where(
                     IdentityPrincipalORM.contact_address == address
@@ -361,7 +366,7 @@ class IdentityService:
             if principal is None or self._active_account(s, principal) is None:
                 return
             code = self._issue_code(s, principal.principal_ref, "recovery", now)
-        self._notices.send(contact_address=address, kind="recovery", code=code)
+        self._deliver(address, "recovery", code)
 
     def complete_recovery(
         self, contact_address: str, code: str, new_password: str
@@ -608,6 +613,23 @@ class IdentityService:
         return BootstrapOutcome.PROVISIONED
 
     # -- internals ---------------------------------------------------------
+
+    def _deliver(self, address: str, kind: str, code: str) -> None:
+        """Hand a committed code to the notice transport. An expected delivery
+        failure (the outbox cannot be written) is recorded for the operator
+        with a fixed category and an opaque correlation id only -- never the
+        address, code or exception text -- and the caller still answers the
+        same ``accepted`` as for an ineligible address (#205 §6). The code
+        stays issued and simply expires."""
+        try:
+            self._notices.send(contact_address=address, kind=kind, code=code)
+        except OSError:
+            logger.error(
+                "notice delivery failed: category=notice_outbox_unwritable "
+                "kind=%s correlation=%s",
+                kind,
+                uuid4().hex,
+            )
 
     def _refuse_bootstrap(self, now: datetime, reason_code: str) -> None:
         with self._locked() as s:

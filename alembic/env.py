@@ -33,7 +33,9 @@ import afterworlds.pipeline.provider._refusal_log  # noqa: F401
 config = context.config
 
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # Keep the application's own loggers (created before startup migration)
+    # enabled: fileConfig would otherwise silence them for the process.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
 

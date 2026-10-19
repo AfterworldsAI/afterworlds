@@ -704,3 +704,83 @@ class TestVerifierWork:
         assert responses[0] == responses[1]
         assert responses[0][0] == 401
         assert responses[0][1]["error_code"] == "authentication_failed"
+
+
+class TestNoticeDeliveryFailure:
+    """Root finding (notice failure non-disclosure): an outbox that cannot be
+    written gives eligible and ineligible addresses the same 202, logs only a
+    fixed category, and changes nothing else."""
+
+    def test_enrollment_and_recovery_answer_the_same_when_delivery_fails(
+        self, remote: RemoteHarness, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        import logging
+        import shutil
+
+        from fastapi.testclient import TestClient
+
+        from afterworlds.api.remote_access import CSRF_HEADER
+
+        known = remote.enroll("known-zq8marker@example.test")
+        # The outbox becomes unwritable: its directory is replaced by a file.
+        shutil.rmtree(remote.outbox)
+        remote.outbox.write_text("not a directory", encoding="utf-8")
+        quiet = TestClient(
+            remote.app,
+            base_url="https://testserver",
+            headers={CSRF_HEADER: "1"},
+            raise_server_exceptions=False,
+        )
+        caplog.set_level(logging.DEBUG)
+        with quiet:
+            pairs = {
+                "register": [
+                    quiet.post(
+                        "/api/auth/register",
+                        json={"contact_address": address},
+                    )
+                    for address in (
+                        "fresh-zq8marker@example.test",  # eligible: gets a code
+                        "known-zq8marker@example.test",  # verified: none
+                    )
+                ],
+                "recovery": [
+                    quiet.post(
+                        "/api/auth/recovery",
+                        json={"contact_address": address},
+                    )
+                    for address in (
+                        "known-zq8marker@example.test",  # eligible: gets a code
+                        "nobody-zq8marker@example.test",  # unknown: none
+                    )
+                ],
+            }
+        for kind, (eligible, ineligible) in pairs.items():
+            assert eligible.status_code == ineligible.status_code == 202, kind
+            assert eligible.json() == ineligible.json(), kind
+            assert "set-cookie" not in eligible.headers
+        failures = [r for r in caplog.records if "notice delivery failed" in r.message]
+        assert {r.getMessage().split("kind=")[1].split()[0] for r in failures} == {
+            "enrollment",
+            "recovery",
+        }
+        logged = "\n".join(
+            r.getMessage() + (str(r.exc_info) if r.exc_info else "")
+            for r in caplog.records
+        )
+        assert "zq8marker" not in logged and "not a directory" not in logged
+        assert "Errno" not in logged and "Traceback" not in logged
+        # Failed delivery alone changed nothing: the session and password hold.
+        assert known.get("/api/stories").status_code == 200
+        assert (
+            remote.client()
+            .post(
+                "/api/auth/sign-in",
+                json={
+                    "contact_address": "known-zq8marker@example.test",
+                    "password": PASSWORD,
+                },
+            )
+            .status_code
+            == 200
+        )

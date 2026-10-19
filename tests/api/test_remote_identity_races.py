@@ -208,3 +208,76 @@ def _catch(fn: Callable[[], Any]) -> Any:
         return fn()
     except IdentityError as exc:
         return exc
+
+
+class _AllNotices:
+    """Keeps every notice (a dict would overwrite the earlier code)."""
+
+    def __init__(self) -> None:
+        self.sent: list[tuple[str, str, str]] = []
+
+    def send(self, *, contact_address: str, kind: str, code: str) -> None:
+        self.sent.append((contact_address, kind, code))
+
+
+def test_overlapping_recovery_requests_leave_one_open_code(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review 5574344603 r4316052830: eligibility, supersession and the new
+    code are one serialized transition. Two overlapping requests leave one
+    open recovery code; the superseded code fails; the survivor works once."""
+    import sqlalchemy as sa
+
+    from afterworlds.remote.control_orm import VerificationOperationORM
+    from afterworlds.remote.verifiers import token_verifier
+
+    notices = _AllNotices()
+    control = open_control_store(f"sqlite:///{tmp_path / 'control.db'}")
+    service = IdentityService(control, notices)
+    service.register(ADDRESS)
+    service.complete_enrollment(ADDRESS, notices.sent[-1][2], PASSWORD)
+
+    # Each issuance pauses after reading the open codes and before inserting
+    # its own until the other arrives (bounded): unserialized issuance
+    # interleaves there; serialized issuance cannot, so the wait times out.
+    arrived: list[int] = []
+    both = threading.Event()
+    real_token = identity_module.new_token
+
+    def coordinated_token() -> str:
+        arrived.append(1)
+        if len(arrived) >= 2:
+            both.set()
+        both.wait(1.5)
+        return real_token()
+
+    monkeypatch.setattr(identity_module, "new_token", coordinated_token)
+    results: list[Any] = []
+    threads = [_run(lambda: service.begin_recovery(ADDRESS), results) for _ in "ab"]
+    for thread in threads:
+        thread.join(30)
+        assert not thread.is_alive()
+    monkeypatch.undo()
+    assert results == [None, None]
+    codes = [code for _, kind, code in notices.sent if kind == "recovery"]
+    assert len(codes) == 2  # both requests issued (and notified) a code
+
+    with control() as s:
+        open_ops = s.scalars(
+            sa.select(VerificationOperationORM).where(
+                VerificationOperationORM.kind == "recovery",
+                VerificationOperationORM.used_at.is_(None),
+                VerificationOperationORM.revoked_at.is_(None),
+            )
+        ).all()
+    assert len(open_ops) == 1  # serialized: the later issuance superseded
+    [survivor] = [c for c in codes if token_verifier(c) == open_ops[0].code_verifier]
+    [superseded] = [c for c in codes if c != survivor]
+
+    with pytest.raises(IdentityError):
+        service.complete_recovery(ADDRESS, superseded, NEW_PASSWORD)
+    service.complete_recovery(ADDRESS, survivor, NEW_PASSWORD)
+    for code in (survivor, superseded):  # neither resets again
+        with pytest.raises(IdentityError):
+            service.complete_recovery(ADDRESS, code, OTHER_PASSWORD)
+    service.sign_in(ADDRESS, NEW_PASSWORD, SessionContext.SOJOURNER)
