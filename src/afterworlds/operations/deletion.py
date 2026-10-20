@@ -893,6 +893,16 @@ def deletion_preview(
                 s.scalar(sa.select(sa.func.count()).where(TurnORM.node_id.in_(nodes)))
                 or 0
             )
+            # Attributable orphan Turns are in scope too (review sibling audit).
+            turns += int(
+                s.scalar(
+                    sa.select(sa.func.count()).where(
+                        TurnORM.node_id.is_(None),
+                        TurnORM.turn_id.in_(referenced_turn_ids(s, [sid])),
+                    )
+                )
+                or 0
+            )
     commercial = (
         commercial_dependency(ctx, view.subject_ref)
         if view.scope == "account" and ctx.environment == "remote"

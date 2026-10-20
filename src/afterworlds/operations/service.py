@@ -251,6 +251,12 @@ class DataRequestService:
             raise OperationError(
                 OperationErrorKind.NOT_FOUND, "No export is available for download."
             )
+        if self._policy.remote and self._carries_suppressed(view):
+            # Its Stories are being deleted: the artifact is about to be
+            # removed by that deletion and is no longer served.
+            raise OperationError(
+                OperationErrorKind.NOT_FOUND, "No export is available for download."
+            )
         with self._ops() as s:
             row = s.get(ExportArtifactORM, artifact.artifact_id)
             assert row is not None
@@ -260,6 +266,26 @@ class DataRequestService:
                 OperationErrorKind.UNAVAILABLE, "The export file is unavailable."
             )
         return path, artifact.artifact_id
+
+    def _carries_suppressed(self, view: RequestView) -> bool:
+        manifest: dict[str, Any] = next(
+            (
+                r["body"]
+                for r in view.receipts
+                if r["receipt_kind"] == "export_manifest"
+            ),
+            {},
+        )
+        stories = set(view.story_refs) | set(
+            manifest.get("snapshot_boundary", {}).get("stories", {})
+        )
+        assert self.deletion.control is not None
+        return any(
+            is_suppressed(
+                self.deletion.control, story_id=story, account_id=view.subject_ref
+            )
+            for story in stories
+        )
 
     def mark_delivered(self, artifact_id: str) -> None:
         """Called after a download response's body was fully sent."""

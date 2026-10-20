@@ -98,7 +98,9 @@ class TestExport:
         s1 = play_branching(a, "First tale", "I open the gate.")
         s2 = play_branching(a, "Second tale", "I climb the tower.")
         sb = play_branching(b, "B's tale", "B wanders.")
-        plant(remote.app.state.session_factory, s1, "HIDDENMARK")
+        plant(
+            remote.app.state.session_factory, s1, "HIDDENMARK", orphan_marker="ORPHANOK"
+        )
         staff = remote.staff()
 
         # B can neither request nor see A's Story or request.
@@ -152,6 +154,8 @@ class TestExport:
         assert any("I open the gate." in t["user_input"] for t in story["transcript"])
         everything = str(files)
         assert "HIDDENMARK" not in everything
+        # Attributable orphan Turn prose is the player's own transcript.
+        assert "ORPHANOK" in everything
         assert s2 not in everything and sb not in everything
         assert "B wanders" not in everything
         codes = {e["code"] for e in manifest["exclusions"]}

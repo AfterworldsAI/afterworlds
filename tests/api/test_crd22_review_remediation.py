@@ -268,6 +268,32 @@ class TestExportCoordination:
             assert view["artifact"] is None or view["artifact"]["status"] != "available"
         assert rows_with(remote.app.state.session_factory, "RACEMARK") == []
 
+    def test_an_artifact_of_a_story_under_deletion_is_not_served(
+        self, remote: RemoteHarness
+    ) -> None:
+        a, _ = _account(remote, "a@example.test")
+        s1 = play_branching(a, "Served", "Before.")
+        staff = remote.staff()
+        exp = _request(a, "export", "story", s1)
+        _approve(staff, exp["request_id"])
+        _execute(staff, exp["request_id"])
+        url = f"/api/data-requests/{exp['request_id']}/artifact"
+        assert a.get(url).status_code == 200
+        dele = _request(a, "deletion", "story", s1)
+        _confirm(a, dele)
+        _approve(staff, dele["request_id"])
+        ctx = remote.app.state.data_requests.deletion
+        real = ctx.delete_story_chunks
+
+        def broken(_: str) -> int:
+            raise RuntimeError("chroma down")
+
+        ctx.delete_story_chunks = broken
+        assert _execute(staff, dele["request_id"])["state"] == "failed"
+        ctx.delete_story_chunks = real
+        # Suppressed but not yet cleaned up: never served again.
+        assert a.get(url).status_code == 404
+
 
 class TestExportBeforeClosure:
     """P1-3: account deletion never strands a requested export."""

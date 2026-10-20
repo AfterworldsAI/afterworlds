@@ -64,7 +64,7 @@ def test_local_export_and_deletion_need_no_cloud_account(local: Any) -> None:
     assert c.get("/api/auth/session").json()["signed_in"] is False
     s1 = play_branching(c, "Local one", "I light a lamp.")
     s2 = play_branching(c, "Local two", "I read.")
-    plant(app.state.session_factory, s1, "LOCALMARK")
+    plant(app.state.session_factory, s1, "LOCALMARK", orphan_marker="LOCALORPHAN")
 
     exp = c.post(
         "/api/data-requests", json={"kind": "export", "scope": "account"}
@@ -91,6 +91,7 @@ def test_local_export_and_deletion_need_no_cloud_account(local: Any) -> None:
     assert phases["physical_compaction"] == "owner_controlled"
     assert phases["backups"] == "not_applicable"
     assert rows_with(app.state.session_factory, "LOCALMARK") == []
+    assert rows_with(app.state.session_factory, "LOCALORPHAN") == []
     assert chunk_count(s1) == 0 and chunk_count(s2) > 0
     assert c.get(f"/api/stories/{s1}").status_code == 404
     assert c.get(f"/api/stories/{s2}").status_code == 200
