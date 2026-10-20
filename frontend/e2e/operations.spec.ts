@@ -295,14 +295,16 @@ test("account-wide export then deletion, with a receipt after closure", async ()
   await b.reload();
   await expect(b.getByRole("heading", { name: "Sign in" })).toBeVisible();
   // The signed-out app reads the request by its receipt code.
-  const lookup = b.getByRole("region", { name: "Request status" });
-  await b.getByLabel("Request ID").fill(requestId);
-  await b.getByLabel("Receipt code").fill("not-the-code");
-  await b.getByRole("button", { name: "Check request" }).click();
-  await expect(b.getByRole("alert")).toBeVisible();
+  const form = b.getByRole("region", { name: "Check a data request" });
+  const lookup = form.getByRole("region", { name: "Request status" });
+  await form.getByLabel("Request ID").fill(requestId);
+  await form.getByLabel("Receipt code").fill("not-the-code");
+  await form.getByRole("button", { name: "Check request" }).click();
+  await expect(form.getByRole("alert")).not.toBeEmpty();
   await expect(lookup).toHaveCount(0);
-  await b.getByLabel("Receipt code").fill(credential);
-  await b.getByRole("button", { name: "Check request" }).click();
+  await form.getByLabel("Receipt code").fill(credential);
+  await form.getByRole("button", { name: "Check request" }).click();
+  await expect(form.getByRole("alert")).toHaveCount(0);
   await expect(lookup).toContainText(
     "Deletion of the whole account: In progress",
   );
@@ -313,7 +315,7 @@ test("account-wide export then deletion, with a receipt after closure", async ()
   await expect(progress).toContainText(
     "commercial: blocked: a required service is not available yet",
   );
-  await expect(b.getByLabel("Receipt code")).toHaveValue("");
+  await expect(form.getByLabel("Receipt code")).toHaveValue("");
   // A's account and remaining Story are unaffected.
   expect((await call(a, "GET", "/api/stories")).status).toBe(200);
 });

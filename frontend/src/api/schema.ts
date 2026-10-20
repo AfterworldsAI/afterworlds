@@ -991,8 +991,8 @@ export interface paths {
         put?: never;
         /**
          * Execute Local Request
-         * @description Local owner only. A deletion first takes the per-Story turn locks of
-         *     every Story in scope, so no in-flight turn can land after it.
+         * @description Local owner only. A deletion holds the local owner fence exclusive for
+         *     its whole run (``DataRequestService.execute_local``).
          */
         post: operations["execute_local_request_api_data_requests__request_id__execute_post"];
         delete?: never;

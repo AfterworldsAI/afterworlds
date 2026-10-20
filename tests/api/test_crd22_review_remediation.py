@@ -433,7 +433,7 @@ class TestReceiptCredentialRecovery:
             _error(
                 a.post(
                     f"/api/data-requests/{req['request_id']}/receipt-credential",
-                    json={"password": "wrong password!!"},
+                    json={"password": "wrong password!!"},  # pragma: allowlist secret
                 )
             )
             == "operation_precondition_failed"

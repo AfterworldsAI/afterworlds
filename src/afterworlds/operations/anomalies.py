@@ -83,7 +83,7 @@ _UNRECORDED = threading.Event()
 
 
 def record_settlement_failure(
-    ops: sessionmaker[Session],
+    ops: sessionmaker[Session] | None,
     *,
     subject_ref: str,
     turn_id: str | None,
@@ -92,8 +92,14 @@ def record_settlement_failure(
 ) -> None:
     """Make a delivered turn's settlement failure durable (the turn stays
     delivered; nothing is retried or charged). Best effort: a failure to
-    record is logged with a fixed category and never affects the turn."""
+    record is logged with a fixed category and never affects the turn.
+    No store (a caller that set no ``SETTLEMENT_SINK``) is such a failure too,
+    so it degrades the source instead of disappearing."""
     source = turn_id or str(uuid4())
+    if ops is None:
+        _UNRECORDED.set()
+        logger.error("anomaly record failed: category=settlement_anomaly_unrecorded")
+        return
     try:
         with ops.begin() as s:
             s.add(

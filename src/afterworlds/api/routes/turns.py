@@ -363,15 +363,13 @@ def _run_turn_sync(
                 # here, inside the admitted worker, so a cancelled or lost
                 # HTTP response cannot drop it (review round 2, F9). The turn
                 # stays delivered; nothing is retried or charged.
-                sink = SETTLEMENT_SINK.get()
-                if sink is not None:
-                    record_settlement_failure(
-                        sink,
-                        subject_ref=str(sojourner_id),
-                        turn_id=str(result.turn_id) if result.turn_id else None,
-                        error_class=type(exc).__name__,
-                        now=datetime.now(UTC),
-                    )
+                record_settlement_failure(
+                    SETTLEMENT_SINK.get(),
+                    subject_ref=str(sojourner_id),
+                    turn_id=str(result.turn_id) if result.turn_id else None,
+                    error_class=type(exc).__name__,
+                    now=datetime.now(UTC),
+                )
 
         provider_refusal_dto = (
             ProviderRefusalSummaryDTO(

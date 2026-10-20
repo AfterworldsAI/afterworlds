@@ -663,6 +663,14 @@ def run_deletion(ctx: DeletionContext, view: RequestView, attempt_id: str) -> No
                 rid, attempt_id, RequestState.FAILED, reason_code="identity_refused"
             )
             return
+        except OSError:
+            # A notice copy that could not be verified gone (review round 2,
+            # F6): nothing was erased; resolve the outbox, then retry.
+            record(rid, attempt_id, "identity", "failed", detail_code="notice_copy")
+            ctx.store.end_attempt(
+                rid, attempt_id, RequestState.FAILED, reason_code="notice_copy"
+            )
+            return
         record(rid, attempt_id, "identity", "succeeded", detail_code=outcome)
     else:
         record(rid, attempt_id, "identity", "not_applicable")

@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import gc
 import json
+import sqlite3
 import subprocess
 import sys
 from collections.abc import Callable, Iterator
@@ -198,7 +199,13 @@ def main(argv: list[str] | None = None) -> int:
     except (StoreRefused, ControlStoreUnavailable, KeyError) as exc:
         print(f"{args.command} refused: {exc}", file=sys.stderr)
         return 1
-    except (ChromaError, subprocess.CalledProcessError, OSError) as exc:
+    except (
+        ChromaError,
+        subprocess.CalledProcessError,
+        OSError,
+        RuntimeError,
+        sqlite3.Error,
+    ) as exc:
         # Nothing is reported done; an interrupted compaction resumes on retry.
         print(
             f"{args.command} failed ({type(exc).__name__}); retry the command",

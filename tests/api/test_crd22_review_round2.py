@@ -427,6 +427,33 @@ class TestSettlementSource:
         report = staff.get("/api/admin/anomalies").json()
         assert [x for x in report["anomalies"] if x["source_kind"] == "turn_settlement"]
 
+    @pytest.mark.parametrize("store", ["none", "failing"])
+    def test_an_unrecordable_failure_degrades_the_source(
+        self, remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch, store: str
+    ) -> None:
+        from sqlalchemy.exc import OperationalError
+
+        from afterworlds.operations import anomalies
+
+        monkeypatch.setattr(anomalies, "_UNRECORDED", threading.Event())
+        staff = remote.staff()
+        report = staff.get("/api/admin/anomalies").json()
+        assert report["sources"]["settlement_failures"] == "available"
+
+        class Failing:
+            def begin(self) -> Any:
+                raise OperationalError("INSERT", {}, Exception("disk full"))
+
+        anomalies.record_settlement_failure(
+            None if store == "none" else Failing(),  # type: ignore[arg-type]
+            subject_ref="s",
+            turn_id="t",
+            error_class="EntitlementSettlementError",
+            now=datetime.now(UTC),
+        )
+        report = staff.get("/api/admin/anomalies").json()
+        assert report["sources"]["settlement_failures"] == "degraded"
+
 
 class TestNoticeOwnership:
     """F6: a notice is published complete; an interrupted write to the
@@ -479,6 +506,7 @@ class TestBoundedText:
             "Goodwill after an outage",
             "Refund for 3 failed turns on 2026-10-19",
             "crd22_settlement_failure investigated",
+            "Duplicate of request 550e8400-e29b-41d4-a716-446655440000",
         ],
     )
     def test_admits_ordinary_reasons(self, text: str) -> None:
@@ -559,3 +587,39 @@ class TestRpgExport:
         assert "RPGORPHANOK" in everything  # the player's own orphan prose
         codes = {e["code"] for e in files["manifest.json"]["exclusions"]}
         assert "hidden_rpg_mechanics" in codes
+
+
+class TestNoticeErasure:
+    """F6 through the real executor: an outbox notice that cannot be
+    attributed fails the identity phase visibly, erases nothing, and a retry
+    after the operator resolves it completes the erasure."""
+
+    def test_unattributable_notice_fails_visibly_then_retries(
+        self, remote: RemoteHarness
+    ) -> None:
+        a = remote.enroll("gone@example.test")
+        remote.seed_hosted(remote.account_id(a))
+        staff = remote.staff()
+        req = _request(a, "deletion", "account")
+        _confirm(a, req, password=PASSWORD)
+        _approve(staff, req["request_id"])
+        torn = remote.outbox / "recovery-torn.json"
+        torn.write_text('{"to": "gone@', encoding="utf-8")
+
+        failed = _execute(staff, req["request_id"])
+        assert failed["state"] == "failed"
+        assert _phase(failed, "identity") == "failed"
+        # Nothing was erased: the owner can still sign in.
+        again = remote.client()
+        signed_in = again.post(
+            "/api/auth/sign-in",
+            json={"contact_address": "gone@example.test", "password": PASSWORD},
+        )
+        assert signed_in.status_code == 200, signed_in.text
+
+        torn.unlink()  # the operator resolved the copy
+        done = _execute(staff, req["request_id"])
+        assert _phase(done, "identity") == "succeeded"
+        assert not any(
+            b"gone@" in p.read_bytes() for p in remote.outbox.iterdir() if p.is_file()
+        )

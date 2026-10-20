@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import sqlalchemy as sa
 
 from afterworlds.api.app import create_app
 from afterworlds.operations import maintenance
@@ -284,6 +285,14 @@ def test_account_erasure_compaction_disposes_live_control_store(
     h.seed_hosted(h.account_id(a))
     play_branching(a, "Mine", "I write.")
     staff = h.staff()
+    from afterworlds.remote.control_orm import IdentityPrincipalORM
+
+    with h.app.state.control_factory() as s:
+        verifier = s.scalars(
+            sa.select(IdentityPrincipalORM.password_verifier).where(
+                IdentityPrincipalORM.contact_address == "erased-owner@example.test"
+            )
+        ).one()
     req = a.post(
         "/api/data-requests", json={"kind": "deletion", "scope": "account"}
     ).json()
@@ -319,6 +328,7 @@ def test_account_erasure_compaction_disposes_live_control_store(
     code, out = _cli(maintenance, capsys, "compact")
     assert code == 0, out
     assert control_hits("erased-owner@example.test") == []
+    assert control_hits(verifier) == []  # nor its password verifier
     assert control_hits("kept-owner@example.test")  # the other account remains
     evidence = json.loads(out)["compacted"]
     assert evidence["control"] == {"checkpoint_busy": 0, "wal_bytes": 0}

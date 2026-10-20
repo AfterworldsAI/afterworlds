@@ -73,6 +73,7 @@ _PERSONAL = re.compile(
     r"|(?=[A-Za-z0-9\-+/=]*\d)(?=[A-Za-z0-9\-+/=]*[A-Za-z])[A-Za-z0-9\-+/=]{24,}",
     re.IGNORECASE,
 )
+_UUID = re.compile(r"\b[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b", re.IGNORECASE)
 _DELTA = re.compile(r"^[+-]?\d{1,8}(\.\d{1,4})?$")
 #: Namespace of support adjustments in the global entitlement idempotency keys.
 IDEMPOTENCY_PREFIX = "crd22-support-adjustment:"
@@ -109,7 +110,8 @@ def bounded_text(value: str, what: str = "reason") -> str:
             OperationErrorKind.INVALID_INPUT,
             f"The {what} looks like it contains a credential; remove it.",
         )
-    if _PERSONAL.search(text):
+    # Canonical UUIDs (request, Turn, event IDs) are what staff cite.
+    if _PERSONAL.search(_UUID.sub(" ", text)):
         raise OperationError(
             OperationErrorKind.INVALID_INPUT,
             f"The {what} must not contain an email address, link, long number "
