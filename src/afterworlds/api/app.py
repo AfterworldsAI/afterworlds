@@ -11,6 +11,7 @@ import asyncio
 import contextlib
 import gc
 import logging
+import tempfile
 from collections import defaultdict
 from pathlib import Path
 from uuid import UUID
@@ -34,6 +35,7 @@ from afterworlds.api.remote_access import authorize_story, enforce_access
 from afterworlds.api.routes.account import router as account_router
 from afterworlds.api.routes.admin import router as admin_router
 from afterworlds.api.routes.auth import router as auth_router
+from afterworlds.api.routes.data_requests import router as data_requests_router
 from afterworlds.api.routes.health import router as health_router
 from afterworlds.api.routes.personas import router as personas_router
 from afterworlds.api.routes.rpg_actions import router as rpg_actions_router
@@ -44,13 +46,16 @@ from afterworlds.api.routes.stories import story_router
 from afterworlds.api.routes.turns import router as turns_router
 from afterworlds.api.routes.visible_state import router as visible_state_router
 from afterworlds.api.rpg_actions import RpgActions
+from afterworlds.operations.service import DataRequestService
 from afterworlds.operations.support import SupportService
+from afterworlds.operations.vectors import story_chunk_deleter
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.pipeline.provider import (
     ByokCredentialReadinessProvider,
     ByokSettingsService,
 )
 from afterworlds.pipeline.provider.credentials import make_credential_store
+from afterworlds.pipeline.retrieval.client import build_chroma_client
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.remote.access import AccessPolicy, IdentityUnavailable, ScopedSeam
 from afterworlds.remote.control_store import open_control_store, utc_now
@@ -149,6 +154,17 @@ def _release_construction(app: FastAPI, chroma_before: dict[str, int]) -> None:
                 handle.close()
 
 
+def export_dir(settings: ApiSettings) -> Path:
+    """Where service-managed export artifacts live (CRD Issue 22)."""
+    if settings.export_dir is not None:
+        return settings.export_dir
+    try:
+        db = sqlite_path(settings.database_url)
+    except StoreRefused:  # an in-memory test store has no directory
+        return Path(tempfile.gettempdir()) / "afterworlds-exports"
+    return db.with_name(db.name + ".exports")
+
+
 def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
     remote = settings.deployment == "remote"
 
@@ -165,6 +181,7 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
         # The public static root is served unauthenticated: no live store may
         # be in or around it (checked before any store is created).
         private: list[tuple[Path | str, str]] = [
+            (export_dir(settings), "the export artifact directory"),
             (sqlite_path(settings.database_url), "the content store"),
             (vector_dir, "the live vector store"),
             (outbox, "the notice outbox"),
@@ -276,6 +293,21 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
             ),
             app.state.account_fence,
         )
+    # CRD Issue 22: Story and account-wide data requests, both deployments.
+    retrieval_config = RetrievalMemoryConfig.from_env()
+    app.state.data_requests = DataRequestService(
+        ops=control_factory if remote else session_factory,
+        content=session_factory,
+        environment="remote" if remote else "local",
+        policy=app.state.access_policy,
+        delete_story_chunks=story_chunk_deleter(
+            lambda: build_chroma_client(retrieval_config)
+        ),
+        export_dir=export_dir(settings),
+        identity=app.state.identity,
+        fence=app.state.account_fence if remote else None,
+        support=app.state.support if remote else None,
+    )
     # DoR-E: the readiness seam is constructed once here and consumed only
     # inside the access-path selection helper (api/access_path.py callers) --
     # never in a route handler directly.
@@ -314,6 +346,7 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
     app.include_router(rpg_setup_router, dependencies=story_guard)
     app.include_router(personas_router)
     app.include_router(account_router)
+    app.include_router(data_requests_router)
 
     @app.exception_handler(ApiErrorResponse)
     async def _api_error_handler(

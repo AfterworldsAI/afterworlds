@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field, SecretStr, StrictBool, StrictInt, field_validator
@@ -960,4 +960,215 @@ class SupportOperationResponse(BaseModel):
     source_entitlement_event_id: UUID | None
     events: list[SupportEventDTO]
     account: AdminAccountViewResponse | None = None
+    schema_version: Literal[1] = 1
+
+
+# ---------------------------------------------------------------------------
+# CRD Issue 22 data requests (Story and account-wide export/deletion).
+# ---------------------------------------------------------------------------
+
+
+class DataRequestKind(StrEnum):
+    EXPORT = "export"
+    DELETION = "deletion"
+
+
+class DataRequestScope(StrEnum):
+    STORY = "story"
+    ACCOUNT = "account"
+
+
+class DataRequestState(StrEnum):
+    REQUESTED = "requested"
+    AWAITING_AUTHORIZATION = "awaiting_authorization"
+    APPROVED = "approved"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    REJECTED = "rejected"
+
+
+class CreateDataRequest(BaseModel):
+    """The subject is always the authenticated (or local) owner; a request
+    never names an account."""
+
+    model_config = {"extra": "forbid"}
+
+    kind: DataRequestKind
+    scope: DataRequestScope
+    story_id: UUID | None = None
+    schema_version: Literal[1] = 1
+
+
+class DataRequestTransitionDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    revision: int
+    state: DataRequestState
+    attempt_id: UUID | None
+    #: requester | administrator | system
+    actor_role: str
+    #: Administrator views only.
+    actor_ref: str | None = None
+    authorization_code: str | None
+    reason_code: str | None
+    reason_text: str | None
+    recorded_at: datetime
+    schema_version: Literal[1] = 1
+
+
+class DataRequestPhaseDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    phase_code: str
+    #: pending | succeeded | failed | unverified | not_applicable |
+    #: dependency_unavailable | owner_controlled
+    outcome_code: str
+    attempt_id: UUID
+    counts: dict[str, int]
+    detail_code: str | None
+    observed_at: datetime
+    deadline_at: datetime | None
+    schema_version: Literal[1] = 1
+
+
+class DataRequestReceiptDTO(BaseModel):
+    """An export manifest or deletion receipt: IDs, counts, classes, times."""
+
+    model_config = {"extra": "forbid"}
+
+    receipt_id: UUID
+    receipt_kind: str
+    attempt_id: UUID
+    created_at: datetime
+    body: dict[str, Any]
+    schema_version: Literal[1] = 1
+
+
+class ExportArtifactDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    status: str
+    available_at: datetime | None
+    expires_at: datetime
+    removed_at: datetime | None
+    size_bytes: int | None
+    schema_version: Literal[1] = 1
+
+
+class DataRequestDTO(BaseModel):
+    """Authoritative status. ``state`` is the last recorded transition;
+    ``progress_code`` names pending deletion phases (for example
+    ``active_data_removed_backups_pending``); ``overdue`` lists missed
+    deadlines. Completion is never inferred from a queued step."""
+
+    model_config = {"extra": "forbid"}
+
+    request_id: UUID
+    kind: DataRequestKind
+    environment: Literal["remote", "local"]
+    scope: DataRequestScope
+    story_ids: list[UUID]
+    state: DataRequestState
+    revision: int
+    requested_at: datetime
+    verified_at: datetime
+    confirmed_at: datetime | None
+    approved_at: datetime | None
+    closed_at: datetime | None
+    export_deadline_at: datetime | None
+    live_deadline_at: datetime | None
+    backup_deadline_at: datetime | None
+    overdue: list[str]
+    progress_code: str | None
+    policy_version: str
+    transitions: list[DataRequestTransitionDTO]
+    phases: list[DataRequestPhaseDTO]
+    receipts: list[DataRequestReceiptDTO]
+    artifact: ExportArtifactDTO | None
+    #: Administrator views only.
+    subject_ref: UUID | None = None
+    schema_version: Literal[1] = 1
+
+
+class DataRequestListResponse(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    requests: list[DataRequestDTO]
+    schema_version: Literal[1] = 1
+
+
+class RetainedCategoryDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    code: str
+    purpose: str
+    end_condition: str
+    schema_version: Literal[1] = 1
+
+
+class DeletionPreviewResponse(BaseModel):
+    """What confirmation would delete and retain, with its limits. Submit
+    ``scope_revision`` with the confirmation: a changed scope is refused."""
+
+    model_config = {"extra": "forbid"}
+
+    scope: DataRequestScope
+    story_ids: list[UUID]
+    counts: dict[str, int]
+    removed_classes: list[str]
+    retained_categories: list[RetainedCategoryDTO]
+    scope_revision: str
+    live_deletion_limit_days: int
+    final_deletion_limit_days: int | None
+    commercial_dependency: str
+    notices: list[str]
+    schema_version: Literal[1] = 1
+
+
+class ConfirmDeletionRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    expected_revision: StrictInt
+    scope_revision: str = Field(min_length=1, max_length=64)
+    #: Required to confirm remote account deletion.
+    password: SecretStr | None = Field(default=None, max_length=1024)
+    schema_version: Literal[1] = 1
+
+
+class ConfirmDeletionResponse(BaseModel):
+    """``receipt_credential`` is shown once (remote account deletion): keep it
+    to read this request's status and receipt after the account is closed."""
+
+    model_config = {"extra": "forbid"}
+
+    request: DataRequestDTO
+    receipt_credential: str | None = None
+    schema_version: Literal[1] = 1
+
+
+class DataRequestStepRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    expected_revision: StrictInt
+    reason: str | None = Field(default=None, max_length=280)
+    schema_version: Literal[1] = 1
+
+
+class RejectDataRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    expected_revision: StrictInt
+    reason_code: Literal[
+        "out_of_scope", "unverified_requester", "duplicate", "administrator"
+    ]
+    reason: str = Field(min_length=1, max_length=280)
+    schema_version: Literal[1] = 1
+
+
+class ReceiptLookupRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    request_id: str = Field(min_length=1, max_length=64)
+    credential: SecretStr = Field(min_length=1, max_length=128)
     schema_version: Literal[1] = 1

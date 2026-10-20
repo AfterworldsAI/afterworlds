@@ -1,0 +1,485 @@
+"""Data-request service -- the CRD Issue 22 §4-§6 entry point for the API.
+
+Binds every request to the trusted actor (never a submitted ID): a remote
+Sojourner's subject is their authenticated account, a local request's is the
+local owner, and the Owner administrator acts only through a staff session.
+A request the caller does not own is the same ``not_found`` as a missing one.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+from uuid import UUID
+
+from sqlalchemy.orm import Session, sessionmaker
+
+from afterworlds.operations.deletion import (
+    DeletionContext,
+    current_scope_story_ids,
+    deletion_preview,
+    evaluate,
+    run_deletion,
+)
+from afterworlds.operations.errors import OperationError, OperationErrorKind
+from afterworlds.operations.export import (
+    ExportInputs,
+    build_archive,
+    produce_artifact,
+)
+from afterworlds.operations.orm import ExportArtifactORM
+from afterworlds.operations.policy import is_expired
+from afterworlds.operations.requests import (
+    AttemptRegistry,
+    RequestActor,
+    RequestKind,
+    RequestScope,
+    RequestState,
+    RequestStore,
+    RequestView,
+    scope_revision,
+)
+from afterworlds.operations.support import SupportService
+from afterworlds.persistence.crud.story import get_story
+from afterworlds.remote.access import AccessPolicy, story_owner
+from afterworlds.remote.control_store import utc_now
+from afterworlds.remote.fence import AccountFence
+from afterworlds.remote.identity import Actor, ActorKind, IdentityService
+from afterworlds.remote.storage import is_suppressed
+
+
+def _not_found() -> OperationError:
+    return OperationError(OperationErrorKind.NOT_FOUND, "Request not found.")
+
+
+class DataRequestService:
+    def __init__(
+        self,
+        *,
+        ops: sessionmaker[Session],
+        content: sessionmaker[Session],
+        environment: str,
+        policy: AccessPolicy,
+        delete_story_chunks: Callable[[str], int],
+        export_dir: Path,
+        identity: IdentityService | None = None,
+        fence: AccountFence | None = None,
+        support: SupportService | None = None,
+        now: Callable[[], datetime] = utc_now,
+    ) -> None:
+        self.store = RequestStore(ops, now=now)
+        self._ops = ops
+        self._content = content
+        self._environment = environment
+        self._policy = policy
+        self._identity = identity
+        self._support = support
+        self._export_dir = export_dir
+        self._now = now
+        self._attempts = AttemptRegistry()
+        self.deletion = DeletionContext(
+            store=self.store,
+            ops=ops,
+            content=content,
+            environment=environment,
+            delete_story_chunks=delete_story_chunks,
+            now=now,
+            identity=identity,
+            fence=fence,
+            control=ops if environment == "remote" else None,
+            export_dir=export_dir,
+        )
+
+    # -- actors ------------------------------------------------------------
+
+    def _requester(self, actor: Actor) -> RequestActor:
+        if actor.kind is ActorKind.LOCAL and self._environment == "local":
+            return RequestActor(
+                "requester", "local_owner", "local", str(actor.account_id)
+            )
+        if actor.kind is ActorKind.SOJOURNER and self._environment == "remote":
+            assert actor.principal_ref is not None
+            return RequestActor(
+                "requester", actor.principal_ref, "remote", str(actor.account_id)
+            )
+        raise OperationError(
+            OperationErrorKind.UNSUPPORTED, "This session cannot make data requests."
+        )
+
+    def _administrator(self, actor: Actor) -> RequestActor:
+        if actor.kind is not ActorKind.STAFF or self._identity is None:
+            raise OperationError(
+                OperationErrorKind.UNSUPPORTED, "Staff authority is required."
+            )
+        if not self._identity.actor_is_current(actor):
+            raise OperationError(
+                OperationErrorKind.PRECONDITION_FAILED, "staff_session_not_current"
+            )
+        assert actor.principal_ref is not None
+        return RequestActor("administrator", actor.principal_ref, "remote")
+
+    def _owned(self, actor: Actor, request_id: str) -> RequestView:
+        requester = self._requester(actor)
+        try:
+            view = self.store.view(request_id)
+        except OperationError:
+            raise _not_found() from None
+        if (
+            view.subject_ref != requester.subject_ref
+            or view.environment != requester.environment
+        ):
+            raise _not_found()
+        return view
+
+    # -- requester paths ---------------------------------------------------
+
+    def create(
+        self,
+        actor: Actor,
+        kind: RequestKind,
+        scope: RequestScope,
+        story_id: UUID | None,
+    ) -> RequestView:
+        requester = self._requester(actor)
+        if (scope is RequestScope.STORY) != (story_id is not None):
+            raise OperationError(
+                OperationErrorKind.INVALID_INPUT,
+                "A Story request names one Story; an account request names none.",
+            )
+        refs: list[str] = []
+        if story_id is not None:
+            with self._content() as s:
+                allowed = (
+                    self._policy.actor_may_access(s, actor, story_id)
+                    if self._policy.remote
+                    else get_story(s, story_id) is not None
+                )
+            if not allowed:
+                raise OperationError(OperationErrorKind.NOT_FOUND, "Story not found.")
+            refs = [str(story_id)]
+        request_id = self.store.create(
+            requester, kind=kind, scope=scope, story_refs=refs
+        )
+        return self.store.view(request_id)
+
+    def list_own(self, actor: Actor) -> list[RequestView]:
+        requester = self._requester(actor)
+        return [
+            self.store.view(rid)
+            for rid in self.store.request_ids(
+                subject_ref=requester.subject_ref, environment=requester.environment
+            )
+        ]
+
+    def get_own(self, actor: Actor, request_id: str) -> RequestView:
+        return self._owned(actor, request_id)
+
+    def preview(self, actor: Actor, request_id: str) -> dict[str, Any]:
+        view = self._owned(actor, request_id)
+        if view.kind != RequestKind.DELETION.value:
+            raise OperationError(
+                OperationErrorKind.CONFLICT, "Only deletion requests have a preview."
+            )
+        return deletion_preview(self.deletion, view, self._scope_ids(view))
+
+    def confirm(
+        self,
+        actor: Actor,
+        request_id: str,
+        *,
+        expected_revision: int,
+        confirmed_scope_revision: str,
+        password: str | None,
+    ) -> tuple[RequestView, str | None]:
+        view = self._owned(actor, request_id)
+        requester = self._requester(actor)
+        account_remote = view.scope == "account" and self._environment == "remote"
+        if account_remote:
+            assert self._identity is not None
+            if not password or not self._identity.reauthenticate(actor, password):
+                raise OperationError(
+                    OperationErrorKind.PRECONDITION_FAILED,
+                    "Password re-authentication is required to confirm account "
+                    "deletion.",
+                )
+        credential = self.store.confirm(
+            requester,
+            request_id,
+            expected_revision=expected_revision,
+            confirmed_scope_revision=confirmed_scope_revision,
+            current_scope_revision=scope_revision(view.scope, self._scope_ids(view)),
+            issue_credential=account_remote,
+        )
+        return self.store.view(request_id), credential
+
+    def execute_local(
+        self, actor: Actor, request_id: str, *, expected_revision: int
+    ) -> RequestView:
+        """The local owner authorizes and executes their own request: two
+        recorded steps, no cloud account."""
+        view = self._owned(actor, request_id)
+        if self._environment != "local":
+            raise OperationError(
+                OperationErrorKind.UNSUPPORTED,
+                "Remote requests are executed by the administrator.",
+            )
+        requester = self._requester(actor)
+        revision = expected_revision
+        if view.state == RequestState.AWAITING_AUTHORIZATION.value:
+            self.store.approve(
+                requester, request_id, expected_revision=revision, reason=None
+            )
+            revision += 1
+        return self._run(requester, request_id, revision)
+
+    def artifact_path(self, actor: Actor, request_id: str) -> Path:
+        view = self._owned(actor, request_id)
+        artifact = view.artifact
+        if (
+            artifact is None
+            or artifact.status != "available"
+            or artifact.removed_at is not None
+            or is_expired(artifact.expires_at, self._now())
+        ):
+            raise OperationError(
+                OperationErrorKind.NOT_FOUND, "No export is available for download."
+            )
+        with self._ops() as s:
+            row = s.get(ExportArtifactORM, artifact.artifact_id)
+            assert row is not None
+            path = Path(row.storage_locator)
+        if not path.is_file():
+            raise OperationError(
+                OperationErrorKind.UNAVAILABLE, "The export file is unavailable."
+            )
+        return path
+
+    def receipt(self, request_id: str, credential: str) -> RequestView:
+        """Post-closure status/receipt: only with the credential issued at
+        confirmation. Every mismatch is the same not_found."""
+        try:
+            UUID(request_id)
+            ok = self.store.credential_matches(request_id, credential)
+        except (ValueError, OperationError):
+            ok = False
+        if not ok:
+            raise _not_found()
+        return self.store.view(request_id)
+
+    # -- administrator paths -----------------------------------------------
+
+    def list_all(self) -> list[RequestView]:
+        return [self.store.view(rid) for rid in self.store.request_ids()]
+
+    def get(self, request_id: str) -> RequestView:
+        return self.store.view(request_id)
+
+    def approve(
+        self,
+        actor: Actor,
+        request_id: str,
+        *,
+        expected_revision: int,
+        reason: str | None,
+    ) -> RequestView:
+        admin = self._administrator(actor)
+        self.store.approve(
+            admin, request_id, expected_revision=expected_revision, reason=reason
+        )
+        return self.store.view(request_id)
+
+    def reject(
+        self,
+        actor: Actor,
+        request_id: str,
+        *,
+        expected_revision: int,
+        reason_code: str,
+        reason: str,
+    ) -> RequestView:
+        admin = self._administrator(actor)
+        self.store.reject(
+            admin,
+            request_id,
+            expected_revision=expected_revision,
+            reason_code=reason_code,
+            reason=reason,
+        )
+        return self.store.view(request_id)
+
+    def execute(
+        self, actor: Actor, request_id: str, *, expected_revision: int
+    ) -> RequestView:
+        return self._run(self._administrator(actor), request_id, expected_revision)
+
+    def finalize(self, actor: Actor | None, request_id: str) -> RequestView:
+        """Re-check a deletion's pending physical/backup phases (administrator
+        or maintenance); completes only when every postcondition holds."""
+        if actor is not None:
+            self._administrator(actor)
+        view = self.store.view(request_id)
+        _, state, attempt = self.store.state_of(request_id)
+        if (
+            view.kind != RequestKind.DELETION.value
+            or state is not RequestState.IN_PROGRESS
+            or attempt is None
+            or not self._attempts.claim(request_id)
+        ):
+            raise OperationError(
+                OperationErrorKind.CONFLICT, "Nothing is pending finalization."
+            )
+        try:
+            evaluate(self.deletion, request_id, attempt)
+        finally:
+            self._attempts.release(request_id)
+        return self.store.view(request_id)
+
+    # -- execution ---------------------------------------------------------
+
+    def _scope_ids(self, view: RequestView) -> list[str]:
+        return current_scope_story_ids(
+            self._content, self.store.header(view.request_id), self._environment
+        )
+
+    def _run(
+        self, actor: RequestActor, request_id: str, expected_revision: int
+    ) -> RequestView:
+        if not self._attempts.claim(request_id):
+            raise OperationError(
+                OperationErrorKind.IN_PROGRESS, "This request is already running."
+            )
+        try:
+            attempt = self.store.begin_attempt(
+                actor, request_id, expected_revision=expected_revision
+            )
+            view = self.store.view(request_id)
+            if view.kind == RequestKind.EXPORT.value:
+                self._run_export(view, attempt)
+            else:
+                run_deletion(self.deletion, view, attempt)
+        finally:
+            self._attempts.release(request_id)
+        return self.store.view(request_id)
+
+    def _run_export(self, view: RequestView, attempt: str) -> None:
+        record = self.store.record_phase
+        stories = self._scope_ids(view)
+        if view.scope == "story" and not self._story_exportable(view, stories[0]):
+            record(
+                view.request_id,
+                attempt,
+                "artifact",
+                "failed",
+                detail_code="story_unavailable",
+            )
+            self.store.end_attempt(
+                view.request_id,
+                attempt,
+                RequestState.FAILED,
+                reason_code="story_unavailable",
+            )
+            return
+        inputs = ExportInputs(
+            request_id=view.request_id,
+            scope=view.scope,
+            environment=view.environment,
+            subject_ref=view.subject_ref,
+            story_ids=tuple(stories),
+            account_view=self._account_view(view) if view.scope == "account" else None,
+            operational_view=(
+                self._operational_view(view) if view.scope == "account" else None
+            ),
+            policy_version=view.policy_version,
+        )
+        try:
+            _, manifest = produce_artifact(
+                self._ops,
+                self._export_dir,
+                request_id=view.request_id,
+                attempt_id=attempt,
+                build=lambda: build_archive(self._content, inputs, now=self._now()),
+                now=self._now,
+            )
+        except Exception:  # noqa: BLE001 -- typed below; no partial file remains
+            record(
+                view.request_id,
+                attempt,
+                "artifact",
+                "failed",
+                detail_code="generation_failed",
+            )
+            self.store.end_attempt(
+                view.request_id,
+                attempt,
+                RequestState.FAILED,
+                reason_code="generation_failed",
+            )
+            return
+        record(
+            view.request_id, attempt, "artifact", "succeeded", counts=manifest["counts"]
+        )
+        self.store.add_receipt(view.request_id, attempt, "export_manifest", manifest)
+        self.store.end_attempt(view.request_id, attempt, RequestState.COMPLETED)
+
+    def _story_exportable(self, view: RequestView, story_id: str) -> bool:
+        with self._content() as s:
+            if get_story(s, UUID(story_id)) is None:
+                return False
+            if not self._policy.remote:
+                return True
+            if story_owner(s, UUID(story_id)) != view.subject_ref:
+                return False
+        assert self.deletion.control is not None
+        return not is_suppressed(
+            self.deletion.control, story_id=story_id, account_id=view.subject_ref
+        )
+
+    def _account_view(self, view: RequestView) -> dict[str, Any]:
+        if self._identity is None:
+            return {"account": "local_owner", "subject_ref": view.subject_ref}
+        record = self._identity.get_account(UUID(view.subject_ref))
+        return {
+            "account_id": view.subject_ref,
+            "status": record.status if record else None,
+            "created_at": record.created_at.isoformat() if record else None,
+            "contact_address": self._identity.contact_address_of(
+                UUID(view.subject_ref)
+            ),
+            "collected_profile_fields": ["contact_address"],
+        }
+
+    def _operational_view(self, view: RequestView) -> dict[str, Any]:
+        requests = [
+            {
+                "request_id": r.request_id,
+                "kind": r.kind,
+                "scope": r.scope,
+                "state": r.state,
+                "requested_at": r.requested_at.isoformat(),
+                "closed_at": r.closed_at.isoformat() if r.closed_at else None,
+            }
+            for r in (
+                self.store.view(rid)
+                for rid in self.store.request_ids(
+                    subject_ref=view.subject_ref, environment=view.environment
+                )
+            )
+        ]
+        actions = []
+        if self._support is not None:
+            actions = [
+                {
+                    "operation_id": e.operation_id,
+                    "action_code": e.action_code,
+                    "actor": "administrator",
+                    "outcome_code": e.outcome_code,
+                    "hosted_credit_delta": e.hosted_credit_delta,
+                    "top_up_credit_delta": e.top_up_credit_delta,
+                    "reason_text": e.reason_text,
+                    "recorded_at": e.recorded_at.isoformat(),
+                }
+                for e in self._support.history(UUID(view.subject_ref))
+            ]
+        return {"data_requests": requests, "support_actions": actions}

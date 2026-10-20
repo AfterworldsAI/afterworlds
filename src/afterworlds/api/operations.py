@@ -17,12 +17,23 @@ from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 
 from afterworlds.api.dto import (
+    DataRequestDTO,
+    DataRequestKind,
+    DataRequestPhaseDTO,
+    DataRequestReceiptDTO,
+    DataRequestScope,
+    DataRequestState,
+    DataRequestTransitionDTO,
+    DeletionPreviewResponse,
     EntitlementHistoryItemDTO,
+    ExportArtifactDTO,
+    RetainedCategoryDTO,
     SupportEventDTO,
 )
 from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
 from afterworlds.entitlement.inspection import EventView
 from afterworlds.operations.errors import OperationError, OperationErrorKind
+from afterworlds.operations.requests import RequestView
 from afterworlds.operations.support import IDEMPOTENCY_PREFIX, SupportEvent
 
 _ERRORS: dict[OperationErrorKind, tuple[int, ApiErrorCode]] = {
@@ -134,4 +145,100 @@ def support_event(event: SupportEvent) -> SupportEventDTO:
         supersedes_event_id=(
             UUID(event.supersedes_event_id) if event.supersedes_event_id else None
         ),
+    )
+
+
+def _actor_role(view: RequestView, actor_ref: str) -> str:
+    if actor_ref == "lifecycle_executor":
+        return "system"
+    return "requester" if actor_ref == view.requester_ref else "administrator"
+
+
+def request_dto(view: RequestView, *, administrator: bool) -> DataRequestDTO:
+    """Status for the requester (no internal actor references) or for the
+    Owner administrator (with them and the subject)."""
+    return DataRequestDTO(
+        request_id=UUID(view.request_id),
+        kind=DataRequestKind(view.kind),
+        environment="remote" if view.environment == "remote" else "local",
+        scope=DataRequestScope(view.scope),
+        story_ids=[UUID(s) for s in view.story_refs],
+        state=DataRequestState(view.state),
+        revision=view.revision,
+        requested_at=view.requested_at,
+        verified_at=view.verified_at,
+        confirmed_at=view.confirmed_at,
+        approved_at=view.approved_at,
+        closed_at=view.closed_at,
+        export_deadline_at=view.export_deadline_at,
+        live_deadline_at=view.live_deadline_at,
+        backup_deadline_at=view.backup_deadline_at,
+        overdue=list(view.overdue),
+        progress_code=view.progress_code,
+        policy_version=view.policy_version,
+        transitions=[
+            DataRequestTransitionDTO(
+                revision=t.revision,
+                state=DataRequestState(t.state),
+                attempt_id=UUID(t.attempt_id) if t.attempt_id else None,
+                actor_role=_actor_role(view, t.actor_ref),
+                actor_ref=t.actor_ref if administrator else None,
+                authorization_code=t.authorization_code,
+                reason_code=t.reason_code,
+                reason_text=t.reason_text,
+                recorded_at=t.recorded_at,
+            )
+            for t in view.transitions
+        ],
+        phases=[
+            DataRequestPhaseDTO(
+                phase_code=p.phase_code,
+                outcome_code=p.outcome_code,
+                attempt_id=UUID(p.attempt_id),
+                counts=p.counts,
+                detail_code=p.detail_code,
+                observed_at=p.observed_at,
+                deadline_at=p.deadline_at,
+            )
+            for p in view.phases
+        ],
+        receipts=[
+            DataRequestReceiptDTO(
+                receipt_id=UUID(r["receipt_id"]),
+                receipt_kind=r["receipt_kind"],
+                attempt_id=UUID(r["attempt_id"]),
+                created_at=datetime.fromisoformat(r["created_at"]),
+                body=r["body"],
+            )
+            for r in view.receipts
+        ],
+        artifact=(
+            ExportArtifactDTO(
+                status=view.artifact.status,
+                available_at=view.artifact.available_at,
+                expires_at=view.artifact.expires_at,
+                removed_at=view.artifact.removed_at,
+                size_bytes=view.artifact.size_bytes,
+            )
+            if view.artifact
+            else None
+        ),
+        subject_ref=UUID(view.subject_ref) if administrator else None,
+    )
+
+
+def preview_dto(preview: dict[str, Any]) -> DeletionPreviewResponse:
+    return DeletionPreviewResponse(
+        scope=DataRequestScope(preview["scope"]),
+        story_ids=[UUID(s) for s in preview["story_ids"]],
+        counts=preview["counts"],
+        removed_classes=preview["removed_classes"],
+        retained_categories=[
+            RetainedCategoryDTO(**c) for c in preview["retained_categories"]
+        ],
+        scope_revision=preview["scope_revision"],
+        live_deletion_limit_days=preview["live_deletion_limit_days"],
+        final_deletion_limit_days=preview["final_deletion_limit_days"],
+        commercial_dependency=preview["commercial_dependency"],
+        notices=preview["notices"],
     )

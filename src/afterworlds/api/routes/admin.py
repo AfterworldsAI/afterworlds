@@ -27,7 +27,11 @@ from afterworlds.api.dto import (
     CreditAdjustmentPreviewRequest,
     CreditAdjustmentPreviewResponse,
     CreditAdjustmentRequest,
+    DataRequestDTO,
+    DataRequestListResponse,
+    DataRequestStepRequest,
     EntitlementHistoryResponse,
+    RejectDataRequest,
     RevokeSessionsRequest,
     RevokeSessionsResponse,
     SignInRequest,
@@ -36,7 +40,12 @@ from afterworlds.api.dto import (
     SupportOperationResponse,
 )
 from afterworlds.api.errors import ApiError, ApiErrorCode, ApiErrorResponse
-from afterworlds.api.operations import history_item, run_operation, support_event
+from afterworlds.api.operations import (
+    history_item,
+    request_dto,
+    run_operation,
+    support_event,
+)
 from afterworlds.api.remote_access import (
     STAFF_COOKIE,
     clear_session_cookie,
@@ -48,6 +57,7 @@ from afterworlds.api.remote_access import (
 )
 from afterworlds.entitlement.inspection import list_events, replay_check
 from afterworlds.entitlement.service import EntitlementService
+from afterworlds.operations.service import DataRequestService
 from afterworlds.operations.support import (
     AdjustmentRequest,
     OperationStatus,
@@ -326,3 +336,109 @@ def get_support_operation(
     return _operation_response(
         request, session, status, UUID(status.events[0].target_ref)
     )
+
+
+# -- CRD Issue 22: administrator review and fulfillment of data requests ----
+
+
+def _requests(request: Request) -> DataRequestService:
+    return request.app.state.data_requests  # type: ignore[no-any-return]
+
+
+@router.get(
+    "/data-requests", response_model=DataRequestListResponse, responses=_OP_RESPONSES
+)
+def list_all_data_requests(request: Request) -> DataRequestListResponse:
+    views = run_operation(lambda: _requests(request).list_all())
+    return DataRequestListResponse(
+        requests=[request_dto(v, administrator=True) for v in views]
+    )
+
+
+@router.get(
+    "/data-requests/{request_id}",
+    response_model=DataRequestDTO,
+    responses=_OP_RESPONSES,
+)
+def get_any_data_request(request_id: UUID, request: Request) -> DataRequestDTO:
+    view = run_operation(lambda: _requests(request).get(str(request_id)))
+    return request_dto(view, administrator=True)
+
+
+@router.post(
+    "/data-requests/{request_id}/approve",
+    response_model=DataRequestDTO,
+    responses=_OP_RESPONSES,
+)
+def approve_data_request(
+    request_id: UUID,
+    body: DataRequestStepRequest,
+    request: Request,
+    actor: Actor = Depends(get_actor),
+) -> DataRequestDTO:
+    view = run_operation(
+        lambda: _requests(request).approve(
+            actor,
+            str(request_id),
+            expected_revision=body.expected_revision,
+            reason=body.reason,
+        )
+    )
+    return request_dto(view, administrator=True)
+
+
+@router.post(
+    "/data-requests/{request_id}/reject",
+    response_model=DataRequestDTO,
+    responses=_OP_RESPONSES,
+)
+def reject_data_request(
+    request_id: UUID,
+    body: RejectDataRequest,
+    request: Request,
+    actor: Actor = Depends(get_actor),
+) -> DataRequestDTO:
+    view = run_operation(
+        lambda: _requests(request).reject(
+            actor,
+            str(request_id),
+            expected_revision=body.expected_revision,
+            reason_code=body.reason_code,
+            reason=body.reason,
+        )
+    )
+    return request_dto(view, administrator=True)
+
+
+@router.post(
+    "/data-requests/{request_id}/execute",
+    response_model=DataRequestDTO,
+    responses=_OP_RESPONSES,
+)
+def execute_data_request(
+    request_id: UUID,
+    body: DataRequestStepRequest,
+    request: Request,
+    actor: Actor = Depends(get_actor),
+) -> DataRequestDTO:
+    """Run (or retry/resume) fulfillment as a new attempt. The response is
+    the recorded outcome: completed, failed, or in progress with its pending
+    phases."""
+    view = run_operation(
+        lambda: _requests(request).execute(
+            actor, str(request_id), expected_revision=body.expected_revision
+        )
+    )
+    return request_dto(view, administrator=True)
+
+
+@router.post(
+    "/data-requests/{request_id}/finalize",
+    response_model=DataRequestDTO,
+    responses=_OP_RESPONSES,
+)
+def finalize_data_request(
+    request_id: UUID, request: Request, actor: Actor = Depends(get_actor)
+) -> DataRequestDTO:
+    view = run_operation(lambda: _requests(request).finalize(actor, str(request_id)))
+    return request_dto(view, administrator=True)

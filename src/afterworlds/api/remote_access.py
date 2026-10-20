@@ -58,6 +58,8 @@ PUBLIC_PATHS = frozenset(
         "/api/auth/recovery",
         "/api/auth/recovery/complete",
         "/api/admin/session",
+        # CRD Issue 22 post-closure receipt: credential-bound, never by ID.
+        "/api/data-requests/receipt",
     }
 )
 _REMOTE_ONLY_PREFIXES = ("/api/admin", "/api/auth/", "/api/account/close")
