@@ -32,6 +32,9 @@ class _NoNotices:
     def send(self, *, contact_address: str, kind: str, code: str) -> None:
         raise AssertionError("bootstrap sends no notices")
 
+    def purge(self, contact_address: str) -> int:
+        raise AssertionError("bootstrap erases no account")
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
