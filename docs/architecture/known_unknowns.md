@@ -782,6 +782,16 @@ These are recorded dependencies, not implementation choices; no code resolves th
   is an Owner decision touching CRD Issue 23 (ADR-021 Consequences).
 - **Remote abuse protection:** sign-in rate limiting / credential-stuffing protection for the public
   endpoint is not part of #205's accepted behavior and must be decided before public exposure.
+- **CRD Issue 22 boundaries surfaced during implementation (2026-10-19; not resolved here):**
+  - *Restore after closed-account ledger expiry:* #205's ledger-continuity rule refuses restoring a backup
+    captured before a closed subject's 24-month expiry (the live ledger is no longer a prefix). Kept
+    unchanged; any acceptance belongs to the restore Owner decision above (ADR-022 Consequences).
+  - *CRD Issue 23 closure:* account deletion with live hosted subscription or Cloud Services references
+    stays `commercial: dependency_unavailable` until CRD Issue 23 supplies closure contracts.
+  - *Host access logs:* server/host HTTP logs record request paths; their retention under the 30-day
+    content-free log rule is a host/processor launch gate.
+  - *Free text in v1 entitlement payloads:* hosted/Cloud deactivation `detail` has no producer today;
+    CRD Issue 23 must keep it content-free and bounded at creation (it is never shown or exported).
 
 ---
 
