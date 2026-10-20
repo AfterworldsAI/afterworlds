@@ -183,6 +183,27 @@ REMOVED_CLASSES["account"] = REMOVED_CLASSES["story"] + (
     "authentication_sessions_and_recovery",
 )
 
+RETAINED_CATEGORIES["local"] = tuple(
+    c
+    for c in RETAINED_CATEGORIES["story"]
+    if c["code"] in ("data_request_receipt", "content_free_logs")
+) + (
+    {
+        "code": "entitlement_history",
+        "purpose": "Your licence and credit record on this device.",
+        "end_condition": "Kept on this device; it is not account data.",
+    },
+)
+
+
+def retained_for(scope: str, environment: str) -> tuple[dict[str, str], ...]:
+    return RETAINED_CATEGORIES["local" if environment == "local" else scope]
+
+
+def removed_for(scope: str, environment: str) -> tuple[str, ...]:
+    return REMOVED_CLASSES["story" if environment == "local" else scope]
+
+
 NOTICES = (
     "Files on your own device, local BYOK keys and exports you downloaded are "
     "not touched by remote deletion.",
@@ -640,7 +661,9 @@ def run_deletion(ctx: DeletionContext, view: RequestView, attempt_id: str) -> No
         counts={"removed": _remove_artifacts(ctx, view, stories)},
     )
 
-    if account:
+    if account and remote:
+        # Only a hosted account is closed: a local deletion keeps the local
+        # ledger (and so its licence evidence) and cancels nothing.
         outcome, counts = record_rights_evidence(ctx, subject)
         record(rid, attempt_id, "rights_evidence", outcome, counts=counts)
         record(rid, attempt_id, "commercial", commercial_dependency(ctx, subject))
@@ -763,7 +786,7 @@ def deletion_receipt(ctx: DeletionContext, view: RequestView) -> dict[str, Any]:
         "policy_version": POLICY_VERSION,
         "confirmed_at": iso(view.confirmed_at) if view.confirmed_at else None,
         "completed_at": iso(ctx.now()),
-        "removed_classes": list(REMOVED_CLASSES[view.scope]),
+        "removed_classes": list(removed_for(view.scope, view.environment)),
         "phase_evidence": {
             code: {
                 "outcome": p.outcome_code,
@@ -773,7 +796,7 @@ def deletion_receipt(ctx: DeletionContext, view: RequestView) -> dict[str, Any]:
             }
             for code, p in phases.items()
         },
-        "retained_categories": list(RETAINED_CATEGORIES[view.scope]),
+        "retained_categories": list(retained_for(view.scope, view.environment)),
         "backup_disposition": (
             phases["backups"].outcome_code if "backups" in phases else None
         ),
@@ -801,15 +824,15 @@ def deletion_preview(
             )
     commercial = (
         commercial_dependency(ctx, view.subject_ref)
-        if view.scope == "account"
+        if view.scope == "account" and ctx.environment == "remote"
         else "not_applicable"
     )
     return {
         "scope": view.scope,
         "story_ids": story_ids,
         "counts": {"stories": len(story_ids), "turns": turns},
-        "removed_classes": list(REMOVED_CLASSES[view.scope]),
-        "retained_categories": list(RETAINED_CATEGORIES[view.scope]),
+        "removed_classes": list(removed_for(view.scope, ctx.environment)),
+        "retained_categories": list(retained_for(view.scope, ctx.environment)),
         "scope_revision": scope_revision(view.scope, story_ids),
         "live_deletion_limit_days": 7,
         "final_deletion_limit_days": 30 if ctx.environment == "remote" else None,

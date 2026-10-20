@@ -100,3 +100,36 @@ def test_local_export_and_deletion_need_no_cloud_account(local: Any) -> None:
     assert c.get("/api/account").status_code == 200
     # Remote-only administration does not exist locally.
     assert c.get("/api/admin/data-requests").status_code == 404
+
+
+def test_local_account_wide_deletion_keeps_licence_state(local: Any) -> None:
+    app, c = local
+    _seed_byok(app)
+    for i in range(2):
+        play_branching(c, f"Tale {i}", "Go.")
+    with app.state.session_factory() as s:
+        before = s.execute(
+            __import__("sqlalchemy").text("SELECT count(*) FROM entitlement_event")
+        ).scalar()
+    req = c.post(
+        "/api/data-requests", json={"kind": "deletion", "scope": "account"}
+    ).json()
+    preview = c.get(f"/api/data-requests/{req['request_id']}/deletion-preview").json()
+    assert preview["final_deletion_limit_days"] is None  # no service backups locally
+    confirmed = c.post(
+        f"/api/data-requests/{req['request_id']}/confirm",
+        json={"expected_revision": 1, "scope_revision": preview["scope_revision"]},
+    ).json()
+    assert confirmed["receipt_credential"] is None  # no account to close
+    done = _execute(c, confirmed["request"])
+    assert done["state"] == "completed", done
+    assert c.get("/api/stories").json()["stories"] == []
+    with app.state.session_factory() as s:
+        after = s.execute(
+            __import__("sqlalchemy").text("SELECT count(*) FROM entitlement_event")
+        ).scalar()
+    assert after == before
+    receipt = next(
+        r for r in done["receipts"] if r["receipt_kind"] == "deletion_receipt"
+    )
+    assert receipt["body"]["environment"] == "local"

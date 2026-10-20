@@ -359,3 +359,99 @@ def test_suppression_release_requires_verified_end_conditions(
         row.disposal_evidence = "removed"
     assert not release_suppression(control, sup, now=T0 + timedelta(days=29))
     assert release_suppression(control, sup, now=T0 + timedelta(days=30))
+
+
+def test_audit_receipts_and_anomaly_records_follow_their_own_clocks(
+    stores: tuple[sessionmaker[Session], sessionmaker[Session]],
+) -> None:
+    from afterworlds.operations.orm import AnomalyEventORM
+    from afterworlds.remote.control_orm import IdentityAuditEventORM
+
+    content, control = stores
+
+    def anomaly(
+        anomaly_id: str, actor: str, state: str, at: datetime
+    ) -> AnomalyEventORM:
+        return AnomalyEventORM(
+            event_id=str(uuid.uuid4()),
+            schema_version=1,
+            anomaly_id=anomaly_id,
+            source_kind="turn_settlement",
+            source_id=anomaly_id,
+            observed_at=iso(at),
+            safe_signal_code="settlement_failed",
+            investigation_state=state,
+            actor_ref=actor,
+        )
+
+    with control.begin() as s:
+        s.add(
+            IdentityAuditEventORM(
+                event_id=str(uuid.uuid4()),
+                operation_id=str(uuid.uuid4()),
+                actor_ref="owner",
+                action_code="account_sessions_revoked",
+                outcome_code="succeeded",
+                recorded_at=iso(T0),
+                policy_version="v",
+            )
+        )
+        s.add(anomaly("routine", "system", "open", T0))
+        s.add(anomaly("handled", "system", "open", T0))
+        s.add(anomaly("handled", "owner", "closed", T0 + timedelta(days=1)))
+    month = T0 + timedelta(days=30)
+    result = sweep(ops=control, content=content, control=control, now=month)
+    # Routine system-only telemetry: 30 days; an investigated one is a receipt.
+    assert result.anomalies_expired == 1
+    with control() as s:
+        assert set(s.scalars(sa.select(AnomalyEventORM.anomaly_id))) == {"handled"}
+    edge = add_calendar_months(T0, 24)
+    result = sweep(ops=control, content=content, control=control, now=edge)
+    assert result.audit_receipts_expired == 1
+    with control() as s:
+        assert s.scalar(sa.select(sa.func.count(IdentityAuditEventORM.event_id))) == 0
+        # Closed a day later, so its 24 months have not yet elapsed.
+        assert set(s.scalars(sa.select(AnomalyEventORM.anomaly_id))) == {"handled"}
+    sweep(ops=control, content=content, control=control, now=edge + timedelta(days=1))
+    with control() as s:
+        assert s.scalar(sa.select(sa.func.count(AnomalyEventORM.event_id))) == 0
+
+
+def test_deadlines_are_fixed_at_their_triggers_and_overdue_is_visible(
+    stores: tuple[sessionmaker[Session], sessionmaker[Session]],
+) -> None:
+    _content, control = stores
+    clock = {"now": T0}
+    store = RequestStore(control, now=lambda: clock["now"])
+    actor = RequestActor("requester", "p", "remote", str(uuid.uuid4()))
+    export = store.create(
+        actor, kind=RequestKind.EXPORT, scope=RequestScope.ACCOUNT, story_refs=[]
+    )
+    deletion = store.create(
+        actor, kind=RequestKind.DELETION, scope=RequestScope.ACCOUNT, story_refs=[]
+    )
+    clock["now"] = T0 + timedelta(hours=5)
+    store.confirm(
+        actor,
+        deletion,
+        expected_revision=1,
+        confirmed_scope_revision="r",
+        current_scope_revision="r",
+        issue_credential=False,
+    )
+    view = store.view(deletion)
+    assert view.live_deadline_at == T0 + timedelta(hours=5, days=7)
+    assert view.backup_deadline_at == T0 + timedelta(hours=5, days=30)
+    assert store.view(export).export_deadline_at == T0 + timedelta(days=7)
+    # Approval waits and new attempts never move the clocks.
+    admin = RequestActor("administrator", "owner", "remote")
+    clock["now"] = T0 + timedelta(days=6)
+    store.approve(admin, deletion, expected_revision=2, reason=None)
+    store.begin_attempt(admin, deletion, expected_revision=3)
+    assert store.view(deletion).live_deadline_at == T0 + timedelta(hours=5, days=7)
+    clock["now"] = T0 + timedelta(days=7)
+    assert store.view(export).overdue == ()  # met up to and including the deadline
+    clock["now"] = T0 + timedelta(days=7, seconds=1)
+    assert store.view(export).overdue == ("export_production",)
+    clock["now"] = T0 + timedelta(hours=5, days=7, seconds=1)
+    assert "live_deletion" in store.view(deletion).overdue
