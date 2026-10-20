@@ -288,6 +288,186 @@ describe("SupportConsole", () => {
     );
   });
 
+  function previewBody(delta: string) {
+    return {
+      account_id: ACCOUNT,
+      current: view().credits,
+      hosted_credit_delta: delta,
+      top_up_credit_delta: "0.0000",
+      resulting_included: "x",
+      resulting_top_up: "0.0000",
+      last_entitlement_event_id: EVENT,
+      refusal_code: null,
+      schema_version: 1,
+    };
+  }
+
+  function committed(operationId: string) {
+    return {
+      operation_id: operationId,
+      outcome_code: "committed",
+      source_entitlement_event_id: EVENT,
+      events: [],
+      account: view(),
+      schema_version: 1,
+    };
+  }
+
+  async function openAdjustment() {
+    render(<SupportConsole />);
+    await screen.findByRole("button", { name: "Sign in to staff" });
+    await signIn();
+    fireEvent.change(await screen.findByLabelText("Account ID"), {
+      target: { value: ACCOUNT },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await screen.findByLabelText("Included credits delta");
+  }
+
+  const PREVIEW = `POST /api/admin/accounts/${ACCOUNT}/credit-adjustments/preview`;
+  const ADJUST = `POST /api/admin/accounts/${ACCOUNT}/credit-adjustments`;
+  const base = () => ({
+    ...empty(),
+    "POST /api/admin/session": [
+      () => json(200, { signed_in: true, schema_version: 1 }),
+    ],
+    [`GET /api/admin/accounts/${ACCOUNT}`]: [() => json(200, view())],
+    [`GET /api/admin/accounts/${ACCOUNT}/entitlement-history?after_sequence=0&limit=50`]:
+      [() => json(200, page(0, null))],
+  });
+
+  it("shows only the latest preview and confirms exactly the previewed request", async () => {
+    let releaseOld: (r: Response) => void = () => {};
+    const calls = stubFetch({
+      ...base(),
+      [PREVIEW]: [
+        () => new Promise<Response>((r) => (releaseOld = r)),
+        () => json(200, previewBody("50.0000")),
+      ],
+      [ADJUST]: [() => json(200, committed("x"))],
+    });
+    await openAdjustment();
+    fireEvent.change(screen.getByLabelText("Reason"), {
+      target: { value: "goodwill" },
+    });
+    fireEvent.change(screen.getByLabelText("Included credits delta"), {
+      target: { value: "5" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Preview adjustment" }));
+    fireEvent.change(screen.getByLabelText("Included credits delta"), {
+      target: { value: "50" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Preview adjustment" }));
+    const region = await screen.findByRole("region", {
+      name: "Adjustment preview",
+    });
+    expect(region).toHaveTextContent("deltas 50.0000");
+    releaseOld(json(200, previewBody("5.0000"))); // the older, slower answer
+    await new Promise((r) => setTimeout(r, 0));
+    expect(region).toHaveTextContent("deltas 50.0000");
+    expect(region).not.toHaveTextContent("5.0000 /");
+    fireEvent.click(screen.getByRole("button", { name: "Confirm adjustment" }));
+    await screen.findByRole("status");
+    const body = JSON.parse(
+      calls.find((c) => c.url.endsWith("/credit-adjustments"))!.body!,
+    );
+    expect(body.hosted_credit_delta).toBe("50");
+    expect(body.reason).toBe("goodwill");
+  });
+
+  it("locks an uncertain action to its ID and starts a new one only after a terminal rejection", async () => {
+    const calls = stubFetch({
+      ...base(),
+      [PREVIEW]: [() => json(200, previewBody("5.0000"))],
+      [ADJUST]: [
+        () =>
+          json(503, {
+            error_code: "operation_outcome_unknown",
+            message: "Unknown.",
+            detail: null,
+            schema_version: 1,
+          }),
+        () => json(200, committed("y")),
+      ],
+    });
+    await openAdjustment();
+    fireEvent.change(screen.getByLabelText("Reason"), {
+      target: { value: "goodwill" },
+    });
+    fireEvent.change(screen.getByLabelText("Included credits delta"), {
+      target: { value: "5" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Preview adjustment" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Confirm adjustment" }),
+    );
+    expect(await screen.findByText(/Outcome unknown/)).toBeInTheDocument();
+    // The submitted action cannot be edited or re-sent while uncertain.
+    expect(screen.getByLabelText("Included credits delta")).toBeDisabled();
+    expect(screen.getByLabelText("Reason")).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Confirm adjustment" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Preview adjustment" }),
+    ).toBeDisabled();
+    const first = JSON.parse(
+      calls.filter((c) => c.url.endsWith("/credit-adjustments"))[0]!.body!,
+    ).operation_id as string;
+
+    const statusPath = `GET /api/admin/support-operations/${first}`;
+    const routes: Record<string, (() => Response)[]> = {
+      [statusPath]: [
+        () =>
+          json(200, {
+            ...committed(first),
+            outcome_code: "requested",
+            source_entitlement_event_id: null,
+          }),
+        () =>
+          json(200, {
+            ...committed(first),
+            outcome_code: "rejected_stale",
+            source_entitlement_event_id: null,
+          }),
+      ],
+    };
+    const more = stubFetch({
+      ...base(),
+      ...routes,
+      [PREVIEW]: [() => json(200, previewBody("5.0000"))],
+      [ADJUST]: [() => json(200, committed("y"))],
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Check status" }));
+    expect(
+      await screen.findByText(/still recorded as requested/),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Included credits delta")).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Check status" }));
+    expect(
+      await screen.findByText(/Not applied: Recorded outcome: rejected_stale/),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Included credits delta")).toBeEnabled();
+    expect(
+      screen.queryByRole("region", { name: "Adjustment preview" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Preview adjustment" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Confirm adjustment" }),
+    );
+    await screen.findByRole("status");
+    const second = JSON.parse(
+      more.find((c) => c.url.endsWith("/credit-adjustments"))!.body!,
+    ).operation_id as string;
+    // Both status reads asked about the submitted action's own ID.
+    expect(
+      more
+        .filter((c) => c.url.includes("/support-operations/"))
+        .map((c) => c.url.endsWith(first)),
+    ).toEqual([true, true]);
+    expect(second).not.toBe(first);
+  });
+
   it("drives the request queue, anomaly notes and retention expiry", async () => {
     const request = {
       request_id: "77777777-7777-7777-7777-777777777777",

@@ -56,8 +56,15 @@ console offers no control that claims to perform them.
 - **Credit adjustment:** preview (`.../credit-adjustments/preview`) shows target, signed deltas, current and
   resulting balances, the stale token `last_entitlement_event_id` and any owner refusal (never-activated
   hosted access). Submit (`.../credit-adjustments`) needs a client-minted `operation_id` for the logical
-  action, a 1–280 character reason (control characters and credential-shaped text refused) and the stale
-  token. Order: staff revalidated → `requested` event committed (audit failure ⇒ no effect) → stale check →
+  action, a 1–280 character one-line reason and the stale token. Every reason/note field (support,
+  request review, anomaly note) uses one guard: control and invisible formatting characters, credential
+  shapes, email addresses, links, long digit runs and long opaque tokens are refused. This is a
+  pattern-limited guard on operator-attested, content-free explanation, not general personal-data or
+  secret detection. An operation ID is claimed atomically (one `requested` event per ID); a reuse with a
+  different target, deltas, reason or actor is a conflict, and recovery from the idempotency key accepts
+  the entitlement event only if its subject and typed payload match the claim. The console submits
+  exactly the previewed request, ignores stale previews, locks the form while an action is pending or
+  uncertain, and starts a new operation ID only after a terminal result. Order: staff revalidated → `requested` event committed (audit failure ⇒ no effect) → stale check →
   `receive_entitlement_event(MANUAL_CREDIT_ADJUSTMENT, adjusted_by=<staff principal>,
   idempotency_key="crd22-support-adjustment:<operation_id>")` → `committed` event with the entitlement
   `event_id`. Deltas with more than four decimals are refused, not rounded. Same `operation_id` + same
@@ -75,7 +82,9 @@ Each transition is an append-only event with `revision` (stale/invalid ⇒ `409`
 `attempt_id` and timestamps. A retry or a resume after restart is a new attempt; failures stay in history.
 Remote requests are approved and executed by the Owner administrator (two recorded steps by the same
 person allowed); a local owner executes their own (`POST /api/data-requests/{id}/execute`, recorded as
-approve then attempt). A duplicate open request for the same subject/kind/scope/Story is refused with the
+approve then attempt). Locally the single owner has the same fence: every local request holds it shared
+(`409 account_operation_in_progress` while a deletion runs) and a local deletion holds it exclusive for its
+whole run, so no Story or turn escapes its final scope. A duplicate open request for the same subject/kind/scope/Story is refused with the
 existing ID. No route sets `completed`: only an executor's verified result does.
 
 **Clocks:** export service clock = verification (the authenticated request, `verified_at`); deletion clock =
@@ -166,11 +175,11 @@ and receipt (`operations/deletion.py`).
 | Chroma SQLite free pages, operation log, HNSW segment files | offline `compact`: export remaining records, rebuild in a **fresh subprocess** (Chroma's HNSW writer was observed persisting freed-memory bytes into a new segment), swap contents keeping marker and lock |
 | Shared Rules corpus | copied unchanged by the rebuild; never deleted |
 | Export artifacts | removed at deletion, 7-day expiry or 24-hour staging cleanup; never captured in backups |
-| Notice outbox files to an erased address | removed by the identity owner at account erasure, before the profile (#205 relay files) |
+| Notice outbox files to an erased address | removed by the identity owner at account erasure, before the profile (#205 relay files). A notice is written under a recipient-tagged `.partial` name and renamed, so a final notice is always complete and an interrupted one is still attributed and removed; an unparseable final notice fails the erasure visibly |
 | Backups (#205 inventory) | 21-day life from original capture (copies/restores keep it); deletion final only when every affected backup is disposed (`backup_disposition`) ≤ 30 days from confirmation |
 | Captures | refused while any deletion's physical compaction is pending (`storage_cli capture`) |
-| Compaction staging (`<vector>/.afterworlds-compaction/`: claim, export, rebuilt store) | plain copies of every remaining record, owner-only, inside the locked live vector store and claimed for its deployment identity and one operation; an unclaimed or foreign occupant is refused untouched; removed when the swap completes. While either exists the app, `storage_cli` and every maintenance command except `compact` refuse to run; rerun `compact` to finish |
-| Control store | not restored with content; host-controlled backup is a #205 launch gate |
+| Compaction staging (`<vector>/.afterworlds-compaction/`: claim, export, rebuilt store) | plain copies of every remaining record, owner-only, inside the locked live vector store and claimed for its deployment identity and one operation -- the claim is written in full under a private name and published by one atomic rename, and teardown removes the dependent copies first and the claim last, so every interruption leaves a resumable claimed staging; an unclaimed or foreign occupant is refused untouched; removed when the swap completes. While either exists the app, `storage_cli` and every maintenance command except `compact` refuse to run; rerun `compact` to finish |
+| Control store | live file: `compact` (and `enforce-restore`) checkpoints and VACUUMs it too, so erased principal, contact, session and verifier rows leave no free-page or WAL remnant (a blocked checkpoint fails the command); not restored with content; host-controlled backup is a #205 launch gate |
 | Local device files, keyring, user-downloaded exports, provider-held copies | not touched remotely; local physical remnants are `owner_controlled`; the maintenance `compact`, `enforce-restore` and `finalize` commands refuse locally (no store lock proves a local app is stopped) |
 
 ## 8. Runbooks
@@ -194,7 +203,10 @@ session-bound) and the scope; **Approve**, then **Execute**. Read the result: `c
 account cannot be erased while bound. Approval and rejection need a review reason (no credentials).
 An account deletion fails visibly (`exports: export_pending` / `export_awaiting_download`) while any export of
 the subject is open or its available artifact has not been delivered: fulfil or reject the export, let the
-requester download it (delivery is recorded only when the whole file was sent), then **Retry**. Exports
+requester download it (delivery is recorded only after the app's own streamed response handed over
+every byte; no Range/partial service), then **Retry**. The check runs inside the exclusive account fence
+immediately before the suppression is recorded; a blocked deletion records nothing, so an export admitted
+just before stays fulfillable. Exports
 include only owned Stories not under deletion and disclose `stories_under_deletion`; they run under the
 account fence, so a deletion waits for an export in flight and then removes its artifact.
 
@@ -231,14 +243,16 @@ due for annual review. `maintenance release-suppression --suppression-id` releas
 completed, a live re-check finds no in-scope row or Story-memory chunk, every affected backup is disposed
 and the horizons have passed; otherwise it keeps the suppression (exit 2).
 
-**Post-closure status.** The requester keeps the receipt code shown at confirmation; `POST
-/api/data-requests/receipt` with request ID and code returns status and receipt. Any mismatch is the same
+**Post-closure status.** The requester keeps the receipt code shown at confirmation; the signed-out app's
+**Check a data request** form (request ID and code; `POST /api/data-requests/receipt`) shows status,
+phases and receipts. Receipts are also shown in the requester's and staff request lists. Any mismatch is the same
 `404`. A lost code can be replaced before closure ("Lost your receipt code?": `POST
 /api/data-requests/{id}/receipt-credential` with the password); the old code stops working and the
 confirmation time and deadlines do not change.
 
 **Anomalies.** `/#staff` → Anomalies: failed/uncertain support actions, failed/blocked/overdue requests,
-replay/projection inconsistency, durable delivered-turn settlement failures, unfinished restores. `sources`
+replay/projection inconsistency, durable delivered-turn settlement failures (recorded inside the admitted
+turn worker, so a cancelled HTTP request cannot drop them), unfinished restores. `sources`
 shows what was read (`unavailable` ≠ healthy; `commercial_events: not_integrated`). Notes
 (Investigating/Close) append history and repair nothing; fix state only through §3 actions.
 
@@ -264,6 +278,9 @@ await the Owner's qualified advice. No complete US/Canada/Mexico compliance is c
   dependency_unavailable` and never completes; payment/webhook/refund/reconciliation events are not
   integrated into anomalies.
 - Physical compaction and restore enforcement are offline (app stopped).
+- The settlement anomaly source reports `degraded` when this process could not record a settlement
+  failure (process-lifetime flag; the turn response carried the warning).
+- Reason/note fields are guarded by shape patterns only (§3); they are not PII or secret detection.
 - Restores after a closed account's ledger expiry follow #205's unchanged continuity rule (refused or
   accepted-then-re-expired; §8 Restore).
 - HTTP server access logs (uvicorn, host) record request paths; host log retention is a #205 launch gate.

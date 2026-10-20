@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   ApiRequestError,
@@ -11,6 +11,7 @@ import {
   type EntitlementHistory,
   type SupportOperation,
 } from "./api/client";
+import { Phases, Receipts } from "./DataRequestsPanel";
 
 /**
  * CRD Issue 22: the Owner administrator's support console.
@@ -77,6 +78,14 @@ function StaffSignIn({ onSignedIn }: { onSignedIn: () => void }) {
   );
 }
 
+/** The exact request a preview was made for; confirmation submits this. */
+type Previewed = {
+  hosted: string;
+  topUp: string;
+  reason: string;
+  preview: AdjustmentPreview;
+};
+
 function Adjustment({
   account,
   onDone,
@@ -87,35 +96,50 @@ function Adjustment({
   const [hosted, setHosted] = useState("");
   const [topUp, setTopUp] = useState("");
   const [reason, setReason] = useState("");
-  const [preview, setPreview] = useState<AdjustmentPreview | null>(null);
+  const [previewed, setPreviewed] = useState<Previewed | null>(null);
   const [operationId, setOperationId] = useState(newOperationId);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Only the latest preview request may be shown (a slower, older response
+  // never replaces what the form now says).
+  const previewSeq = useRef(0);
+  // While an action is in flight or its outcome is unknown, the form is the
+  // submitted action and cannot change; its operation ID is kept until a
+  // terminal result.
+  const locked = busy || outcome?.kind === "uncertain";
 
-  function reset() {
-    setPreview(null);
+  function edit(set: (value: string) => void, value: string) {
+    if (locked) return;
+    set(value);
+    previewSeq.current += 1;
+    setPreviewed(null);
+  }
+
+  /** A terminal result: the next adjustment is a new logical action. */
+  function finish(next: Outcome) {
+    setOutcome(next);
+    setPreviewed(null);
     setOperationId(newOperationId());
+    if (next.kind === "confirmed") onDone();
   }
 
   async function submit() {
-    if (!preview) return;
+    if (!previewed) return;
     setBusy(true);
     try {
       const operation = await staffApi.adjust(
         account.account_id,
         operationId,
-        hosted || null,
-        topUp || null,
-        reason,
-        preview.last_entitlement_event_id,
+        previewed.hosted || null,
+        previewed.topUp || null,
+        previewed.reason,
+        previewed.preview.last_entitlement_event_id,
       );
-      setOutcome({ kind: "confirmed", operation });
-      onDone();
-      reset();
+      finish({ kind: "confirmed", operation });
     } catch (err) {
       if (err instanceof ApiRequestError && err.status < 500)
-        setOutcome({ kind: "rejected", message: message(err) });
+        finish({ kind: "rejected", message: message(err) });
       else setOutcome({ kind: "uncertain", message: message(err) });
     } finally {
       setBusy(false);
@@ -126,14 +150,17 @@ function Adjustment({
     setBusy(true);
     try {
       const operation = await staffApi.operationStatus(operationId);
-      if (operation.outcome_code === "committed") {
-        setOutcome({ kind: "confirmed", operation });
-        onDone();
-        reset();
-      } else
+      if (operation.outcome_code === "committed")
+        finish({ kind: "confirmed", operation });
+      else if (operation.outcome_code !== "requested")
+        finish({
+          kind: "rejected",
+          message: `Recorded outcome: ${operation.outcome_code}.`,
+        });
+      else
         setOutcome({
           kind: "uncertain",
-          message: `Recorded outcome: ${operation.outcome_code}.`,
+          message: "The action is still recorded as requested.",
         });
     } catch (err) {
       setOutcome({ kind: "uncertain", message: message(err) });
@@ -142,6 +169,27 @@ function Adjustment({
     }
   }
 
+  function requestPreview() {
+    const request = { hosted, topUp, reason };
+    const seq = (previewSeq.current += 1);
+    setError(null);
+    setOutcome(null);
+    setPreviewed(null);
+    staffApi
+      .previewAdjustment(
+        account.account_id,
+        request.hosted || null,
+        request.topUp || null,
+      )
+      .then((preview) => {
+        if (seq === previewSeq.current) setPreviewed({ ...request, preview });
+      })
+      .catch((err) => {
+        if (seq === previewSeq.current) setError(message(err));
+      });
+  }
+
+  const preview = previewed?.preview;
   return (
     <div>
       <h3>Credit adjustment</h3>
@@ -150,10 +198,8 @@ function Adjustment({
         <input
           aria-label="Included credits delta"
           value={hosted}
-          onChange={(e) => {
-            setHosted(e.target.value);
-            reset();
-          }}
+          disabled={locked}
+          onChange={(e) => edit(setHosted, e.target.value)}
         />
       </label>
       <label>
@@ -161,10 +207,8 @@ function Adjustment({
         <input
           aria-label="Top-up credits delta"
           value={topUp}
-          onChange={(e) => {
-            setTopUp(e.target.value);
-            reset();
-          }}
+          disabled={locked}
+          onChange={(e) => edit(setTopUp, e.target.value)}
         />
       </label>
       <label>
@@ -173,32 +217,19 @@ function Adjustment({
           aria-label="Reason"
           value={reason}
           maxLength={280}
-          onChange={(e) => {
-            setReason(e.target.value);
-            reset();
-          }}
+          disabled={locked}
+          onChange={(e) => edit(setReason, e.target.value)}
         />
       </label>
       {error && <p role="alert">{error}</p>}
       <button
         type="button"
-        disabled={busy || (!hosted && !topUp)}
-        onClick={() => {
-          setError(null);
-          setOutcome(null);
-          staffApi
-            .previewAdjustment(
-              account.account_id,
-              hosted || null,
-              topUp || null,
-            )
-            .then(setPreview)
-            .catch((err) => setError(message(err)));
-        }}
+        disabled={locked || (!hosted && !topUp)}
+        onClick={requestPreview}
       >
         Preview adjustment
       </button>
-      {preview && (
+      {previewed && preview && (
         <div role="region" aria-label="Adjustment preview">
           <p>
             Account <code>{preview.account_id}</code>: included{" "}
@@ -207,6 +238,7 @@ function Adjustment({
             {preview.current.top_up ?? "none"} →{" "}
             {preview.resulting_top_up ?? "—"} (deltas{" "}
             {preview.hosted_credit_delta} / {preview.top_up_credit_delta}).
+            Reason: {previewed.reason.trim() ? previewed.reason : "none given"}.
           </p>
           {preview.refusal_code && (
             <p role="alert">
@@ -216,7 +248,7 @@ function Adjustment({
           )}
           <button
             type="button"
-            disabled={busy || !reason.trim()}
+            disabled={locked || !previewed.reason.trim()}
             onClick={() => void submit()}
           >
             Confirm adjustment
@@ -449,6 +481,8 @@ function RequestQueue() {
                   {r.state === "approved" ? "Execute" : "Retry"}
                 </button>
               )}
+              <Phases phases={r.phases} />
+              <Receipts receipts={r.receipts} />
               {r.state === "in_progress" && r.progress_code && (
                 <button
                   type="button"

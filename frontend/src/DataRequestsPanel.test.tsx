@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { DataRequest, DeletionPreview } from "./api/client";
-import DataRequestsPanel from "./DataRequestsPanel";
+import DataRequestsPanel, { ReceiptLookup } from "./DataRequestsPanel";
 
 type Call = { url: string; method: string; body: string | undefined };
 
@@ -308,5 +308,79 @@ describe("DataRequestsPanel", () => {
     const call = calls.find((c) => c.url.endsWith("/receipt-credential"))!;
     expect(JSON.parse(call.body!)).toEqual({ password: "pw-123456789012" });
     expect(localStorage.length).toBe(0);
+  });
+});
+
+describe("ReceiptLookup", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("reads a closed account's request and receipt by its code, then forgets the code", async () => {
+    const done = request({
+      kind: "deletion",
+      scope: "account",
+      story_ids: [],
+      state: "completed",
+      phases: [
+        {
+          phase_code: "identity",
+          outcome_code: "succeeded",
+        } as DataRequest["phases"][number],
+      ],
+      receipts: [
+        {
+          receipt_id: "33333333-3333-3333-3333-333333333333",
+          receipt_kind: "deletion",
+          attempt_id: "44444444-4444-4444-4444-444444444444",
+          created_at: "2026-10-19T00:00:00Z",
+          body: { stories_deleted: 2, classes: ["turns", "story_bible"] },
+          schema_version: 1,
+        },
+      ],
+    });
+    const calls = stubFetch({
+      "POST /api/data-requests/receipt": [
+        () =>
+          json(403, {
+            error_code: "forbidden",
+            message: "That receipt code does not match.",
+            detail: null,
+            schema_version: 1,
+          }),
+        () => json(200, done),
+      ],
+    });
+    render(<ReceiptLookup />);
+    const check = screen.getByRole("button", { name: "Check request" });
+    expect(check).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Request ID"), {
+      target: { value: done.request_id },
+    });
+    fireEvent.change(screen.getByLabelText("Receipt code"), {
+      target: { value: "wrong" },
+    });
+    fireEvent.click(check);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "does not match",
+    );
+    expect(screen.getByLabelText("Receipt code")).toHaveValue("");
+    fireEvent.change(screen.getByLabelText("Receipt code"), {
+      target: { value: "right-code" },
+    });
+    fireEvent.click(check);
+    const region = await screen.findByRole("region", {
+      name: "Request status",
+    });
+    expect(region).toHaveTextContent(
+      "Deletion of the whole account: Completed",
+    );
+    expect(region).toHaveTextContent("identity: done");
+    expect(region).toHaveTextContent('"stories_deleted": 2');
+    expect(JSON.parse(calls[1]!.body!)).toEqual({
+      request_id: done.request_id,
+      credential: "right-code",
+    });
+    await waitFor(() =>
+      expect(screen.getByLabelText("Receipt code")).toHaveValue(""),
+    );
   });
 });

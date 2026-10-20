@@ -58,6 +58,108 @@ function errorText(err: unknown): string {
   return "The request could not be completed. Reload to see its current state.";
 }
 
+/** A request's recorded phases, as the server reports them. */
+export function Phases({ phases }: { phases: DataRequest["phases"] }) {
+  if (phases.length === 0) return null;
+  return (
+    <ul aria-label="Progress">
+      {phases.map((p) => (
+        <li key={p.phase_code}>
+          {p.phase_code.replaceAll("_", " ")}:{" "}
+          {PHASE_TEXT[p.outcome_code] ?? p.outcome_code}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Export manifests and deletion receipts verbatim (IDs, counts, classes
+ * and times; never content), shown as text. */
+export function Receipts({ receipts }: { receipts: DataRequest["receipts"] }) {
+  if (receipts.length === 0) return null;
+  return (
+    <ul aria-label="Receipts">
+      {receipts.map((r) => (
+        <li key={r.receipt_id}>
+          {r.receipt_kind.replaceAll("_", " ")} receipt, {when(r.created_at)}
+          <pre>{JSON.stringify(r.body, null, 2)}</pre>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Signed out (including after the account was closed): read one request's
+ * status and receipts with its one-time receipt code. The code lives only in
+ * this transient input and is cleared after each lookup.
+ */
+export function ReceiptLookup() {
+  const [requestId, setRequestId] = useState("");
+  const [code, setCode] = useState("");
+  const [found, setFound] = useState<DataRequest | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  return (
+    <section aria-labelledby="receipt-heading">
+      <h2 id="receipt-heading">Check a data request</h2>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          setBusy(true);
+          setError(null);
+          setFound(null);
+          dataRequests
+            .receipt(requestId.trim(), code.trim())
+            .then(setFound)
+            .catch((err) => setError(errorText(err)))
+            .finally(() => {
+              setCode("");
+              setBusy(false);
+            });
+        }}
+      >
+        <label>
+          Request ID{" "}
+          <input
+            aria-label="Request ID"
+            value={requestId}
+            onChange={(e) => setRequestId(e.target.value)}
+          />
+        </label>
+        <label>
+          Receipt code{" "}
+          <input
+            aria-label="Receipt code"
+            type="password"
+            autoComplete="off"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={busy || !requestId.trim() || !code.trim()}
+        >
+          Check request
+        </button>
+      </form>
+      {error && <p role="alert">{error}</p>}
+      {found && (
+        <div role="region" aria-label="Request status">
+          <p>
+            {found.kind === "export" ? "Export" : "Deletion"} of{" "}
+            {found.scope === "account" ? "the whole account" : "a Story"}:{" "}
+            {STATE_TEXT[found.state]}
+          </p>
+          <Phases phases={found.phases} />
+          <Receipts receipts={found.receipts} />
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function DataRequestsPanel({ local }: { local: boolean }) {
   const [requests, setRequests] = useState<DataRequest[] | null>(null);
   const [stories, setStories] = useState<StoryListItem[]>([]);
@@ -316,16 +418,8 @@ export default function DataRequestsPanel({ local }: { local: boolean }) {
                   <> · backups by {when(r.backup_deadline_at)}</>
                 )}
               </div>
-              {r.phases.length > 0 && (
-                <ul aria-label="Progress">
-                  {r.phases.map((p) => (
-                    <li key={p.phase_code}>
-                      {p.phase_code.replaceAll("_", " ")}:{" "}
-                      {PHASE_TEXT[p.outcome_code] ?? p.outcome_code}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <Phases phases={r.phases} />
+              <Receipts receipts={r.receipts} />
               {r.state === "requested" && r.kind === "deletion" && (
                 <button
                   type="button"

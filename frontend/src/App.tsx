@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import AccountPanel from "./AccountPanel";
-import DataRequestsPanel from "./DataRequestsPanel";
+import DataRequestsPanel, { ReceiptLookup } from "./DataRequestsPanel";
 import {
   api,
   ApiRequestError,
@@ -158,6 +158,8 @@ export default function App() {
             setSession(status);
           }}
         />
+        {/* CRD Issue 22: a closed account's requests stay readable by receipt code. */}
+        <ReceiptLookup />
       </main>
     );
   }

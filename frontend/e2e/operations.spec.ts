@@ -180,7 +180,9 @@ test("the Owner administrator works in a separate staff session", async ({
 
 test("a previewed, reasoned credit adjustment is applied once and confirmed", async () => {
   await ownerStaff.getByLabel("Included credits delta").fill("2.5");
-  await ownerStaff.getByLabel("Reason").fill("Goodwill after an outage");
+  await ownerStaff
+    .getByLabel("Reason", { exact: true })
+    .fill("Goodwill after an outage");
   await ownerStaff.getByRole("button", { name: "Preview adjustment" }).click();
   const preview = ownerStaff.getByRole("region", {
     name: "Adjustment preview",
@@ -264,8 +266,16 @@ test("account-wide export then deletion, with a receipt after closure", async ()
   await staffQueueStep(ownerStaff, "export / account", "Execute");
   await b.reload();
   await openData(b);
-  await expect(b.getByRole("link", { name: /Download export/ })).toBeVisible();
+  // The export must be delivered before erasure can proceed.
+  const [download] = await Promise.all([
+    b.waitForEvent("download"),
+    b.getByRole("link", { name: /Download export/ }).click(),
+  ]);
+  const zip = readFileSync((await download.path())!);
+  expect(zip.subarray(0, 2).toString()).toBe("PK");
 
+  await b.reload();
+  await openData(b);
   await b.getByRole("button", { name: "Delete my account…" }).click();
   const dialog = b.getByRole("dialog");
   await expect(dialog).toContainText("Export first");
@@ -284,31 +294,26 @@ test("account-wide export then deletion, with a receipt after closure", async ()
   // B's sessions were revoked: the app returns to sign-in.
   await b.reload();
   await expect(b.getByRole("heading", { name: "Sign in" })).toBeVisible();
-  const status = await call(b, "POST", "/api/data-requests/receipt", {
-    request_id: requestId,
-    credential,
-  });
-  expect(status.status).toBe(200);
-  expect(status.body.state).toBe("in_progress");
-  const phases = status.body.phases as {
-    phase_code: string;
-    outcome_code: string;
-  }[];
-  const outcome = Object.fromEntries(
-    phases.map((p) => [p.phase_code, p.outcome_code]),
+  // The signed-out app reads the request by its receipt code.
+  const lookup = b.getByRole("region", { name: "Request status" });
+  await b.getByLabel("Request ID").fill(requestId);
+  await b.getByLabel("Receipt code").fill("not-the-code");
+  await b.getByRole("button", { name: "Check request" }).click();
+  await expect(b.getByRole("alert")).toBeVisible();
+  await expect(lookup).toHaveCount(0);
+  await b.getByLabel("Receipt code").fill(credential);
+  await b.getByRole("button", { name: "Check request" }).click();
+  await expect(lookup).toContainText(
+    "Deletion of the whole account: In progress",
   );
-  expect(outcome.identity).toBe("succeeded");
-  expect(outcome.sql_content).toBe("succeeded");
-  expect(outcome.physical_compaction).toBe("pending");
-  expect(outcome.commercial).toBe("dependency_unavailable");
-  expect(
-    (
-      await call(b, "POST", "/api/data-requests/receipt", {
-        request_id: requestId,
-        credential: "not-the-code",
-      })
-    ).status,
-  ).toBe(404);
+  const progress = lookup.getByRole("list", { name: "Progress" });
+  await expect(progress).toContainText("identity: done");
+  await expect(progress).toContainText("sql content: done");
+  await expect(progress).toContainText("physical compaction: pending");
+  await expect(progress).toContainText(
+    "commercial: blocked: a required service is not available yet",
+  );
+  await expect(b.getByLabel("Receipt code")).toHaveValue("");
   // A's account and remaining Story are unaffected.
   expect((await call(a, "GET", "/api/stories")).status).toBe(200);
 });

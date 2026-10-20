@@ -467,3 +467,95 @@ class TestNoticeOwnership:
         with pytest.raises(OSError, match="unattributable"):
             outbox.purge("gone@example.test")
         assert (tmp_path / "recovery-legacy.json").exists()
+
+
+class TestBoundedText:
+    """Bounded verification concern: an explanation admits ordinary reasons
+    and refuses the listed shapes (pattern-limited, not PII detection)."""
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "Goodwill after an outage",
+            "Refund for 3 failed turns on 2026-10-19",
+            "crd22_settlement_failure investigated",
+        ],
+    )
+    def test_admits_ordinary_reasons(self, text: str) -> None:
+        from afterworlds.operations.support import bounded_text
+
+        assert bounded_text(f"  {text} ") == text
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "write to owner@example.test",
+            "see https://example.test/x",
+            "see www.example.test",
+            "card 4111 1111 1111 1111",
+            "call +1 555 123 4567",
+            "token abcdEFGH1234ijklMNOP5678qrst",
+            "sk-ant-abcdefgh12345",
+            "two\nlines",
+            "hidden\u202eoverride",
+            "",
+            "x" * 281,
+        ],
+    )
+    def test_refuses_listed_shapes(self, text: str) -> None:
+        from afterworlds.operations.errors import OperationError
+        from afterworlds.operations.support import bounded_text
+
+        with pytest.raises(OperationError) as refused:
+            bounded_text(text)
+        assert text.strip() == "" or text not in str(refused.value)  # never echoed
+
+
+class TestRpgExport:
+    """Bounded verification concern: an RPG Story's export carries its
+    transcript, player-visible state and setup view and no hidden mechanics
+    (world-setup phase; see the in-play limit below)."""
+
+    def test_rpg_story_export_scope_and_visibility(self, remote: RemoteHarness) -> None:
+        from tests.operations._data import plant, unzip
+
+        a = remote.enroll("a@example.test")
+        remote.seed_hosted(remote.account_id(a))
+        story_id = a.post(
+            "/api/stories",
+            json={"title": "Isles", "mode": "rpg", "character_name": "Ilse"},
+        ).json()["story_id"]
+        turn = a.post(
+            f"/api/stories/{story_id}/turns",
+            json={"user_input": "A storm-wracked archipelago."},
+        )
+        assert turn.status_code == 200, turn.text
+        setup = a.get(f"/api/stories/{story_id}/rpg/setup").json()
+        plant(
+            remote.app.state.session_factory,
+            story_id,
+            "RPGHIDDENMARK",
+            orphan_marker="RPGORPHANOK",
+        )
+
+        req = _request(a, "export", "story", story_id)
+        staff = remote.staff()
+        _approve(staff, req["request_id"])
+        assert _execute(staff, req["request_id"])["state"] == "completed"
+        files = unzip(a.get(f"/api/data-requests/{req['request_id']}/artifact").content)
+        story = files[f"stories/{story_id}/story.json"]
+        assert story["story"]["mode"] == "rpg"
+        assert any("storm-wracked" in t["user_input"] for t in story["transcript"])
+        # The same projections the player sees (in world setup there is no
+        # sheet yet; an in-play sheet needs the published-release fixture --
+        # a recorded verification limit).
+        visible = a.get(f"/api/stories/{story_id}/visible-state").json()
+        assert story["visible_state"] == visible["visible_state"]
+        assert setup["phase"] == "world_setup"
+        shown = a.get(f"/api/stories/{story_id}/setup").json()
+        assert story["setup_state"] == shown["setup_state"] is not None
+        everything = str(files)
+        assert "RPGHIDDENMARK" not in everything
+        assert "RPGORPHANOK" in everything  # the player's own orphan prose
+        codes = {e["code"] for e in files["manifest.json"]["exclusions"]}
+        assert "hidden_rpg_mechanics" in codes

@@ -55,10 +55,24 @@ from afterworlds.remote.control_store import iso, parse_iso, utc_now
 from afterworlds.remote.identity import Actor, ActorKind, IdentityService
 
 REASON_MAX_LENGTH = 280
-_CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
+#: Control characters (line breaks included: a reason is one line) and
+#: invisible formatting or bidirectional overrides.
+_CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f​-‏‪-‮⁦-⁩﻿]")
 #: Provider keys and bearer-style tokens (Anthropic, OpenRouter, OpenAI and
 #: generic ``sk-``/``Bearer``-prefixed secrets).
 _CREDENTIAL = re.compile(r"(sk-[A-Za-z0-9_\-]{8,}|Bearer\s+\S{8,})", re.IGNORECASE)
+#: Shapes a bounded explanation never needs (review round 2): email
+#: addresses, links, long digit runs (phone, card or account numbers) and
+#: long opaque tokens (keys, JWTs, hashes). Pattern-limited by design: not
+#: general personal-data or secret detection; the operator attests the text
+#: is a content-free explanation.
+_PERSONAL = re.compile(
+    r"[^\s@]+@[^\s@]+\.[^\s@]+"
+    r"|\b(?:https?|ftp)://|\bwww\."
+    r"|\d(?:[\s.\-]?\d){8,}"
+    r"|(?=[A-Za-z0-9\-+/=]*\d)(?=[A-Za-z0-9\-+/=]*[A-Za-z])[A-Za-z0-9\-+/=]{24,}",
+    re.IGNORECASE,
+)
 _DELTA = re.compile(r"^[+-]?\d{1,8}(\.\d{1,4})?$")
 #: Namespace of support adjustments in the global entitlement idempotency keys.
 IDEMPOTENCY_PREFIX = "crd22-support-adjustment:"
@@ -78,8 +92,10 @@ _TERMINAL = frozenset(
 
 
 def bounded_text(value: str, what: str = "reason") -> str:
-    """Untrusted operator/requester text: trimmed, 1-280 characters, no
-    control characters. Stored and shown as plain text, never markup."""
+    """Untrusted operator/requester text: trimmed, 1-280 characters, one
+    line, no control or invisible formatting characters and none of the
+    shapes in ``_CREDENTIAL``/``_PERSONAL``. Stored and shown as plain text,
+    never markup. The shape checks are a guard, not detection."""
     text = value.strip()
     if not text or len(text) > REASON_MAX_LENGTH or _CONTROL.search(text):
         raise OperationError(
@@ -92,6 +108,12 @@ def bounded_text(value: str, what: str = "reason") -> str:
         raise OperationError(
             OperationErrorKind.INVALID_INPUT,
             f"The {what} looks like it contains a credential; remove it.",
+        )
+    if _PERSONAL.search(text):
+        raise OperationError(
+            OperationErrorKind.INVALID_INPUT,
+            f"The {what} must not contain an email address, link, long number "
+            "or code; describe the reason without them.",
         )
     return text
 
