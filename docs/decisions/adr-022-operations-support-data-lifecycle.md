@@ -53,6 +53,24 @@ compaction: compaction runs with the app stopped, and the app is restarted after
 Capture refuses while compaction is pending, because the SQLite backup API and directory copy carry free
 pages and orphan segments. This is a narrow addition to #205's capture preconditions.
 
+### D6a. Coordination added after review (a881bf5e)
+- The deletion executor records the fenced suppression **before** its final inventory, so every Turn or
+  Story an admitted request commits is inventoried; an account inventory is re-checked after the purge.
+- Exports snapshot and publish under the account fence (remote) or one local fulfillment lock, include
+  only owned, unsuppressed Stories (a `stories_under_deletion` exclusion is disclosed), and an account
+  deletion fails visibly (`exports` phase) while any export of the subject is open or an available
+  artifact has not been delivered (delivery is recorded after the whole download body was sent).
+- `verify-restore` admits a restore only after `enforce-restore` recorded its completion
+  (`ops_restore_enforcements`); #205's own refusals and suppressed-Story list come first, unchanged.
+- Ledger expiry commits its register intent before the content effect.
+- Suppression release requires the completed request, a live zero-content re-check, disposed backups and
+  passed horizons (a missing replay horizon defaults to the backup horizon).
+- Compaction staging is a claimed directory inside the live vector store, bound to its deployment
+  identity and one operation; any other occupant is refused untouched.
+- A lost receipt credential can be reissued before closure (session + password); approval by the
+  administrator requires a safe reason; account erasure removes undelivered outbox notices to the
+  erased address.
+
 ### D7. Anomalies
 Computed from durable sources at read time (support stream, requests, replay check, restores) plus one new
 durable signal: a delivered turn's settlement failure is recorded as an anomaly event by the turn routes
@@ -60,11 +78,13 @@ after the response is built (the turn stays delivered; nothing retried or charge
 
 ## Consequences and recorded boundaries
 
-- **Restore after ledger expiry (boundary, not resolved):** #205's `check_ledger_continuity` requires the live
-  ledger to be a prefix of the snapshot's. Once a closed subject's events expire, restoring a backup captured
-  before that expiry is refused. The rule is kept unchanged (no comparison filtering — that would be new
-  reconciliation semantics); `enforce-restore` would re-expire such events if a restore were accepted under a
-  future Owner decision. Backups live at most 21 days, so the window is narrow.
+- **Restore after ledger expiry (corrected after review):** #205's `check_ledger_continuity` is unchanged: a restore is refused unless the live ledger is a
+  prefix of the snapshot's. After a closed subject's ledger expires, a backup captured before the
+  expiry is therefore **refused when the expired events precede retained ones**, and **accepted when the
+  live ledger is still a prefix** (the subject's events were last, or the whole ledger expired). In the
+  accepted case the restored events are expired again by `enforce-restore` -- which derives due
+  subjects from the register and, independently, from closure state -- before `verify-restore` may
+  admit the store. No ledger rewind, rebuild, carry-forward or reconciliation exception is added.
 - **CRD Issue 23 dependency:** a hosted account with live subscription or Cloud Services references cannot
   reach final deletion completion until CRD Issue 23 supplies closure; the phase reads
   `dependency_unavailable`.

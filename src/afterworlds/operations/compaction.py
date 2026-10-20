@@ -19,9 +19,12 @@ therefore:
 4. replaces the live store's contents with the rebuilt ones (keeping its
    deployment marker and serve lock) and removes the export and staging.
 
-Steps 3-4 are crash-safe: a completed staging store is resumed (its contents
-are copied again over whatever an interrupted swap left), an incomplete one
-is discarded and rebuilt. Evidence is counts, never content.
+Staging (claim, export and rebuilt store) lives inside the live vector
+directory, claimed for this store's deployment identity and one operation
+before any effect; any other occupant is refused untouched. Steps 3-4 are
+crash-safe: this claim's completed rebuild is resumed (its contents are
+copied again over whatever an interrupted swap left), its incomplete one is
+discarded and rebuilt. Evidence is counts, never content.
 """
 
 from __future__ import annotations
@@ -31,17 +34,24 @@ import json
 import os
 import shutil
 import sqlite3
+import stat
 import subprocess
 import sys
 from collections.abc import Callable
 from contextlib import closing
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from chromadb.api import ClientAPI
 from chromadb.api.shared_system_client import SharedSystemClient
 
-from afterworlds.remote.storage import VECTOR_LOCK, VECTOR_MARKER
+from afterworlds.remote.storage import (
+    VECTOR_LOCK,
+    VECTOR_MARKER,
+    StoreRefused,
+    read_vector_marker,
+)
 
 _PAGE = 500
 _COMPLETE = ".compaction-complete.json"
@@ -59,11 +69,15 @@ def vacuum_sqlite(path: Path) -> dict[str, int]:
     }
 
 
-def _staging(vector_dir: Path) -> tuple[Path, Path]:
-    return (
-        vector_dir.with_name(f".{vector_dir.name}.compact-new"),
-        vector_dir.with_name(f".{vector_dir.name}.compact-export.json"),
-    )
+#: Staging lives inside the live vector directory -- covered by its serve
+#: lock and deployment marker, so no other store's path can be adopted or
+#: deleted (review P1-6) -- and is claimed before any effect.
+STAGING = ".afterworlds-compaction"
+_CLAIM = "claim.json"
+
+
+def _staging(vector_dir: Path) -> Path:
+    return vector_dir / STAGING
 
 
 def export_vectors(client: ClientAPI, path: Path) -> dict[str, int]:
@@ -106,13 +120,13 @@ def export_vectors(client: ClientAPI, path: Path) -> dict[str, int]:
             }
         )
         counts[name] = len(records["ids"])
-    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as handle:
         json.dump(collections, handle)
     return counts
 
 
-def import_vectors(export: Path, target: Path) -> dict[str, int]:
+def import_vectors(export: Path, target: Path, operation_id: str) -> dict[str, int]:
     """Build a fresh store from an export. Run only in a fresh process
     (``python -m afterworlds.operations.compaction``)."""
     import chromadb
@@ -144,17 +158,18 @@ def import_vectors(export: Path, target: Path) -> dict[str, int]:
         if collection.count() != len(records["ids"]):
             raise RuntimeError(f"import of {item['name']} is incomplete")
         counts[item["name"]] = collection.count()
-    (target / _COMPLETE).write_text(json.dumps(counts), encoding="utf-8")
+    (target / _COMPLETE).write_text(
+        json.dumps({"operation_id": operation_id, "counts": counts}), encoding="utf-8"
+    )
     return counts
 
 
 def compaction_unfinished(vector_dir: Path) -> bool:
-    """A compaction started and did not finish: its staging store or export
-    (plain copies of every remaining record) still exist beside the live
-    vector store, which may be partly replaced. Nothing may serve or maintain
-    the stores until ``compact`` is run again."""
-    staging, export = _staging(vector_dir)
-    return staging.exists() or export.exists()
+    """A compaction started and did not finish: its claimed staging (plain
+    copies of every remaining record) is still inside the live vector store,
+    which may be partly replaced. Nothing may serve or maintain the stores
+    until ``compact`` is run again."""
+    return os.path.lexists(_staging(vector_dir))
 
 
 def _clear(directory: Path, keep: set[str]) -> None:
@@ -167,13 +182,60 @@ def _clear(directory: Path, keep: set[str]) -> None:
             entry.unlink()
 
 
+def _read_json(path: Path) -> Any:
+    """A regular file's JSON (never through a link), or None."""
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return None
+    if not stat.S_ISREG(info.st_mode):
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def _claim(vector_dir: Path, store_id: str) -> str:
+    """This store's claimed staging and its operation ID: an existing claim
+    of this store is resumed; anything else at the staging path (no claim, a
+    foreign or unreadable one, a link or a file) is refused untouched."""
+    staging = _staging(vector_dir)
+    if os.path.lexists(staging):
+        info = staging.lstat()
+        claim = _read_json(staging / _CLAIM) if stat.S_ISDIR(info.st_mode) else None
+        if (
+            not isinstance(claim, dict)
+            or claim.get("store_id") != store_id
+            or not isinstance(claim.get("operation_id"), str)
+        ):
+            raise StoreRefused(
+                f"{staging} is not this store's compaction; left untouched"
+            )
+        return str(claim["operation_id"])
+    operation_id = str(uuid4())
+    staging.mkdir()
+    fd = os.open(staging / _CLAIM, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        json.dump({"store_id": store_id, "operation_id": operation_id}, handle)
+    return operation_id
+
+
 def compact_vector_store(
     vector_dir: Path, client_factory: Callable[[], ClientAPI]
 ) -> dict[str, Any]:
-    staging, export = _staging(vector_dir)
-    if not (staging / _COMPLETE).is_file():
-        if staging.exists():
-            shutil.rmtree(staging)
+    store_id = read_vector_marker(vector_dir)
+    if store_id is None:
+        raise StoreRefused("the vector store is not bound to a deployment")
+    operation_id = _claim(vector_dir, store_id)
+    staging = _staging(vector_dir)
+    export, rebuilt = staging / "export.json", staging / "store"
+    done = _read_json(rebuilt / _COMPLETE)
+    if not (isinstance(done, dict) and done.get("operation_id") == operation_id):
+        # This claim's own incomplete work: discard and rebuild.
+        if rebuilt.exists():
+            shutil.rmtree(rebuilt)
+        export.unlink(missing_ok=True)
         exported = export_vectors(client_factory(), export)
         SharedSystemClient.clear_system_cache()
         gc.collect()
@@ -183,28 +245,27 @@ def compact_vector_store(
                 "-m",
                 "afterworlds.operations.compaction",
                 str(export),
-                str(staging),
+                str(rebuilt),
+                operation_id,
             ],
             check=True,
             stdout=subprocess.DEVNULL,
         )
-        imported = json.loads((staging / _COMPLETE).read_text(encoding="utf-8"))
-        if imported != exported:
+        done = _read_json(rebuilt / _COMPLETE)
+        if not isinstance(done, dict) or done.get("counts") != exported:
             raise RuntimeError("rebuilt vector store does not match the export")
     SharedSystemClient.clear_system_cache()
     gc.collect()
-    imported = json.loads((staging / _COMPLETE).read_text(encoding="utf-8"))
-    _clear(vector_dir, {VECTOR_LOCK, VECTOR_MARKER})
-    for entry in staging.iterdir():
-        if entry.name in (_COMPLETE, VECTOR_MARKER, VECTOR_LOCK):
+    _clear(vector_dir, {VECTOR_LOCK, VECTOR_MARKER, STAGING})
+    for entry in rebuilt.iterdir():
+        if entry.name in (_COMPLETE, VECTOR_MARKER, VECTOR_LOCK, STAGING):
             continue
         if entry.is_dir():
             shutil.copytree(entry, vector_dir / entry.name)
         else:
             shutil.copy2(entry, vector_dir / entry.name)
     shutil.rmtree(staging)
-    export.unlink(missing_ok=True)
-    return {"collections": imported}
+    return {"collections": done["counts"]}
 
 
 def compact_stores(
@@ -215,10 +276,10 @@ def compact_stores(
     """Physically dispose of logically deleted content in both live stores
     (app stopped). Raises on any failure; evidence otherwise."""
     evidence: dict[str, Any] = {"content": vacuum_sqlite(database_path)}
-    if (vector_dir / "chroma.sqlite3").is_file() or _staging(vector_dir)[0].exists():
+    if (vector_dir / "chroma.sqlite3").is_file() or compaction_unfinished(vector_dir):
         evidence["vector"] = compact_vector_store(vector_dir, client_factory)
     return evidence
 
 
 if __name__ == "__main__":
-    import_vectors(Path(sys.argv[1]), Path(sys.argv[2]))
+    import_vectors(Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3])

@@ -65,6 +65,9 @@ PUBLIC_PATHS = frozenset(
 _REMOTE_ONLY_PREFIXES = ("/api/admin", "/api/auth/", "/api/account/close")
 _LOCAL_ONLY_PREFIX = "/api/account/byok/"
 CLOSE_PATH = "/api/account/close"
+#: CRD Issue 22: reissuing a lost receipt credential writes only the request's
+#: own receipt record, so it stays available while the account is fenced.
+SUPPRESSION_EXEMPT_SUFFIX = "/receipt-credential"
 _SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 _IDENTITY_ERRORS: dict[IdentityErrorKind, tuple[int, ApiErrorCode]] = {
@@ -162,8 +165,12 @@ async def enforce_access(request: Request) -> AsyncIterator[None]:
                 401, ApiErrorCode.AUTHENTICATION_REQUIRED, "Authentication required."
             )
         # An account under deletion admits no new account-owned effect.
-        if request.method not in _SAFE_METHODS and await run_in_threadpool(
-            access_policy(request).account_suppressed, actor.account_id
+        if (
+            request.method not in _SAFE_METHODS
+            and not path.endswith(SUPPRESSION_EXEMPT_SUFFIX)
+            and await run_in_threadpool(
+                access_policy(request).account_suppressed, actor.account_id
+            )
         ):
             raise ApiErrorResponse(
                 409,

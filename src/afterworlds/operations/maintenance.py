@@ -45,7 +45,7 @@ from afterworlds.operations.deletion import DeletionContext, evaluate
 from afterworlds.operations.enforcement import enforce_restore, record_compaction
 from afterworlds.operations.requests import RequestState, RequestStore
 from afterworlds.operations.retention import release_suppression, reviews_due, sweep
-from afterworlds.operations.vectors import story_chunk_deleter
+from afterworlds.operations.vectors import story_chunk_counter, story_chunk_deleter
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.pipeline.retrieval.client import build_chroma_client
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
@@ -175,7 +175,13 @@ def main(argv: list[str] | None = None) -> int:
             elif args.command == "release-suppression":
                 if control is None:
                     parser.error("release-suppression requires a remote deployment")
-                released = release_suppression(control, args.suppression_id, now=now)
+                released = release_suppression(
+                    control,
+                    args.suppression_id,
+                    now=now,
+                    content=content,
+                    story_chunk_count=story_chunk_counter(_client()),
+                )
                 print("released" if released else "end conditions not met; kept")
                 return 0 if released else 2
             else:

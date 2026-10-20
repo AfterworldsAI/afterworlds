@@ -22,6 +22,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 
 from afterworlds.api.deps import AdmittedWorkerRoute
 from afterworlds.api.dto import (
@@ -33,6 +34,7 @@ from afterworlds.api.dto import (
     DataRequestStepRequest,
     DeletionPreviewResponse,
     ReceiptLookupRequest,
+    ReissueReceiptCredentialRequest,
 )
 from afterworlds.api.errors import ApiError
 from afterworlds.api.operations import preview_dto, request_dto, run_operation
@@ -175,12 +177,39 @@ async def execute_local_request(
 def download_artifact(
     request_id: UUID, request: Request, actor: Actor = Depends(get_actor)
 ) -> FileResponse:
-    path = run_operation(
-        lambda: _service(request).artifact_path(actor, str(request_id))
+    service = _service(request)
+    path, artifact_id = run_operation(
+        lambda: service.artifact_path(actor, str(request_id))
     )
+    # Delivery is recorded only after the whole body was sent; a broken
+    # transfer leaves it undelivered (account erasure then still waits).
     return FileResponse(
         path,
         media_type="application/zip",
         filename=f"afterworlds-export-{request_id}.zip",
         headers={"Cache-Control": "no-store"},
+        background=BackgroundTask(service.mark_delivered, artifact_id),
+    )
+
+
+@router.post(
+    "/{request_id}/receipt-credential",
+    response_model=ConfirmDeletionResponse,
+    responses=_RESPONSES,
+)
+def reissue_receipt_credential(
+    request_id: UUID,
+    body: ReissueReceiptCredentialRequest,
+    request: Request,
+    actor: Actor = Depends(get_actor),
+) -> ConfirmDeletionResponse:
+    """Replace a receipt credential whose confirmation response was lost --
+    before closure only, with the owner's session and password."""
+    view, credential = run_operation(
+        lambda: _service(request).reissue_credential(
+            actor, str(request_id), body.password.get_secret_value()
+        )
+    )
+    return ConfirmDeletionResponse(
+        request=request_dto(view, administrator=False), receipt_credential=credential
     )

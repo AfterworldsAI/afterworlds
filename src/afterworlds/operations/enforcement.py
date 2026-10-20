@@ -27,7 +27,11 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from afterworlds.operations.compaction import compact_stores
 from afterworlds.operations.deletion import inventory_of, purge_sql
-from afterworlds.operations.orm import DataRequestORM, PhaseEventORM
+from afterworlds.operations.orm import (
+    DataRequestORM,
+    PhaseEventORM,
+    RestoreEnforcementORM,
+)
 from afterworlds.operations.requests import RequestStore
 from afterworlds.operations.retention import (
     SweepResult,
@@ -36,6 +40,7 @@ from afterworlds.operations.retention import (
 )
 from afterworlds.operations.vectors import story_chunk_deleter
 from afterworlds.remote.control_orm import DeletionSuppressionORM
+from afterworlds.remote.control_store import iso
 from afterworlds.remote.storage import StoreRefused, pending_restores
 
 
@@ -136,13 +141,36 @@ def enforce_restore(
             reapplied += 1
     result = SweepResult()
     expire_refusal_log(content, now, result)
-    ledger = reapply_ledger_expiries(control, content)
+    ledger = reapply_ledger_expiries(control, content, now=now)
     content.kw["bind"].dispose()
     evidence = compact_stores(database_path, vector_dir, client_factory)
-    return {
+    summary = {
         "suppressions_reapplied": len(suppressions),
         "requests_reapplied": reapplied,
         "refusal_rows_expired": result.refusal_rows_expired,
         "entitlement_events_reexpired": ledger,
         "compaction": evidence,
     }
+    # The restore may be verified (and served) only after this record exists
+    # (review P1-4); counts only.
+    with control.begin() as s:
+        for restore_id in pending_restores(control):
+            row = s.get(RestoreEnforcementORM, restore_id)
+            if row is None:
+                s.add(
+                    RestoreEnforcementORM(
+                        restore_id=restore_id,
+                        enforced_at=iso(now),
+                        summary_json=json.dumps(summary, sort_keys=True, default=str),
+                    )
+                )
+            else:
+                row.enforced_at = iso(now)
+                row.summary_json = json.dumps(summary, sort_keys=True, default=str)
+    return summary
+
+
+def restore_enforced(control: sessionmaker[Session], restore_id: str) -> bool:
+    """Whether ``enforce-restore`` ran to completion for this restore."""
+    with control() as s:
+        return s.get(RestoreEnforcementORM, restore_id) is not None

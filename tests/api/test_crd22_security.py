@@ -113,7 +113,7 @@ def test_interrupted_deletion_resumes_after_restart(
         )
         staff.post(
             f"/api/admin/data-requests/{req['request_id']}/approve",
-            json={"expected_revision": 2},
+            json={"expected_revision": 2, "reason": "verified owner request"},
         )
 
         def die(*_: Any, **__: Any) -> Any:
@@ -172,7 +172,7 @@ def test_concurrent_execution_of_one_request_is_refused(remote: RemoteHarness) -
     ).json()
     staff.post(
         f"/api/admin/data-requests/{req['request_id']}/approve",
-        json={"expected_revision": 1},
+        json={"expected_revision": 1, "reason": "verified owner request"},
     )
     codes: list[int] = []
 

@@ -166,9 +166,10 @@ and receipt (`operations/deletion.py`).
 | Chroma SQLite free pages, operation log, HNSW segment files | offline `compact`: export remaining records, rebuild in a **fresh subprocess** (Chroma's HNSW writer was observed persisting freed-memory bytes into a new segment), swap contents keeping marker and lock |
 | Shared Rules corpus | copied unchanged by the rebuild; never deleted |
 | Export artifacts | removed at deletion, 7-day expiry or 24-hour staging cleanup; never captured in backups |
+| Notice outbox files to an erased address | removed by the identity owner at account erasure, before the profile (#205 relay files) |
 | Backups (#205 inventory) | 21-day life from original capture (copies/restores keep it); deletion final only when every affected backup is disposed (`backup_disposition`) ≤ 30 days from confirmation |
 | Captures | refused while any deletion's physical compaction is pending (`storage_cli capture`) |
-| Compaction staging (`.<vector>.compact-new/`) and export (`.<vector>.compact-export.json`) | plain copies of every remaining record, owner-only, beside the live vector store; removed when the swap completes. While either exists the app, `storage_cli` and every maintenance command except `compact` refuse to run; rerun `compact` to finish |
+| Compaction staging (`<vector>/.afterworlds-compaction/`: claim, export, rebuilt store) | plain copies of every remaining record, owner-only, inside the locked live vector store and claimed for its deployment identity and one operation; an unclaimed or foreign occupant is refused untouched; removed when the swap completes. While either exists the app, `storage_cli` and every maintenance command except `compact` refuse to run; rerun `compact` to finish |
 | Control store | not restored with content; host-controlled backup is a #205 launch gate |
 | Local device files, keyring, user-downloaded exports, provider-held copies | not touched remotely; local physical remnants are `owner_controlled`; the maintenance `compact`, `enforce-restore` and `finalize` commands refuse locally (no store lock proves a local app is stopped) |
 
@@ -190,9 +191,12 @@ session-bound) and the scope; **Approve**, then **Execute**. Read the result: `c
 `detail_code` say why; fix and **Retry** — a new attempt within the same deadlines); `in_progress` with
 `progress_code` (pending phases). A Story/account in deletion is fenced (`409` for new changes) at once.
 **Reject** only out-of-scope or unverifiable requests, with a code and reason. The administrator's own
-account cannot be erased while bound. Before executing an account deletion, check the requester's
-export requests: executing it removes every service-managed export artifact of the account, so let an
-available export be downloaded first (the requester was told to export before closure).
+account cannot be erased while bound. Approval and rejection need a review reason (no credentials).
+An account deletion fails visibly (`exports: export_pending` / `export_awaiting_download`) while any export of
+the subject is open or its available artifact has not been delivered: fulfil or reject the export, let the
+requester download it (delivery is recorded only when the whole file was sent), then **Retry**. Exports
+include only owned Stories not under deletion and disclose `stories_under_deletion`; they run under the
+account fence, so a deletion waits for an export in flight and then removes its artifact.
 
 **Artifact delivery/expiry.** The owner downloads while `available`; run retention expiry daily
 (console **Run retention expiry** or `python -m afterworlds.operations.maintenance expire`).
@@ -213,17 +217,25 @@ failure; never relabel it complete.
 **Restore.** Stop the app; `storage_cli restore --backup-id` (#205 refuses an expired backup or a rewinding
 ledger); `python -m afterworlds.operations.maintenance enforce-restore` (re-applies every active deletion
 from the control store's inventories, re-expires expired ledgers and old refusal rows, then compacts);
-`storage_cli verify-restore`; start the app. A closed account stays closed. Note: a restore of a backup
-captured before a closed account's ledger expiry is refused by #205's ledger-continuity rule (boundary
-recorded in ADR-022).
+`storage_cli verify-restore` (refused until `enforce-restore` recorded completion for that restore); start
+the app. A closed account stays closed. Ledger expiry and restore: #205's `check_ledger_continuity` is unchanged: a restore is refused unless the live ledger is a
+prefix of the snapshot's. After a closed subject's ledger expires, a backup captured before the
+expiry is therefore **refused when the expired events precede retained ones**, and **accepted when the
+live ledger is still a prefix** (the subject's events were last, or the whole ledger expired). In the
+accepted case the restored events are expired again by `enforce-restore` -- which derives due
+subjects from the register and, independently, from closure state -- before `verify-restore` may
+admit the store. No ledger rewind, rebuild, carry-forward or reconciliation exception is added.
 
 **Suppression release and annual reviews.** `maintenance reviews` lists suppressions and rights evidence
-due for annual review. `maintenance release-suppression --suppression-id` releases only when every affected
-backup is disposed and the horizons have passed; otherwise it keeps the suppression (exit 2).
+due for annual review. `maintenance release-suppression --suppression-id` releases only when the deletion request
+completed, a live re-check finds no in-scope row or Story-memory chunk, every affected backup is disposed
+and the horizons have passed; otherwise it keeps the suppression (exit 2).
 
 **Post-closure status.** The requester keeps the receipt code shown at confirmation; `POST
 /api/data-requests/receipt` with request ID and code returns status and receipt. Any mismatch is the same
-`404`.
+`404`. A lost code can be replaced before closure ("Lost your receipt code?": `POST
+/api/data-requests/{id}/receipt-credential` with the password); the old code stops working and the
+confirmation time and deadlines do not change.
 
 **Anomalies.** `/#staff` → Anomalies: failed/uncertain support actions, failed/blocked/overdue requests,
 replay/projection inconsistency, durable delivered-turn settlement failures, unfinished restores. `sources`
@@ -252,7 +264,8 @@ await the Owner's qualified advice. No complete US/Canada/Mexico compliance is c
   dependency_unavailable` and never completes; payment/webhook/refund/reconciliation events are not
   integrated into anomalies.
 - Physical compaction and restore enforcement are offline (app stopped).
-- A remote content restore after a closed account's ledger has expired is refused by #205's continuity rule.
+- Restores after a closed account's ledger expiry follow #205's unchanged continuity rule (refused or
+  accepted-then-re-expired; §8 Restore).
 - HTTP server access logs (uvicorn, host) record request paths; host log retention is a #205 launch gate.
 - Real email processor, TLS/host hardening, control-store backups, sign-in rate limiting and multiworker
   coordination remain #205 launch gates. Public launch remains the Owner's decision.

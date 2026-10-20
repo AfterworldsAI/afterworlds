@@ -230,7 +230,7 @@ class TestStoryDeletion:
             _error(
                 staff.post(
                     f"/api/admin/data-requests/{req['request_id']}/approve",
-                    json={"expected_revision": 1},
+                    json={"expected_revision": 1, "reason": "verified owner request"},
                 )
             )
             == "operation_conflict"
@@ -336,6 +336,15 @@ class TestAccountDeletion:
         # so the request cannot complete.
         assert _phase(done, "commercial") == "dependency_unavailable"
         assert done["state"] == "in_progress"
+        # Undelivered notices (address and codes) went with the profile.
+        import json as _json
+
+        assert not [
+            n
+            for n in remote.outbox.glob("*.json")
+            if _json.loads(n.read_text(encoding="utf-8"))["to"] == "a@example.test"
+        ]
+        assert any(remote.outbox.glob("*.json"))  # B's notices are untouched
         # The account's sessions are gone; status survives via the credential.
         assert a.get("/api/data-requests").status_code == 401
         anon = remote.client()

@@ -198,6 +198,7 @@ def create_operations_schema(op: Any) -> None:
         sa.Column("expires_at", _TS, nullable=False),
         sa.Column("removed_at", _TS),
         sa.Column("size_bytes", sa.Integer),
+        sa.Column("delivered_at", _TS),
     )
     op.create_table(
         "ops_receipt_credentials",
@@ -236,6 +237,12 @@ def create_operations_schema(op: Any) -> None:
         sa.Column("policy_version", sa.String(32), nullable=False),
     )
     op.create_table(
+        "ops_restore_enforcements",
+        sa.Column("restore_id", sa.String(36), primary_key=True),
+        sa.Column("enforced_at", _TS, nullable=False),
+        sa.Column("summary_json", sa.Text, nullable=False),
+    )
+    op.create_table(
         "ops_rights_evidence",
         sa.Column("rights_id", sa.String(36), primary_key=True),
         sa.Column("subject_ref", sa.String(36), nullable=False, index=True),
@@ -259,6 +266,7 @@ def drop_operations_schema(op: Any) -> None:
         op.execute(f"DROP TRIGGER IF EXISTS prevent_{table}_delete")
     for table in (
         "ops_rights_evidence",
+        "ops_restore_enforcements",
         "ops_entitlement_expiries",
         "ops_anomaly_events",
         "ops_receipt_credentials",

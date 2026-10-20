@@ -491,26 +491,34 @@ def run_deletion(ctx: DeletionContext, view: RequestView, attempt_id: str) -> No
             )
             return
 
-    inventory = ensure_inventory(ctx, view)
-    record(
-        rid,
-        attempt_id,
-        "inventory",
-        "succeeded",
-        counts={c: len(v) for c, v in inventory.items()},
-    )
+    if account:
+        # #206 §5: closure never strands a requested export. Every export of
+        # the subject must be closed and any available artifact delivered.
+        blocker = _undelivered_exports(ctx, view)
+        if blocker is not None:
+            record(rid, attempt_id, "exports", "failed", detail_code=blocker)
+            ctx.store.end_attempt(
+                rid, attempt_id, RequestState.FAILED, reason_code=blocker
+            )
+            return
+        record(rid, attempt_id, "exports", "succeeded")
 
+    # The enforced write boundary comes first: the fence drains every admitted
+    # effect of the account and the suppression refuses any later one, so the
+    # final inventory below sees every Turn and Story that can ever exist in
+    # scope (CRD Issue 22 review P1-1).
     if remote:
         assert ctx.control is not None and ctx.fence is not None
         from afterworlds.remote.access import record_suppression_fenced
 
         if _suppression_for(ctx.control, rid) is None:
+            header = ctx.store.header(rid)
             try:
                 record_suppression_fenced(
                     ctx.fence,
                     ctx.control,
                     account_id=UUID(subject),
-                    story_refs=inventory.get("story", []),
+                    story_refs=current_scope_story_ids(ctx.content, header, "remote"),
                     request_id=rid,
                     scope=view.scope,
                     effective_boundary_at=view.confirmed_at,
@@ -526,6 +534,26 @@ def run_deletion(ctx: DeletionContext, view: RequestView, attempt_id: str) -> No
         record(rid, attempt_id, "fence", "succeeded")
     else:
         record(rid, attempt_id, "fence", "succeeded", detail_code="local_story_locks")
+
+    if account:
+        # Again behind the fence: an export that was running when the first
+        # check passed has now finished; its artifact must be delivered too.
+        blocker = _undelivered_exports(ctx, view)
+        if blocker is not None:
+            record(rid, attempt_id, "exports", "failed", detail_code=blocker)
+            ctx.store.end_attempt(
+                rid, attempt_id, RequestState.FAILED, reason_code=blocker
+            )
+            return
+
+    inventory = ensure_inventory(ctx, view)
+    record(
+        rid,
+        attempt_id,
+        "inventory",
+        "succeeded",
+        counts={c: len(v) for c, v in inventory.items()},
+    )
 
     stories = inventory.get("story", [])
     try:
@@ -592,6 +620,25 @@ def run_deletion(ctx: DeletionContext, view: RequestView, attempt_id: str) -> No
             rid, attempt_id, RequestState.FAILED, reason_code="rows_remain"
         )
         return
+    if account:
+        # Nothing in scope may have appeared outside the inventory (locally no
+        # fence orders Story creation): fail visibly; a retry includes it.
+        later = current_scope_story_ids(
+            ctx.content, ctx.store.header(rid), ctx.environment
+        )
+        if later:
+            record(
+                rid,
+                attempt_id,
+                "sql_content",
+                "failed",
+                counts={"stories_outside_inventory": len(later)},
+                detail_code="scope_changed",
+            )
+            ctx.store.end_attempt(
+                rid, attempt_id, RequestState.FAILED, reason_code="scope_changed"
+            )
+            return
     record(rid, attempt_id, "sql_content", "succeeded", counts=removed)
 
     if account and remote:
@@ -637,6 +684,40 @@ def run_deletion(ctx: DeletionContext, view: RequestView, attempt_id: str) -> No
         record(rid, attempt_id, "commercial", "not_applicable")
 
     evaluate(ctx, rid, attempt_id)
+
+
+def _undelivered_exports(ctx: DeletionContext, view: RequestView) -> str | None:
+    """Why the subject's exports block closure, if they do: an export request
+    still open (queued, approved, running or failed), or a completed one
+    whose available artifact was never delivered. ``None`` when clear."""
+    from afterworlds.operations.requests import OPEN_STATES, RequestState
+
+    with ctx.ops() as s:
+        exports = list(
+            s.scalars(
+                sa.select(DataRequestORM.request_id).where(
+                    DataRequestORM.subject_ref == view.subject_ref,
+                    DataRequestORM.environment == view.environment,
+                    DataRequestORM.kind == "export",
+                )
+            )
+        )
+    now = ctx.now()
+    for export_id in exports:
+        state = ctx.store.state_of(export_id)[1]
+        if state in OPEN_STATES:
+            return "export_pending"
+        if state is RequestState.COMPLETED:
+            artifact = ctx.store.view(export_id).artifact
+            if (
+                artifact is not None
+                and artifact.status == "available"
+                and artifact.removed_at is None
+                and artifact.expires_at > now
+                and artifact.delivered_at is None
+            ):
+                return "export_awaiting_download"
+    return None
 
 
 def _remove_artifacts(

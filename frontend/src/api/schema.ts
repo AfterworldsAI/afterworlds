@@ -1018,6 +1018,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/data-requests/{request_id}/receipt-credential": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reissue Receipt Credential
+         * @description Replace a receipt credential whose confirmation response was lost --
+         *     before closure only, with the owner's session and password.
+         */
+        post: operations["reissue_receipt_credential_api_data_requests__request_id__receipt_credential_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2112,6 +2133,8 @@ export interface components {
             removed_at: string | null;
             /** Size Bytes */
             size_bytes: number | null;
+            /** Delivered At */
+            delivered_at?: string | null;
             /**
              * Schema Version
              * @default 1
@@ -2584,6 +2607,23 @@ export interface components {
              * Format: password
              */
             credential: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * ReissueReceiptCredentialRequest
+         * @description Password re-authentication to replace a lost receipt credential.
+         */
+        ReissueReceiptCredentialRequest: {
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
             /**
              * Schema Version
              * @default 1
@@ -7582,6 +7622,86 @@ export interface operations {
                 };
                 content: {
                     "application/zip": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    reissue_receipt_credential_api_data_requests__request_id__receipt_credential_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReissueReceiptCredentialRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfirmDeletionResponse"];
                 };
             };
             /** @description Unauthorized */

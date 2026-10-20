@@ -200,6 +200,9 @@ class ExportArtifactORM(OperationsBase):
     expires_at: Mapped[str] = mapped_column(_TS, nullable=False)
     removed_at: Mapped[str | None] = mapped_column(_TS)
     size_bytes: Mapped[int | None] = mapped_column(sa.Integer)
+    #: When a download to the authenticated owner completed (the response
+    #: body was fully sent). Account erasure waits for it (#206 §5).
+    delivered_at: Mapped[str | None] = mapped_column(_TS)
 
 
 class ReceiptCredentialORM(OperationsBase):
@@ -253,6 +256,18 @@ class EntitlementExpiryORM(OperationsBase):
     expired_at: Mapped[str] = mapped_column(_TS, nullable=False)
     event_count: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     policy_version: Mapped[str] = mapped_column(sa.String(32), nullable=False)
+
+
+class RestoreEnforcementORM(OperationsBase):
+    """Proof that every active deletion and retention expiry was re-applied
+    to a restored store before it is verified and served. Extra record
+    (control store); opaque counts only."""
+
+    __tablename__ = "ops_restore_enforcements"
+
+    restore_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
+    enforced_at: Mapped[str] = mapped_column(_TS, nullable=False)
+    summary_json: Mapped[str] = mapped_column(sa.Text, nullable=False)
 
 
 class RightsEvidenceORM(OperationsBase):

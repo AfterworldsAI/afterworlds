@@ -379,7 +379,16 @@ describe("SupportConsole", () => {
     render(<SupportConsole />);
     await screen.findByRole("button", { name: "Sign in to staff" });
     await signIn();
-    fireEvent.click(await screen.findByRole("button", { name: "Approve" }));
+    const approve = await screen.findByRole("button", { name: "Approve" });
+    expect(approve).toBeDisabled(); // a review reason is required
+    fireEvent.change(screen.getByLabelText("Review reason"), {
+      target: { value: "verified owner" },
+    });
+    fireEvent.click(approve);
+    await waitFor(() => {
+      const call = calls.find((c) => c.url.endsWith("/approve"));
+      expect(JSON.parse(call!.body!).reason).toBe("verified owner");
+    });
     fireEvent.click(
       await screen.findByRole("button", { name: "Re-check completion" }),
     );

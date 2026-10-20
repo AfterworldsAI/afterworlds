@@ -531,6 +531,11 @@ class IdentityService:
         Returns ``erased`` or ``already_erased``; raises :class:`FenceBusy`
         (nothing changed) if in-flight work does not finish in time."""
         now = self._now()
+        # Undelivered notices (codes and the contact address) are a managed
+        # copy too: removed first, so a failure leaves nothing erased.
+        address = self.contact_address_of(account_id)
+        if address is not None:
+            self._notices.purge(address)
         with (
             self.fence.exclusive(account_id, timeout=self.close_fence_timeout),
             self._locked() as s,

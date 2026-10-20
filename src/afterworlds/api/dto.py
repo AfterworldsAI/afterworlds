@@ -1053,6 +1053,8 @@ class ExportArtifactDTO(BaseModel):
     expires_at: datetime
     removed_at: datetime | None
     size_bytes: int | None
+    #: A download to the owner completed (its whole body was sent).
+    delivered_at: datetime | None = None
     schema_version: Literal[1] = 1
 
 
@@ -1165,6 +1167,15 @@ class RejectDataRequest(BaseModel):
         "out_of_scope", "unverified_requester", "duplicate", "administrator"
     ]
     reason: str = Field(min_length=1, max_length=280)
+    schema_version: Literal[1] = 1
+
+
+class ReissueReceiptCredentialRequest(BaseModel):
+    """Password re-authentication to replace a lost receipt credential."""
+
+    model_config = {"extra": "forbid"}
+
+    password: SecretStr = Field(min_length=1, max_length=1024)
     schema_version: Literal[1] = 1
 
 

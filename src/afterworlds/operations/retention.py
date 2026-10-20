@@ -24,7 +24,8 @@ listed for annual review by :func:`reviews_due`.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID
@@ -36,6 +37,7 @@ from afterworlds.entitlement.retention import (
     expire_subject_history,
     record_rights_evidence_from_ledger,
 )
+from afterworlds.operations.errors import OperationError
 from afterworlds.operations.export import remove_artifact
 from afterworlds.operations.lifecycle import dispose_rows
 from afterworlds.operations.orm import (
@@ -273,37 +275,68 @@ def expire_closed_ledgers(
             )
             if a.closed_at
         ]
-        done = set(s.scalars(sa.select(EntitlementExpiryORM.subject_ref)))
+        done = set(
+            s.scalars(
+                sa.select(EntitlementExpiryORM.subject_ref).where(
+                    EntitlementExpiryORM.event_count >= 0
+                )
+            )
+        )
     for account_id, closed_at in accounts:
         if account_id in done or not _months(closed_at, now):
             continue
         # The perpetual right outlives the ledger: evidence first (accounts
         # closed by #205 self-service never passed through erasure).
         record_rights_evidence_from_ledger(content, control, account_id, now=now)
+        # Intent before effect (review P1-4): the register row commits first
+        # (count -1 = pending), so an interruption between the two stores
+        # leaves the expiry discoverable; the sweep and restore finish it.
+        with control.begin() as s:
+            if s.get(EntitlementExpiryORM, account_id) is None:
+                s.add(
+                    EntitlementExpiryORM(
+                        subject_ref=account_id,
+                        closed_at=closed_at,
+                        expired_at=iso(now),
+                        event_count=-1,
+                        policy_version=POLICY_VERSION,
+                    )
+                )
         with content.begin() as s:
             removed = expire_subject_history(s, UUID(account_id))
         with control.begin() as s:
-            s.add(
-                EntitlementExpiryORM(
-                    subject_ref=account_id,
-                    closed_at=closed_at,
-                    expired_at=iso(now),
-                    event_count=removed,
-                    policy_version=POLICY_VERSION,
-                )
-            )
+            row = s.get(EntitlementExpiryORM, account_id)
+            assert row is not None
+            row.event_count = removed
         result.entitlement_subjects_expired += 1
 
 
 def reapply_ledger_expiries(
-    control: sessionmaker[Session], content: sessionmaker[Session]
+    control: sessionmaker[Session],
+    content: sessionmaker[Session],
+    *,
+    now: datetime | None = None,
 ) -> int:
     """Restore enforcement: an expired subject's events that came back with a
-    restored snapshot are expired again."""
+    restored snapshot are expired again. Subjects come from the register and,
+    independently, from the authoritative closure state (closed more than 24
+    calendar months ago), so a lost register write cannot let them back."""
+    from afterworlds.remote.control_store import utc_now
+
+    now = now or utc_now()
     with control() as s:
-        subjects = list(s.scalars(sa.select(EntitlementExpiryORM.subject_ref)))
+        subjects = set(s.scalars(sa.select(EntitlementExpiryORM.subject_ref)))
+        subjects |= {
+            a.account_id
+            for a in s.scalars(
+                sa.select(HostedAccountORM).where(HostedAccountORM.status == "closed")
+            )
+            if a.closed_at and _months(a.closed_at, now)
+        }
     removed = 0
-    for subject in subjects:
+    for subject in sorted(subjects):
+        # Rights evidence first, as in the sweep (idempotent).
+        record_rights_evidence_from_ledger(content, control, subject, now=now)
         with content.begin() as s:
             removed += expire_subject_history(s, UUID(subject))
     return removed
@@ -332,20 +365,53 @@ def sweep(
 
 
 def release_suppression(
-    control: sessionmaker[Session], suppression_id: str, *, now: datetime
+    control: sessionmaker[Session],
+    suppression_id: str,
+    *,
+    now: datetime,
+    content: sessionmaker[Session],
+    story_chunk_count: Callable[[str], int],
 ) -> bool:
-    """Release a suppression only when its end conditions are verified:
-    every affected backup disposed, and its backup/replay horizons passed (no
-    delayed event or job can recreate the subject). Returns whether released."""
-    disposition = backup_disposition(control, suppression_id, now=now)
-    with control.begin() as s:
+    """Release a suppression only when its end conditions are positively
+    verified (CRD Issue 22 review P1-5): its deletion request completed (every
+    live and backup phase), no in-scope row or Story-memory chunk exists now,
+    every affected backup is disposed, and the backup and replay horizons have
+    passed (a missing replay horizon defaults to the backup horizon). Anything
+    else keeps the fence. Returns whether released."""
+    from afterworlds.operations.deletion import inventory_of
+    from afterworlds.operations.disposal import remaining_story_content
+    from afterworlds.operations.requests import RequestState, RequestStore
+
+    with control() as s:
         row = s.get(DeletionSuppressionORM, suppression_id)
         if row is None or row.status != "active":
             return False
-        horizons: Iterable[str | None] = (row.backup_horizon_at, row.replay_horizon_at)
-        if not disposition.complete or any(
-            h is not None and not is_expired(parse_iso(h), now) for h in horizons
-        ):
+        request_id = row.request_id
+        story_refs = list(json.loads(row.story_refs))
+        horizons = (
+            row.backup_horizon_at,
+            row.replay_horizon_at or row.backup_horizon_at,
+        )
+    if any(not is_expired(parse_iso(h), now) for h in horizons):
+        return False
+    try:
+        state = RequestStore(control).state_of(request_id)[1]
+    except OperationError:
+        return False
+    if state is not RequestState.COMPLETED:
+        return False
+    inventory = inventory_of(control, request_id)
+    stories = sorted(set(inventory.get("story", [])) | set(story_refs))
+    with content() as s:
+        if remaining_story_content(s, stories, inventory.get("turn", [])):
+            return False
+    if any(story_chunk_count(story) != 0 for story in stories):
+        return False
+    if not backup_disposition(control, suppression_id, now=now).complete:
+        return False
+    with control.begin() as s:
+        row = s.get(DeletionSuppressionORM, suppression_id)
+        if row is None or row.status != "active":
             return False
         row.status = "released"
         row.release_verified_at = iso(now)

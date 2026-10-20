@@ -108,6 +108,9 @@ async function openData(page: Page) {
 
 async function staffQueueStep(staff: Page, label: string, button: string) {
   await staff.reload();
+  await staff
+    .getByLabel("Review reason")
+    .fill("Verified account owner request");
   const row = staff
     .getByRole("list", { name: "Data request queue" })
     .getByRole("listitem")

@@ -220,6 +220,7 @@ def request_dto(view: RequestView, *, administrator: bool) -> DataRequestDTO:
                 expires_at=view.artifact.expires_at,
                 removed_at=view.artifact.removed_at,
                 size_bytes=view.artifact.size_bytes,
+                delivered_at=view.artifact.delivered_at,
             )
             if view.artifact
             else None
@@ -257,6 +258,7 @@ def _known_parts() -> frozenset[str]:
         dto.DataRequestStepRequest,
         dto.RejectDataRequest,
         dto.ReceiptLookupRequest,
+        dto.ReissueReceiptCredentialRequest,
         dto.CreditAdjustmentRequest,
         dto.CreditAdjustmentPreviewRequest,
         dto.AnomalyNoteRequest,

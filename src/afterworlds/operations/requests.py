@@ -147,6 +147,7 @@ class ArtifactView:
     expires_at: datetime
     removed_at: datetime | None
     size_bytes: int | None
+    delivered_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -329,6 +330,13 @@ class RequestStore:
         expected_revision: int,
         reason: str | None,
     ) -> None:
+        # A privileged approval always records a safe operator reason; the
+        # local owner authorizes their own request without one.
+        text = (
+            bounded_text(reason or "", "reason")
+            if actor.role == "administrator"
+            else (bounded_text(reason) if reason else None)
+        )
         with self._locked() as s:
             self._expect(
                 s, request_id, expected_revision, {RequestState.AWAITING_AUTHORIZATION}
@@ -342,7 +350,7 @@ class RequestStore:
                 authorization_code=(
                     "local_owner" if actor.environment == "local" else "administrator"
                 ),
-                reason_text=bounded_text(reason) if reason else None,
+                reason_text=text,
                 approved_at=self._now(),
             )
 
@@ -369,6 +377,9 @@ class RequestStore:
                     RequestState.REQUESTED,
                     RequestState.AWAITING_AUTHORIZATION,
                     RequestState.APPROVED,
+                    # A failed attempt the administrator closes out instead
+                    # of retrying (its failure history stays).
+                    RequestState.FAILED,
                 },
             )
             self._add_event(
@@ -513,6 +524,27 @@ class RequestStore:
             if environment is not None:
                 query = query.where(DataRequestORM.environment == environment)
             return list(s.scalars(query))
+
+    def reissue_credential(self, request_id: str) -> str:
+        """Replace a confirmed request's receipt credential (the previous one
+        stops working); the confirmation and its clocks are unchanged."""
+        credential = new_token()
+        with self._locked() as s:
+            row = s.get(ReceiptCredentialORM, request_id)
+            if row is None:
+                raise OperationError(
+                    OperationErrorKind.CONFLICT,
+                    "This request has no receipt credential to reissue.",
+                )
+            row.credential_verifier = token_verifier(credential)
+            row.issued_at = iso(self._now())
+        return credential
+
+    def mark_delivered(self, artifact_id: str) -> None:
+        with self._ops.begin() as s:
+            row = s.get(ExportArtifactORM, artifact_id)
+            if row is not None and row.delivered_at is None:
+                row.delivered_at = iso(self._now())
 
     def credential_matches(self, request_id: str, credential: str) -> bool:
         with self._ops() as s:
@@ -675,6 +707,11 @@ class RequestStore:
                         else None
                     ),
                     size_bytes=artifact_row.size_bytes,
+                    delivered_at=(
+                        parse_iso(artifact_row.delivered_at)
+                        if artifact_row.delivered_at
+                        else None
+                    ),
                 )
                 if artifact_row is not None
                 else None

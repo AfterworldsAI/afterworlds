@@ -80,6 +80,8 @@ class ExportInputs:
     #: Account scope: own data-request and support records (operations).
     operational_view: dict[str, Any] | None
     policy_version: str
+    #: Stories in scope left out because a deletion of them is in force.
+    excluded_under_deletion: int = 0
 
 
 def _jsonable(model: Any) -> Any:
@@ -107,6 +109,28 @@ def _story_record(session: Session, story_id: UUID) -> tuple[dict[str, Any], str
         if len(page) < 500:
             break
         offset += 500
+    # Turns whose Node link is gone (``SET NULL``) but that Story-scoped rows
+    # still attribute to this Story: their permitted prose belongs to the
+    # transcript too (CRD Issue 22 review P2-7). Hidden state stays excluded.
+    from afterworlds.operations.disposal import referenced_turn_ids
+    from afterworlds.persistence.crud.node import get_turn
+    from afterworlds.persistence.orm.node import TurnORM
+
+    linked = {str(t.turn_id) for t in turns}
+    orphan_ids = sorted(
+        session.scalars(
+            sa.select(TurnORM.turn_id).where(
+                TurnORM.node_id.is_(None),
+                TurnORM.turn_id.in_(referenced_turn_ids(session, [str(story_id)])),
+            )
+        )
+    )
+    for turn_id in orphan_ids:
+        if turn_id not in linked:
+            orphan = get_turn(session, UUID(turn_id))
+            if orphan is not None:
+                turns.append(orphan)
+    turns.sort(key=lambda t: (str(t.timestamp), str(t.turn_id)))
     record = {
         "story": {
             "story_id": str(story.story_id),
@@ -252,7 +276,18 @@ def build_archive(
         "snapshot_boundary": boundary,
         "included_classes": included,
         "counts": counts,
-        "exclusions": [{"code": c, "reason": r} for c, r in EXCLUSIONS],
+        "exclusions": [{"code": c, "reason": r} for c, r in EXCLUSIONS]
+        + (
+            [
+                {
+                    "code": "stories_under_deletion",
+                    "reason": "Stories you asked to delete are not exported.",
+                    "count": inputs.excluded_under_deletion,
+                }
+            ]
+            if inputs.excluded_under_deletion
+            else []
+        ),
         "files": sorted(files),
         "reading": (
             "UTF-8 JSON and Markdown files in a ZIP archive. Afterworlds does not "

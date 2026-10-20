@@ -8,7 +8,9 @@ A request the caller does not own is the same ``not_found`` as a missing one.
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable
+from contextlib import nullcontext
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -45,7 +47,7 @@ from afterworlds.operations.support import SupportService
 from afterworlds.persistence.crud.story import get_story
 from afterworlds.remote.access import AccessPolicy, story_owner
 from afterworlds.remote.control_store import utc_now
-from afterworlds.remote.fence import AccountFence
+from afterworlds.remote.fence import AccountFence, FenceBusy
 from afterworlds.remote.identity import Actor, ActorKind, IdentityService
 from afterworlds.remote.storage import is_suppressed
 
@@ -79,6 +81,7 @@ class DataRequestService:
         self._export_dir = export_dir
         self._now = now
         self._attempts = AttemptRegistry()
+        self._local_lock = threading.Lock()
         self.deletion = DeletionContext(
             store=self.store,
             ops=ops,
@@ -234,7 +237,9 @@ class DataRequestService:
             revision += 1
         return self._run(requester, request_id, revision)
 
-    def artifact_path(self, actor: Actor, request_id: str) -> Path:
+    def artifact_path(self, actor: Actor, request_id: str) -> tuple[Path, str]:
+        """The owner's available artifact file and its ID (to mark delivery
+        once the whole body was sent)."""
         view = self._owned(actor, request_id)
         artifact = view.artifact
         if (
@@ -254,7 +259,31 @@ class DataRequestService:
             raise OperationError(
                 OperationErrorKind.UNAVAILABLE, "The export file is unavailable."
             )
-        return path
+        return path, artifact.artifact_id
+
+    def mark_delivered(self, artifact_id: str) -> None:
+        """Called after a download response's body was fully sent."""
+        self.store.mark_delivered(artifact_id)
+
+    def reissue_credential(
+        self, actor: Actor, request_id: str, password: str
+    ) -> tuple[RequestView, str]:
+        """Replace a lost receipt credential before closure: the owner's
+        current session plus password re-authentication. Confirmation time
+        and deadlines are unchanged; the old credential stops working."""
+        view = self._owned(actor, request_id)
+        if self._identity is None or view.scope != "account" or view.kind != "deletion":
+            raise OperationError(
+                OperationErrorKind.UNSUPPORTED,
+                "Only remote account deletions have a receipt credential.",
+            )
+        if not self._identity.reauthenticate(actor, password):
+            raise OperationError(
+                OperationErrorKind.PRECONDITION_FAILED,
+                "Password re-authentication is required to reissue the credential.",
+            )
+        credential = self.store.reissue_credential(request_id)
+        return self.store.view(request_id), credential
 
     def receipt(self, request_id: str, credential: str) -> RequestView:
         """Post-closure status/receipt: only with the credential issued at
@@ -350,36 +379,54 @@ class DataRequestService:
             raise OperationError(
                 OperationErrorKind.IN_PROGRESS, "This request is already running."
             )
+        # Locally no account fence exists: one fulfillment runs at a time, so
+        # an export never snapshots or publishes beside a deletion.
+        serial = self._local_lock if self._environment == "local" else nullcontext()
         try:
-            attempt = self.store.begin_attempt(
-                actor, request_id, expected_revision=expected_revision
-            )
-            view = self.store.view(request_id)
-            if view.kind == RequestKind.EXPORT.value:
-                self._run_export(view, attempt)
-            else:
-                run_deletion(self.deletion, view, attempt)
+            with serial:
+                attempt = self.store.begin_attempt(
+                    actor, request_id, expected_revision=expected_revision
+                )
+                view = self.store.view(request_id)
+                if view.kind == RequestKind.EXPORT.value:
+                    self._run_export(view, attempt)
+                else:
+                    run_deletion(self.deletion, view, attempt)
         finally:
             self._attempts.release(request_id)
         return self.store.view(request_id)
 
     def _run_export(self, view: RequestView, attempt: str) -> None:
-        record = self.store.record_phase
-        stories = self._scope_ids(view)
-        if view.scope == "story" and not self._story_exportable(view, stories[0]):
-            record(
-                view.request_id,
-                attempt,
-                "artifact",
-                "failed",
-                detail_code="story_unavailable",
-            )
-            self.store.end_attempt(
-                view.request_id,
-                attempt,
-                RequestState.FAILED,
-                reason_code="story_unavailable",
-            )
+        """Snapshot and publish under the account fence (remote), so a
+        deletion's suppression waits for an export in flight and no export
+        admitted later can include a suppressed Story or publish after the
+        deletion removed its artifacts (CRD Issue 22 review P1-2)."""
+        fence = self.deletion.fence
+        try:
+            if fence is None:
+                self._export_attempt(view, attempt)
+                return
+            with fence.held(UUID(view.subject_ref)):
+                self._export_attempt(view, attempt)
+        except FenceBusy:
+            self._fail_export(view, attempt, "account_operation_in_progress")
+
+    def _fail_export(self, view: RequestView, attempt: str, code: str) -> None:
+        self.store.record_phase(
+            view.request_id, attempt, "artifact", "failed", detail_code=code
+        )
+        self.store.end_attempt(
+            view.request_id, attempt, RequestState.FAILED, reason_code=code
+        )
+
+    def _export_attempt(self, view: RequestView, attempt: str) -> None:
+        if self._policy.remote and self._account_suppressed(view.subject_ref):
+            self._fail_export(view, attempt, "account_under_deletion")
+            return
+        candidates = self._scope_ids(view)
+        stories = [sid for sid in candidates if self._story_exportable(view, sid)]
+        if view.scope == "story" and not stories:
+            self._fail_export(view, attempt, "story_unavailable")
             return
         inputs = ExportInputs(
             request_id=view.request_id,
@@ -392,6 +439,7 @@ class DataRequestService:
                 self._operational_view(view) if view.scope == "account" else None
             ),
             policy_version=view.policy_version,
+            excluded_under_deletion=len(candidates) - len(stories),
         )
         try:
             _, manifest = produce_artifact(
@@ -403,27 +451,19 @@ class DataRequestService:
                 now=self._now,
             )
         except Exception:  # noqa: BLE001 -- typed below; no partial file remains
-            record(
-                view.request_id,
-                attempt,
-                "artifact",
-                "failed",
-                detail_code="generation_failed",
-            )
-            self.store.end_attempt(
-                view.request_id,
-                attempt,
-                RequestState.FAILED,
-                reason_code="generation_failed",
-            )
+            self._fail_export(view, attempt, "generation_failed")
             return
-        record(
+        self.store.record_phase(
             view.request_id, attempt, "artifact", "succeeded", counts=manifest["counts"]
         )
         self.store.add_receipt(view.request_id, attempt, "export_manifest", manifest)
         self.store.end_attempt(view.request_id, attempt, RequestState.COMPLETED)
 
+    def _account_suppressed(self, account_id: str) -> bool:
+        return self._policy.account_suppressed(UUID(account_id))
+
     def _story_exportable(self, view: RequestView, story_id: str) -> bool:
+        """Owned by the subject, present, and under no deletion suppression."""
         with self._content() as s:
             if get_story(s, UUID(story_id)) is None:
                 return False

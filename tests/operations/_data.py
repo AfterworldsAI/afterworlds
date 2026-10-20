@@ -42,7 +42,13 @@ def play_branching(c: TestClient, title: str, turn: str) -> str:
     return sid
 
 
-def plant(content: sessionmaker[Session], story_id: str, marker: str) -> dict[str, str]:
+def plant(
+    content: sessionmaker[Session],
+    story_id: str,
+    marker: str,
+    *,
+    orphan_marker: str | None = None,
+) -> dict[str, str]:
     """Content-bearing rows the generic Story CRUD would not remove: an old
     canon value (no FK), a hidden roll and an action event (triggers), a
     refusal row keyed only by Turn, and an orphan Turn (``node_id`` NULL)
@@ -117,9 +123,13 @@ def plant(content: sessionmaker[Session], story_id: str, marker: str) -> dict[st
             sa.text(
                 "INSERT INTO turns (turn_id, node_id, user_input, assistant_output,"
                 " timestamp, intent_classification) VALUES (:t, NULL, :u, :o,"
-                " '2026-01-01T00:00:00+00:00', 'in_world_action')"
+                " '2026-01-01T00:00:00+00:00', 'in_character_action')"
             ),
-            {"t": orphan, "u": f"orphan {marker}", "o": f"orphan prose {marker}"},
+            {
+                "t": orphan,
+                "u": f"orphan {orphan_marker or marker}",
+                "o": f"orphan prose {orphan_marker or marker}",
+            },
         )
         conn.execute(
             sa.text(

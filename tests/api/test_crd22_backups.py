@@ -103,7 +103,8 @@ def test_backup_pending_compaction_restore_enforcement_and_final_receipt(
     )
     rid = req["request_id"]
     approved = staff.post(
-        f"/api/admin/data-requests/{rid}/approve", json={"expected_revision": 2}
+        f"/api/admin/data-requests/{rid}/approve",
+        json={"expected_revision": 2, "reason": "verified owner request"},
     ).json()
     view = staff.post(
         f"/api/admin/data-requests/{rid}/execute",
@@ -127,6 +128,17 @@ def test_backup_pending_compaction_restore_enforcement_and_final_receipt(
     assert _live_hits(remote_env) == []
     code, b2 = _cli(storage_cli, capsys, "capture", "--to", str(remote_env / "b2"))
     assert code == 0, b2
+
+    # Review P1-4: a restore is admitted only after enforcement ran, even
+    # when no suppressed Story is present in it (b2 was captured clean).
+    code, clean_restore = _cli(storage_cli, capsys, "restore", "--backup-id", b2)
+    assert code == 0, clean_restore
+    code, out = _cli(
+        storage_cli, capsys, "verify-restore", "--restore-id", clean_restore
+    )
+    assert code == 1 and "not been enforced" in out
+    with pytest.raises(StoreRefused, match="awaiting"):
+        create_app(remote_settings(remote_env))
 
     # Restore the pre-deletion backup: refused service until enforced.
     code, restore_id = _cli(storage_cli, capsys, "restore", "--backup-id", b1)
@@ -240,7 +252,10 @@ def test_overdue_backup_cleanup_is_a_visible_failure(remote: RemoteHarness) -> N
         json={"expected_revision": 1, "scope_revision": preview["scope_revision"]},
     )
     rid = req["request_id"]
-    staff.post(f"/api/admin/data-requests/{rid}/approve", json={"expected_revision": 2})
+    staff.post(
+        f"/api/admin/data-requests/{rid}/approve",
+        json={"expected_revision": 2, "reason": "verified owner request"},
+    )
     view = staff.post(
         f"/api/admin/data-requests/{rid}/execute", json={"expected_revision": 3}
     ).json()

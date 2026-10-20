@@ -361,6 +361,8 @@ function RequestQueue() {
   const [requests, setRequests] = useState<DataRequest[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Recorded with every approval or rejection (untrusted text, shown as text).
+  const [reason, setReason] = useState("");
 
   const reload = useCallback(() => {
     staffApi
@@ -384,6 +386,15 @@ function RequestQueue() {
   return (
     <section aria-labelledby="queue-heading">
       <h2 id="queue-heading">Data requests</h2>
+      <label>
+        Review reason{" "}
+        <input
+          aria-label="Review reason"
+          value={reason}
+          maxLength={280}
+          onChange={(e) => setReason(e.target.value)}
+        />
+      </label>
       {error && <p role="alert">{error}</p>}
       {requests === null ? (
         <p>Loading…</p>
@@ -398,10 +409,10 @@ function RequestQueue() {
                 <>
                   <button
                     type="button"
-                    disabled={busy}
+                    disabled={busy || !reason.trim()}
                     onClick={() =>
                       step(() =>
-                        staffApi.approve(r.request_id, r.revision, null),
+                        staffApi.approve(r.request_id, r.revision, reason),
                       )
                     }
                   >
@@ -409,14 +420,14 @@ function RequestQueue() {
                   </button>{" "}
                   <button
                     type="button"
-                    disabled={busy}
+                    disabled={busy || !reason.trim()}
                     onClick={() =>
                       step(() =>
                         staffApi.reject(
                           r.request_id,
                           r.revision,
                           "administrator",
-                          "Rejected by the administrator.",
+                          reason,
                         ),
                       )
                     }

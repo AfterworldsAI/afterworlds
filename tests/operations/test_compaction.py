@@ -28,6 +28,7 @@ from afterworlds.remote.storage import StoreRefused
 from tests.operations._data import files_with
 
 MARK = "COMPACTIONERASEMARK"
+STORE_ID = "11111111-2222-3333-4444-555555555555"
 RULES = "rules_corpus__compaction_test"
 
 
@@ -40,6 +41,9 @@ def _seed(vector_dir: Path, monkeypatch: pytest.MonkeyPatch) -> RetrievalMemoryC
     config = RetrievalMemoryConfig.from_env()
     client = build_chroma_client(config)
     from afterworlds.pipeline.retrieval.collections import get_rules_corpus_collection
+    from afterworlds.remote.storage import bind_vector_store
+
+    bind_vector_store(vector_dir, STORE_ID)
 
     story = get_story_memory_collection(client, config)
     story.add(
@@ -167,3 +171,45 @@ def test_local_deployment_refuses_store_maintenance(
         assert maintenance.main([command]) == 1
         assert "remote deployment" in capsys.readouterr().err
     assert not (tmp_path / "l.db").exists()
+
+
+@pytest.mark.parametrize("occupant", ["unclaimed", "foreign", "file"])
+def test_unproven_staging_is_refused_untouched(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, occupant: str
+) -> None:
+    """Review P1-6: only this store's own claimed staging is resumed or
+    removed; anything else at the staging path stays exactly as it was."""
+    import json
+
+    from afterworlds.operations.compaction import STAGING
+
+    vector_dir = tmp_path / "chroma"
+    config = _seed(vector_dir, monkeypatch)
+    before = _snapshot(config)
+    _release()
+    staging = vector_dir / STAGING
+    if occupant == "file":
+        staging.write_text("someone else's file", encoding="utf-8")
+    else:
+        (staging / "store").mkdir(parents=True)
+        (staging / "store" / "precious.bin").write_bytes(b"other data")
+        if occupant == "foreign":
+            (staging / "claim.json").write_text(
+                json.dumps({"store_id": "another-store", "operation_id": "x"}),
+                encoding="utf-8",
+            )
+    snapshot = sorted(str(p.relative_to(tmp_path)) for p in tmp_path.rglob("*"))
+    with pytest.raises(StoreRefused, match="not this store's compaction"):
+        compact_vector_store(vector_dir, lambda: build_chroma_client(config))
+    assert sorted(str(p.relative_to(tmp_path)) for p in tmp_path.rglob("*")) == snapshot
+    if occupant != "file":
+        assert (staging / "store" / "precious.bin").read_bytes() == b"other data"
+    _release()
+    assert _snapshot(config) == before
+    _release()
+
+
+def test_unbound_vector_store_is_refused(tmp_path: Path) -> None:
+    (tmp_path / "plain").mkdir()
+    with pytest.raises(StoreRefused, match="not bound"):
+        compact_vector_store(tmp_path / "plain", lambda: None)  # type: ignore[arg-type,return-value]

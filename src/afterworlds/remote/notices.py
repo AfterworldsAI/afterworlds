@@ -18,6 +18,11 @@ from uuid import uuid4
 class NoticeTransport(Protocol):
     def send(self, *, contact_address: str, kind: str, code: str) -> None: ...
 
+    def purge(self, contact_address: str) -> int:
+        """Remove every undelivered notice to *contact_address* (CRD Issue 22
+        account erasure); returns how many. Raises ``OSError`` if any remains."""
+        ...
+
 
 class OutboxDirectoryTransport:
     """Writes one JSON file per notice; the directory is operator-restricted."""
@@ -32,3 +37,17 @@ class OutboxDirectoryTransport:
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             json.dump({"to": contact_address, "kind": kind, "code": code}, handle)
+
+    def purge(self, contact_address: str) -> int:
+        removed = 0
+        for path in sorted(self._directory.glob("*.json")):
+            try:
+                notice = json.loads(path.read_text(encoding="utf-8"))
+            except FileNotFoundError:
+                continue  # the operator relay delivered and removed it
+            except ValueError:
+                continue  # not a notice this transport wrote
+            if isinstance(notice, dict) and notice.get("to") == contact_address:
+                path.unlink(missing_ok=True)
+                removed += 1
+        return removed

@@ -386,6 +386,14 @@ export const dataRequests = {
   artifactUrl: (requestId: string) =>
     `/api/data-requests/${requestId}/artifact`,
 
+  // Replace a receipt code whose confirmation response was lost (before
+  // closure only; the old code stops working).
+  reissueCredential: (requestId: string, password: string) =>
+    request<ConfirmDeletionResult>(
+      `/api/data-requests/${requestId}/receipt-credential`,
+      { method: "POST", body: JSON.stringify({ password }) },
+    ),
+
   // Post-closure status: the one-time credential, never the ID alone.
   receipt: (requestId: string, credential: string) =>
     request<DataRequest>("/api/data-requests/receipt", {
@@ -479,11 +487,8 @@ export const staffApi = {
       "/api/admin/data-requests",
     ).then((r) => r.requests),
 
-  approve: (
-    requestId: string,
-    expectedRevision: number,
-    reason: string | null,
-  ) =>
+  // A privileged approval always carries a nonblank operator reason.
+  approve: (requestId: string, expectedRevision: number, reason: string) =>
     staff<DataRequest>(
       `/api/admin/data-requests/${requestId}/approve`,
       post({ expected_revision: expectedRevision, reason }),

@@ -47,6 +47,7 @@ describe("CRD Issue 22 client contract", () => {
     await dataRequests.confirm("r1", 2, "rev", null);
     await dataRequests.executeLocal("r1", 3);
     await dataRequests.receipt("r1", "code");
+    await dataRequests.reissueCredential("r1", "pw");
     expect(dataRequests.artifactUrl("r1")).toBe(
       "/api/data-requests/r1/artifact",
     );
@@ -58,6 +59,7 @@ describe("CRD Issue 22 client contract", () => {
       "POST /api/data-requests/r1/confirm",
       "POST /api/data-requests/r1/execute",
       "POST /api/data-requests/receipt",
+      "POST /api/data-requests/r1/receipt-credential",
     ]);
     expect(calls[2]!.body).toEqual({
       kind: "export",

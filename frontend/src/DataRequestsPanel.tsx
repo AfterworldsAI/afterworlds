@@ -69,6 +69,9 @@ export default function DataRequestsPanel({ local }: { local: boolean }) {
     preview: DeletionPreview;
   } | null>(null);
   const [password, setPassword] = useState("");
+  // Reissuing a lost receipt code: which request, and a transient password.
+  const [reissueFor, setReissueFor] = useState<string | null>(null);
+  const [reissuePassword, setReissuePassword] = useState("");
   const [credential, setCredential] = useState<{
     requestId: string;
     value: string;
@@ -348,6 +351,56 @@ export default function DataRequestsPanel({ local }: { local: boolean }) {
                     {r.state === "failed" ? "Retry now" : "Run now"}
                   </button>
                 )}
+              {!local &&
+                r.kind === "deletion" &&
+                r.scope === "account" &&
+                r.confirmed_at &&
+                !["completed", "rejected"].includes(r.state) &&
+                (reissueFor === r.request_id ? (
+                  <span>
+                    <label>
+                      Password{" "}
+                      <input
+                        type="password"
+                        aria-label="Password for a new receipt code"
+                        autoComplete="current-password"
+                        value={reissuePassword}
+                        onChange={(e) => setReissuePassword(e.target.value)}
+                      />
+                    </label>{" "}
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        void act(async () => {
+                          try {
+                            const result = await dataRequests.reissueCredential(
+                              r.request_id,
+                              reissuePassword,
+                            );
+                            if (result.receipt_credential)
+                              setCredential({
+                                requestId: r.request_id,
+                                value: result.receipt_credential,
+                              });
+                            setReissueFor(null);
+                          } finally {
+                            setReissuePassword("");
+                          }
+                        })
+                      }
+                    >
+                      Issue new code
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setReissueFor(r.request_id)}
+                  >
+                    Lost your receipt code?
+                  </button>
+                ))}
               {r.artifact?.status === "available" && (
                 <a href={dataRequests.artifactUrl(r.request_id)} download>
                   Download export (available until {when(r.artifact.expires_at)}

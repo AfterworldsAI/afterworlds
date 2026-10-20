@@ -272,4 +272,41 @@ describe("DataRequestsPanel", () => {
     const body = JSON.parse(calls.find((c) => c.method === "POST")!.body!);
     expect(body).toEqual({ kind: "export", scope: "story", story_id: STORY });
   });
+
+  it("reissues a lost receipt code with the password and shows it once", async () => {
+    const confirmed = request({
+      kind: "deletion",
+      scope: "account",
+      state: "awaiting_authorization",
+      story_ids: [],
+      confirmed_at: "2026-10-19T00:00:00Z",
+      revision: 2,
+    });
+    const calls = stubFetch({
+      "GET /api/data-requests": [
+        () => json(200, { requests: [confirmed], schema_version: 1 }),
+      ],
+      "GET /api/stories": [() => json(200, stories)],
+      [`POST /api/data-requests/${confirmed.request_id}/receipt-credential`]: [
+        () =>
+          json(200, {
+            request: confirmed,
+            receipt_credential: "fresh-receipt-code",
+            schema_version: 1,
+          }),
+      ],
+    });
+    render(<DataRequestsPanel local={false} />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Lost your receipt code?" }),
+    );
+    fireEvent.change(screen.getByLabelText("Password for a new receipt code"), {
+      target: { value: "pw-123456789012" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Issue new code" }));
+    expect(await screen.findByText("fresh-receipt-code")).toBeInTheDocument();
+    const call = calls.find((c) => c.url.endsWith("/receipt-credential"))!;
+    expect(JSON.parse(call.body!)).toEqual({ password: "pw-123456789012" });
+    expect(localStorage.length).toBe(0);
+  });
 });

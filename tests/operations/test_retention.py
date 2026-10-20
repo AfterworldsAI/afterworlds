@@ -143,7 +143,7 @@ def test_request_records_expire_24_months_after_closure_only(
         actor, kind=RequestKind.EXPORT, scope=RequestScope.ACCOUNT, story_refs=[]
     )
     admin = RequestActor("administrator", "owner", "remote")
-    store.approve(admin, closed, expected_revision=1, reason=None)
+    store.approve(admin, closed, expected_revision=1, reason="verified owner")
     attempt = store.begin_attempt(admin, closed, expected_revision=2)
     store.end_attempt(closed, attempt, RequestState.COMPLETED)
     still_open = store.create(
@@ -330,12 +330,26 @@ def test_closed_account_ledger_keeps_replay_then_expires_whole_subject(
 def test_suppression_release_requires_verified_end_conditions(
     stores: tuple[sessionmaker[Session], sessionmaker[Session]], tmp_path: Path
 ) -> None:
-    _content, control = stores
+    content, control = stores
+    clock = {"now": T0}
+    store = RequestStore(control, now=lambda: clock["now"])
+    actor = RequestActor("requester", "p", "remote", str(uuid.uuid4()))
+    rid = store.create(
+        actor, kind=RequestKind.DELETION, scope=RequestScope.STORY, story_refs=["s"]
+    )
+    store.confirm(
+        actor,
+        rid,
+        expected_revision=1,
+        confirmed_scope_revision="r",
+        current_scope_revision="r",
+        issue_credential=False,
+    )
     sup = record_suppression(
         control,
-        subject_ref=str(uuid.uuid4()),
+        subject_ref=actor.subject_ref or "",
         story_refs=["s"],
-        request_id=str(uuid.uuid4()),
+        request_id=rid,
         scope="story",
         effective_boundary_at=T0,
         now=T0,
@@ -346,10 +360,21 @@ def test_suppression_release_requires_verified_end_conditions(
         storage_locator=str(tmp_path / "b"),
         original_capture_at=T0 - timedelta(days=1),
     )
+    zero = {"chunks": 0}
+
+    def release(at: datetime) -> bool:
+        return release_suppression(
+            control,
+            sup,
+            now=at,
+            content=content,
+            story_chunk_count=lambda _: zero["chunks"],
+        )
+
     # Annual review is a calendar prompt, not permission to release.
     review = T0 + timedelta(days=366)
     assert sup in reviews_due(control, control, now=review)["suppressions"]
-    assert not release_suppression(control, sup, now=review)
+    assert not release(review)  # request incomplete, backup undisposed
     from afterworlds.remote.control_orm import BackupInventoryORM
 
     with control.begin() as s:
@@ -357,8 +382,16 @@ def test_suppression_release_requires_verified_end_conditions(
         assert row is not None
         row.disposed_at = iso(T0 + timedelta(days=20))
         row.disposal_evidence = "removed"
-    assert not release_suppression(control, sup, now=T0 + timedelta(days=29))
-    assert release_suppression(control, sup, now=T0 + timedelta(days=30))
+    assert not release(review)  # the deletion itself never completed
+    admin = RequestActor("administrator", "owner", "remote")
+    store.approve(admin, rid, expected_revision=2, reason="verified owner")
+    attempt = store.begin_attempt(admin, rid, expected_revision=3)
+    store.end_attempt(rid, attempt, RequestState.COMPLETED)
+    zero["chunks"] = 3
+    assert not release(review)  # live vector data still present
+    zero["chunks"] = 0
+    assert not release(T0 + timedelta(days=29))  # horizon not passed
+    assert release(T0 + timedelta(days=30))
 
 
 def test_audit_receipts_and_anomaly_records_follow_their_own_clocks(
@@ -446,7 +479,7 @@ def test_deadlines_are_fixed_at_their_triggers_and_overdue_is_visible(
     # Approval waits and new attempts never move the clocks.
     admin = RequestActor("administrator", "owner", "remote")
     clock["now"] = T0 + timedelta(days=6)
-    store.approve(admin, deletion, expected_revision=2, reason=None)
+    store.approve(admin, deletion, expected_revision=2, reason="verified owner")
     store.begin_attempt(admin, deletion, expected_revision=3)
     assert store.view(deletion).live_deadline_at == T0 + timedelta(hours=5, days=7)
     clock["now"] = T0 + timedelta(days=7)
@@ -507,10 +540,75 @@ def test_a_late_completion_keeps_its_missed_deadline(
         actor, kind=RequestKind.EXPORT, scope=RequestScope.ACCOUNT, story_refs=[]
     )
     admin = RequestActor("administrator", "owner", "remote")
-    store.approve(admin, rid, expected_revision=1, reason=None)
+    store.approve(admin, rid, expected_revision=1, reason="verified owner")
     attempt = store.begin_attempt(admin, rid, expected_revision=2)
     clock["now"] = T0 + timedelta(days=8)
     store.end_attempt(rid, attempt, RequestState.COMPLETED)
     view = store.view(rid)
     assert view.state == "completed" and view.overdue == ()
     assert view.missed_deadlines == ("export_production",)
+
+
+def test_ledger_expiry_intent_survives_an_interruption_between_stores(
+    stores: tuple[sessionmaker[Session], sessionmaker[Session]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Review P1-4: the expiry intent commits before the content effect, and
+    restore enforcement also derives due expiries from closure state, so an
+    interruption cannot leave expired events restorable."""
+    from afterworlds.operations import retention as module
+
+    content, control = stores
+    subject = uuid.uuid4()
+    with content() as s:
+        EntitlementService(s).receive_entitlement_event(
+            subject,
+            EntitlementEventType.HOSTED_ACCESS_ACTIVATED,
+            HostedAccessActivatedPayload(
+                plan=HostedAccessPlan.SUBSCRIPTION, effective_at=T0
+            ),
+        )
+    with control.begin() as s:
+        s.add(
+            HostedAccountORM(
+                account_id=str(subject),
+                identity_subject_ref=str(uuid.uuid4()),
+                status="closed",
+                created_at=iso(T0),
+                updated_at=iso(T0),
+                closed_at=iso(T0),
+                policy_version="v",
+            )
+        )
+    due = add_calendar_months(T0, 24)
+
+    def crash(*_: object, **__: object) -> int:
+        raise RuntimeError("power loss")
+
+    monkeypatch.setattr(module, "expire_subject_history", crash)
+    with pytest.raises(RuntimeError):
+        sweep(ops=control, content=content, control=control, now=due)
+    monkeypatch.undo()
+    with control() as s:
+        intent = s.get(EntitlementExpiryORM, str(subject))
+        assert intent is not None and intent.event_count == -1
+    # The next sweep finishes it.
+    result = sweep(ops=control, content=content, control=control, now=due)
+    assert result.entitlement_subjects_expired == 1
+    with control() as s:
+        row = s.get(EntitlementExpiryORM, str(subject))
+        assert row is not None and row.event_count == 1
+        # Even with the register row lost, closure state alone re-expires.
+        s.delete(row)
+        s.commit()
+    with content.kw["bind"].begin() as conn:
+        conn.execute(
+            sa.text(
+                "INSERT INTO entitlement_event (event_id, sojourner_id, event_type,"
+                " payload_json, created_at) VALUES (:e, :s, 'top_up_credit_grant',"
+                " '{}', '2026-01-01 00:00:00')"
+            ),
+            {"e": uuid.uuid4().hex, "s": subject.hex},
+        )
+    assert reapply_ledger_expiries(control, content, now=due) == 1
+    assert reapply_ledger_expiries(control, content, now=due - timedelta(days=1)) == 0

@@ -48,6 +48,17 @@ def _run(capsys: pytest.CaptureFixture[str], *argv: str) -> tuple[int, str]:
     return code, capsys.readouterr().out.strip()
 
 
+def _enforce(capsys: pytest.CaptureFixture[str]) -> None:
+    """CRD Issue 22's restore enforcement -- the step #205's runbook delegates
+    to it ("Enforce every active deletion suppression"); verify-restore now
+    admits a restore only after it ran."""
+    from afterworlds.operations import maintenance
+
+    capsys.readouterr()
+    assert maintenance.main(["enforce-restore"]) == 0, capsys.readouterr().err
+    capsys.readouterr()
+
+
 def test_capture_restore_verify_runbook(
     remote_env: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -87,6 +98,7 @@ def test_capture_restore_verify_runbook(
     with create_session_factory(engine).begin() as s:
         delete_story(s, uuid.UUID(story))
     engine.dispose()
+    _enforce(capsys)  # CRD Issue 22 restore enforcement
     assert _run(capsys, "verify-restore", "--restore-id", restore_id) == (0, "verified")
     assert _run(capsys, "due") == (0, "")
     assert _run(capsys, "dispose", "--backup-id", backup_id) == (0, "disposed")
@@ -261,6 +273,7 @@ def test_an_interrupted_restore_keeps_serving_fenced_until_retried(
     code, restore_id = _run(capsys, "restore", "--backup-id", backup_id)
     assert code == 0
     assert _restore_status(remote_env, failed) == "superseded"
+    _enforce(capsys)  # CRD Issue 22 restore enforcement
     assert _run(capsys, "verify-restore", "--restore-id", restore_id) == (
         0,
         "verified",
@@ -411,6 +424,7 @@ def test_restore_cleanup_interrupted_before_rebind_is_retryable(
         create_app(remote_settings(remote_env))
     code, restore_id = _run(capsys, "restore", "--backup-id", backup_id)
     assert code == 0
+    _enforce(capsys)  # CRD Issue 22 restore enforcement
     assert _run(capsys, "verify-restore", "--restore-id", restore_id) == (
         0,
         "verified",
@@ -517,6 +531,7 @@ def test_an_interrupted_sql_replacement_never_leaves_a_partial_store(
         create_app(remote_settings(remote_env))
     code, restore_id = _run(capsys, "restore", "--backup-id", backup_id)
     assert code == 0
+    _enforce(capsys)  # CRD Issue 22 restore enforcement
     assert _run(capsys, "verify-restore", "--restore-id", restore_id) == (
         0,
         "verified",
@@ -583,6 +598,7 @@ def test_restore_copy_interrupted_keeps_the_marker_and_is_retryable(
         create_app(remote_settings(remote_env))
     code, restore_id = _run(capsys, "restore", "--backup-id", backup_id)
     assert code == 0
+    _enforce(capsys)  # CRD Issue 22 restore enforcement
     assert _run(capsys, "verify-restore", "--restore-id", restore_id) == (
         0,
         "verified",
@@ -848,6 +864,7 @@ def test_a_copying_restore_keeps_its_source_until_it_finishes(
     assert not b1.exists()
     with pytest.raises(StoreRefused, match="awaiting"):
         create_app(remote_settings(remote_env))  # fence until verification
+    _enforce(capsys)  # CRD Issue 22 restore enforcement
     code, out = _run(capsys, "verify-restore", "--restore-id", restore_id)
     assert (code, out) == (0, "verified")
     make_remote(remote_env).close()
@@ -1371,6 +1388,7 @@ def test_a_content_store_named_chroma_captures_restores_and_verifies(
     assert read_vector_marker(snapshot / SNAPSHOT_VECTOR_DIR) == row.store_id
     code, restore_id = _run(capsys, "restore", "--backup-id", backup)
     assert code == 0, restore_id
+    _enforce(capsys)  # CRD Issue 22 restore enforcement
     assert _run(capsys, "verify-restore", "--restore-id", restore_id) == (0, "verified")
     RemoteHarness(
         app=create_app(settings), settings=settings, tmp_path=remote_env
@@ -1402,6 +1420,7 @@ def test_snapshots_in_the_earlier_layout_stay_restorable(
         assert s.query(RestoreRecordORM).count() == 0
     code, restore_id = _run(capsys, "restore", "--backup-id", legacy)
     assert code == 0, restore_id
+    _enforce(capsys)  # CRD Issue 22 restore enforcement
     assert _run(capsys, "verify-restore", "--restore-id", restore_id) == (0, "verified")
     make_remote(remote_env).close()
 

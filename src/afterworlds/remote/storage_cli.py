@@ -26,18 +26,23 @@ import gc
 import sys
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from chromadb.api.shared_system_client import SharedSystemClient
 
 from afterworlds.api.config import load_settings
 from afterworlds.operations.compaction import compaction_unfinished
-from afterworlds.operations.enforcement import physical_disposal_pending
+from afterworlds.operations.enforcement import (
+    physical_disposal_pending,
+    restore_enforced,
+)
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.pipeline.retrieval.client import build_chroma_client
 from afterworlds.pipeline.retrieval.collections import (
     get_existing_story_memory_collection_for_delete,
 )
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
+from afterworlds.remote.control_orm import RestoreRecordORM
 from afterworlds.remote.control_store import (
     ControlStoreUnavailable,
     connect_control_store,
@@ -53,6 +58,7 @@ from afterworlds.remote.storage import (
     refuse_store_aliasing,
     restore_snapshot,
     sqlite_path,
+    suppressed_content_present,
     verify_restore,
 )
 
@@ -69,6 +75,13 @@ def _chunk_counter(config: RetrievalMemoryConfig) -> Callable[[str], int]:
         return len(collection.get(where={"story_id": story_id}).get("ids") or [])
 
     return count
+
+
+def _copied(control: Any, restore_id: str) -> bool:
+    """The restore replaced both stores and awaits enforcement."""
+    with control() as s:
+        row = s.get(RestoreRecordORM, restore_id)
+        return row is not None and row.status == "pending_enforcement"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -189,6 +202,25 @@ def main(argv: list[str] | None = None) -> int:
                     )
                 )
             elif args.command == "verify-restore":
+                # CRD Issue 22: a restored store is admitted only after every
+                # active deletion and retention expiry was re-applied
+                # (enforce-restore). #205's own refusals and its list of
+                # suppressed Stories still present come first, unchanged.
+                if _copied(control, args.restore_id) and not restore_enforced(
+                    control, args.restore_id
+                ):
+                    remaining = suppressed_content_present(
+                        control, content, _chunk_counter(config)
+                    )
+                    if remaining:
+                        print(
+                            "suppressed stories still present: " + ", ".join(remaining)
+                        )
+                        return 2
+                    raise StoreRefused(
+                        "the restore has not been enforced; run `python -m "
+                        "afterworlds.operations.maintenance enforce-restore` first"
+                    )
                 remaining = verify_restore(
                     control,
                     args.restore_id,
