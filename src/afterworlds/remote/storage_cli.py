@@ -189,6 +189,20 @@ def main(argv: list[str] | None = None) -> int:
                     )
                 )
             elif args.command == "restore":
+                # CRD Issue 22: a fallback settlement-coverage gap kept only in
+                # the live content store moves to the control store (not
+                # restored with content) before that store is replaced.
+                from sqlalchemy.exc import SQLAlchemyError
+
+                from afterworlds.operations.anomalies import promote_coverage_gaps
+
+                try:
+                    promote_coverage_gaps(content, control, now=now)
+                except SQLAlchemyError:
+                    raise StoreRefused(
+                        "settlement coverage records in the live content store "
+                        "could not be preserved"
+                    ) from None
                 engine.dispose()  # the live file is about to be replaced
                 print(
                     restore_snapshot(

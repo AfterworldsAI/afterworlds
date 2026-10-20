@@ -132,7 +132,7 @@ reversal (15b-33 stays open for continuing Stories).
 | Affected backups | 21-day rolling life from original capture; all disposed by 30 days | capture / `confirmed_at` | #205 inventory; `backups` phase; final completion gate; overdue ⇒ failure |
 | Admin/request receipts | 24 calendar months after closure | request `closed_at`; support terminal outcome; audit `recorded_at`; investigated anomaly closure | `sweep`; open/uncertain records never expire |
 | Closed-account entitlement history | active + 24 calendar months after closure | `hosted_accounts.closed_at` | `expire_subject_history` (whole subject, guarded), `ops_entitlement_expiries` register |
-| Content-free routine logs | 30 days | recording | `provider_refusal_log` rows; never-investigated anomaly telemetry |
+| Content-free routine logs | 30 days | recording | `provider_refusal_log` rows; never-investigated anomaly telemetry (including a never-investigated settlement-coverage gap: the failures it stands in for expire on the same clock) |
 | Deletion suppression | until every affected backup is disposed and the horizons have passed; annual review | — | `maintenance release-suppression` (verified only); `reviews` |
 | BYOK-rights evidence | while enforceable; annual review | — | `ops_rights_evidence`; `reviews` |
 
@@ -257,8 +257,10 @@ confirmation time and deadlines do not change.
 replay/projection inconsistency, durable delivered-turn settlement failures (recorded inside the admitted
 turn worker, so a cancelled HTTP request cannot drop them; if the control-store write fails, a
 content-free `settlement_coverage` gap -- codes and time, no subject or Turn -- is kept in the content
-chain's anomaly table and keeps the source `degraded` across restarts until staff **Close** it after
-reviewing the ledger and logs), unfinished restores. `sources`
+chain's anomaly table. It is promoted into the control store's anomaly streams at app start, in the
+retention sweep, at `storage_cli restore` (before the live content store is replaced; a gap that cannot
+be preserved refuses the restore) and in `enforce-restore`. It keeps the source `degraded` across
+restarts and restores until staff **Close** it after reviewing the ledger and logs), unfinished restores. `sources`
 shows what was read (`unavailable` ≠ healthy; `commercial_events: not_integrated`). Notes
 (Investigating/Close) append history and repair nothing; fix state only through §3 actions.
 
@@ -285,8 +287,12 @@ await the Owner's qualified advice. No complete US/Canada/Mexico compliance is c
   integrated into anomalies.
 - Physical compaction and restore enforcement are offline (app stopped).
 - Settlement coverage: a failure the control store could not record leaves a durable, content-free gap
-  (source `degraded` until closed). If the content store refuses that write too, only the process
-  flag and the fixed-category log remain (both live stores refusing writes).
+  (source `degraded` until closed). A promoted gap is an ordinary anomaly stream: source and notes
+  expire together (never investigated: 30 days; investigated: 24 months after closure; investigated
+  and open: kept). A copy older than 30 days whose stream the control store no longer has -- e.g. one
+  restored from a backup -- is already expired and is disposed, never resurrected. If the content
+  store refuses the gap write too, only the process flag and the fixed-category log remain (both live
+  stores refusing writes).
 - Reason/note fields are guarded by shape patterns only (§3); they are not PII or secret detection.
 - Restores after a closed account's ledger expiry follow #205's unchanged continuity rule (refused or
   accepted-then-re-expired; §8 Restore).

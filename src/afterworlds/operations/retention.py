@@ -353,6 +353,12 @@ def sweep(
     expire_artifacts(ops, now, result)
     expire_requests(ops, control, now, result)
     expire_support(ops, now, result)
+    if control is not None:
+        # Fallback coverage gaps join their control-store streams first, so
+        # source and investigation expire together (review of bd0ae1df).
+        from afterworlds.operations.anomalies import promote_coverage_gaps
+
+        promote_coverage_gaps(content, control, now=now)
     expire_anomalies(ops, now, result)
     expire_refusal_log(content, now, result)
     if control is not None:

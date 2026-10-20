@@ -13,6 +13,7 @@ import gc
 import logging
 import tempfile
 from collections import defaultdict
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID
 
@@ -270,6 +271,18 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
         app.state.account_fence = fence
         # CRD Issue 22: remote operational records live in the control store.
         app.state.support = SupportService(control_factory, session_factory, identity)
+        # Fallback settlement-coverage gaps join the control store's streams
+        # (best effort; the anomaly view also reads unpromoted ones).
+        from sqlalchemy.exc import SQLAlchemyError
+
+        from afterworlds.operations.anomalies import promote_coverage_gaps
+
+        try:
+            promote_coverage_gaps(
+                session_factory, control_factory, now=datetime.now(UTC)
+            )
+        except SQLAlchemyError:
+            logger.error("coverage gap promotion failed at startup")
         # ADR-021 D4: no shared subject -- each request's account is its own.
     else:
         app.state.identity = None

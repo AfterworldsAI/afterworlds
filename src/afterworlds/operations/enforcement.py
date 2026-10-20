@@ -153,6 +153,11 @@ def enforce_restore(
     result = SweepResult()
     expire_refusal_log(content, now, result)
     ledger = reapply_ledger_expiries(control, content, now=now)
+    # Restored fallback coverage gaps: promoted if still live, disposed if
+    # already promoted or expired -- never resurrected (review of bd0ae1df).
+    from afterworlds.operations.anomalies import promote_coverage_gaps
+
+    promote_coverage_gaps(content, control, now=now)
     content.kw["bind"].dispose()
     evidence = compact_stores(
         database_path, vector_dir, client_factory, control_file(control)
