@@ -16,11 +16,13 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+import sqlalchemy as sa
 from sqlalchemy.orm import Session, sessionmaker
 
 from afterworlds.operations.deletion import (
     DeletionContext,
     current_scope_story_ids,
+    current_scope_story_ids_in,
     deletion_preview,
     evaluate,
     run_deletion,
@@ -28,10 +30,15 @@ from afterworlds.operations.deletion import (
 from afterworlds.operations.errors import OperationError, OperationErrorKind
 from afterworlds.operations.export import (
     ExportInputs,
+    NothingToExport,
     build_archive,
     produce_artifact,
 )
-from afterworlds.operations.orm import ExportArtifactORM
+from afterworlds.operations.orm import (
+    DataRequestEventORM,
+    ExportArtifactORM,
+    SupportActionEventORM,
+)
 from afterworlds.operations.policy import is_expired
 from afterworlds.operations.requests import (
     AttemptRegistry,
@@ -46,7 +53,8 @@ from afterworlds.operations.requests import (
 from afterworlds.operations.support import SupportService
 from afterworlds.persistence.crud.story import get_story
 from afterworlds.remote.access import AccessPolicy, story_owner
-from afterworlds.remote.control_store import utc_now
+from afterworlds.remote.control_orm import HostedAccountORM, IdentityPrincipalORM
+from afterworlds.remote.control_store import parse_iso, utc_now
 from afterworlds.remote.fence import AccountFence, FenceBusy
 from afterworlds.remote.identity import Actor, ActorKind, IdentityService
 from afterworlds.remote.storage import is_suppressed
@@ -469,23 +477,31 @@ class DataRequestService:
         if self._policy.remote and self._account_suppressed(view.subject_ref):
             self._fail_export(view, attempt, "account_under_deletion")
             return
-        candidates = self._scope_ids(view)
-        stories = [sid for sid in candidates if self._story_exportable(view, sid)]
-        if view.scope == "story" and not stories:
-            self._fail_export(view, attempt, "story_unavailable")
-            return
+        header = self.store.header(view.request_id)
+
+        def select_stories(session: Session) -> tuple[list[str], int]:
+            # Inside the content snapshot (PR #208 review): membership and
+            # contents share one boundary.
+            candidates = current_scope_story_ids_in(session, header, self._environment)
+            stories = [
+                sid
+                for sid in candidates
+                if self._story_exportable_in(session, view, sid)
+            ]
+            return stories, len(candidates) - len(stories)
+
         inputs = ExportInputs(
             request_id=view.request_id,
             scope=view.scope,
             environment=view.environment,
             subject_ref=view.subject_ref,
-            story_ids=tuple(stories),
-            account_view=self._account_view(view) if view.scope == "account" else None,
-            operational_view=(
-                self._operational_view(view) if view.scope == "account" else None
-            ),
             policy_version=view.policy_version,
-            excluded_under_deletion=len(candidates) - len(stories),
+            select_stories=select_stories,
+            read_operational=(
+                (lambda session: self._operational_snapshot(view, session))
+                if view.scope == "account"
+                else None
+            ),
         )
         try:
             _, manifest = produce_artifact(
@@ -496,6 +512,9 @@ class DataRequestService:
                 build=lambda: build_archive(self._content, inputs, now=self._now()),
                 now=self._now,
             )
+        except NothingToExport:
+            self._fail_export(view, attempt, "story_unavailable")
+            return
         except Exception:  # noqa: BLE001 -- typed below; no partial file remains
             self._fail_export(view, attempt, "generation_failed")
             return
@@ -508,35 +527,81 @@ class DataRequestService:
     def _account_suppressed(self, account_id: str) -> bool:
         return self._policy.account_suppressed(UUID(account_id))
 
-    def _story_exportable(self, view: RequestView, story_id: str) -> bool:
-        """Owned by the subject, present, and under no deletion suppression."""
-        with self._content() as s:
-            if get_story(s, UUID(story_id)) is None:
-                return False
-            if not self._policy.remote:
-                return True
-            if story_owner(s, UUID(story_id)) != view.subject_ref:
-                return False
+    def _story_exportable_in(
+        self, s: Session, view: RequestView, story_id: str
+    ) -> bool:
+        """Owned by the subject, present, and under no deletion suppression,
+        read in the export's content snapshot. (Suppressions cannot change
+        while the export holds the account fence.)"""
+        if get_story(s, UUID(story_id)) is None:
+            return False
+        if not self._policy.remote:
+            return True
+        if story_owner(s, UUID(story_id)) != view.subject_ref:
+            return False
         assert self.deletion.control is not None
         return not is_suppressed(
             self.deletion.control, story_id=story_id, account_id=view.subject_ref
         )
 
-    def _account_view(self, view: RequestView) -> dict[str, Any]:
-        if self._identity is None:
-            return {"account": "local_owner", "subject_ref": view.subject_ref}
-        record = self._identity.get_account(UUID(view.subject_ref))
+    def _operational_snapshot(
+        self, view: RequestView, content_session: Session
+    ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+        """The account/profile view and own operational records, each store
+        read in one transaction taken after the content snapshot was fixed.
+
+        Locally the operations store is the content store: the records are
+        read in the content snapshot itself. Remotely they come from one
+        control-store transaction (account/profile, request membership and
+        views, support history), which starts after the content snapshot --
+        so a support action whose effect is in the exported ledger is always
+        present, and its record may be later than that ledger's boundary.
+        Returns (account view, operational records, read boundary)."""
+        if not self._policy.remote:
+            account = {"account": "local_owner", "subject_ref": view.subject_ref}
+            records = self._operational_records(view, content_session)
+            return (
+                account,
+                records,
+                {
+                    "store": "content",
+                    "read": "same_transaction_as_content",
+                },
+            )
+        with self._ops() as s:
+            s.connection().exec_driver_sql("BEGIN")
+            account = self._account_record(view, s)
+            records = self._operational_records(view, s)
+            boundary = {
+                "store": "control",
+                "read": "single_transaction",
+                "taken": "after_content_snapshot",
+                "data_request_event_through_order": s.scalar(
+                    sa.select(sa.func.max(DataRequestEventORM.event_order))
+                ),
+                "support_event_through_order": s.scalar(
+                    sa.select(sa.func.max(SupportActionEventORM.event_order))
+                ),
+            }
+            s.rollback()
+        return account, records, boundary
+
+    def _account_record(self, view: RequestView, s: Session) -> dict[str, Any]:
+        row = s.get(HostedAccountORM, view.subject_ref)
+        principal = s.scalar(
+            sa.select(IdentityPrincipalORM).where(
+                IdentityPrincipalORM.account_id == view.subject_ref
+            )
+        )
         return {
             "account_id": view.subject_ref,
-            "status": record.status if record else None,
-            "created_at": record.created_at.isoformat() if record else None,
-            "contact_address": self._identity.contact_address_of(
-                UUID(view.subject_ref)
-            ),
+            "status": row.status if row else None,
+            "created_at": (parse_iso(row.created_at).isoformat() if row else None),
+            "contact_address": principal.contact_address if principal else None,
             "collected_profile_fields": ["contact_address"],
         }
 
-    def _operational_view(self, view: RequestView) -> dict[str, Any]:
+    def _operational_records(self, view: RequestView, s: Session) -> dict[str, Any]:
         requests = [
             {
                 "request_id": r.request_id,
@@ -547,9 +612,9 @@ class DataRequestService:
                 "closed_at": r.closed_at.isoformat() if r.closed_at else None,
             }
             for r in (
-                self.store.view(rid)
-                for rid in self.store.request_ids(
-                    subject_ref=view.subject_ref, environment=view.environment
+                self.store.view_in(s, rid)
+                for rid in RequestStore.request_ids_in(
+                    s, subject_ref=view.subject_ref, environment=view.environment
                 )
             )
         ]
@@ -566,6 +631,6 @@ class DataRequestService:
                     "reason_text": e.reason_text,
                     "recorded_at": e.recorded_at.isoformat(),
                 }
-                for e in self._support.history(UUID(view.subject_ref))
+                for e in SupportService.history_in(s, UUID(view.subject_ref))
             ]
         return {"data_requests": requests, "support_actions": actions}

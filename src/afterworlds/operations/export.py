@@ -1,7 +1,10 @@
 """Story and account-wide export -- CRD Issue 22 §5.
 
 An export is built from one read transaction of the content store (SQLite
-WAL gives it a consistent snapshot), through the existing player-visible
+WAL gives it a consistent snapshot; its first read selects the Stories), and
+for an account from one operations-store read taken after it (the same
+transaction locally; one control-store transaction remotely). The manifest
+names both boundaries. Contents come through the existing player-visible
 projections only: the transcript the Sojourner already sees, the mode's
 visible state and the setup view. Internal canon (Story Bible, which may hold
 GM secrets), Rolling Summaries, hidden RPG mechanics/audit, Retrieval index,
@@ -74,14 +77,23 @@ class ExportInputs:
     scope: str
     environment: str
     subject_ref: str
-    story_ids: tuple[str, ...]
-    #: Account scope: the approved account/profile view (identity owner).
-    account_view: dict[str, Any] | None
-    #: Account scope: own data-request and support records (operations).
-    operational_view: dict[str, Any] | None
     policy_version: str
-    #: Stories in scope left out because a deletion of them is in force.
-    excluded_under_deletion: int = 0
+    #: The Stories to export and how many in scope were left out because a
+    #: deletion of them is in force -- selected inside the content snapshot,
+    #: so membership and contents share one boundary (PR #208 review).
+    select_stories: Callable[[Session], tuple[list[str], int]]
+    #: Account scope: (account/profile view, operational records, their read
+    #: boundary), read after the content snapshot was fixed -- in the same
+    #: transaction when the operations store is the content store (local),
+    #: else in one control-store transaction.
+    read_operational: (
+        Callable[[Session], tuple[dict[str, Any], dict[str, Any], dict[str, Any]]]
+        | None
+    ) = None
+
+
+class NothingToExport(Exception):
+    """A Story export whose Story is no longer exportable at the snapshot."""
 
 
 def _jsonable(model: Any) -> Any:
@@ -223,13 +235,24 @@ def _entitlement_view(session: Session, subject: UUID) -> dict[str, Any]:
 def build_archive(
     content: sessionmaker[Session], inputs: ExportInputs, *, now: datetime
 ) -> tuple[bytes, dict[str, Any]]:
-    """The artifact body and its manifest, from one consistent read."""
+    """The artifact body and its manifest.
+
+    The content store is read in one transaction: its first read (the Story
+    selection) fixes the snapshot, so Story membership, every Story record and
+    the entitlement ledger share one boundary. Account-scope operational
+    records are read after that snapshot was fixed (``read_operational``), so
+    every ledger effect in the export has its support record present; a
+    support action whose effect is not in the exported ledger is marked so
+    (in progress, or completed after the content boundary)."""
     files: dict[str, str] = {}
     per_story: dict[str, dict[str, Any]] = {}
     counts = {"stories": 0, "turns": 0}
     with content() as session:
         session.connection().exec_driver_sql("BEGIN")
-        for story_id in inputs.story_ids:
+        story_ids, excluded_under_deletion = inputs.select_stories(session)
+        if inputs.scope == "story" and not story_ids:
+            raise NothingToExport
+        for story_id in story_ids:
             record, markdown = _story_record(session, UUID(story_id))
             transcript = record["transcript"]
             per_story[story_id] = {
@@ -242,19 +265,33 @@ def build_archive(
             files[f"stories/{story_id}/story.json"] = json.dumps(record, indent=2)
             files[f"stories/{story_id}/transcript.md"] = markdown
         included = ["story_metadata", "transcript", "visible_state", "setup_state"]
-        boundary: dict[str, Any] = {"read": "single_transaction", "stories": per_story}
+        boundary: dict[str, Any] = {
+            "content": {"store": "content", "read": "single_transaction"},
+            "stories": per_story,
+        }
         if inputs.scope == "account":
+            assert inputs.read_operational is not None
             ledger = _entitlement_view(session, UUID(inputs.subject_ref))
             counts["entitlement_events"] = ledger["total_events"]
             boundary["entitlement_through_sequence"] = (
                 ledger["events"][-1]["global_sequence"] if ledger["events"] else None
             )
+            account_view, ops, operational_boundary = inputs.read_operational(session)
+            in_ledger = {
+                str(e["support_operation_id"]): e["event_id"]
+                for e in ledger["events"]
+                if e.get("support_operation_id")
+            }
+            for action in ops.get("support_actions", []):
+                # Interpretable at the content boundary: the effect is in this
+                # export's ledger, or it is not (yet) -- never inferred.
+                action["entitlement_event_in_export"] = in_ledger.get(
+                    action["operation_id"]
+                )
+            boundary["operational"] = operational_boundary
             files["account/entitlement_history.json"] = json.dumps(ledger, indent=2)
-            files["account/account.json"] = json.dumps(inputs.account_view, indent=2)
-            files["account/operational_records.json"] = json.dumps(
-                inputs.operational_view, indent=2
-            )
-            ops = inputs.operational_view or {}
+            files["account/account.json"] = json.dumps(account_view, indent=2)
+            files["account/operational_records.json"] = json.dumps(ops, indent=2)
             counts["data_requests"] = len(ops.get("data_requests", []))
             counts["support_actions"] = len(ops.get("support_actions", []))
             included += [
@@ -282,10 +319,10 @@ def build_archive(
                 {
                     "code": "stories_under_deletion",
                     "reason": "Stories you asked to delete are not exported.",
-                    "count": inputs.excluded_under_deletion,
+                    "count": excluded_under_deletion,
                 }
             ]
-            if inputs.excluded_under_deletion
+            if excluded_under_deletion
             else []
         ),
         "files": sorted(files),

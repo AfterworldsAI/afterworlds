@@ -296,12 +296,17 @@ class SupportService:
     def history(self, account_id: UUID) -> tuple[SupportEvent, ...]:
         """The account's support stream in ``event_order`` (its own order)."""
         with self._ops() as s:
-            rows = s.scalars(
-                sa.select(SupportActionEventORM)
-                .where(SupportActionEventORM.subject_ref == str(account_id))
-                .order_by(SupportActionEventORM.event_order)
-            )
-            return tuple(_event(r) for r in rows)
+            return self.history_in(s, account_id)
+
+    @staticmethod
+    def history_in(s: Session, account_id: UUID) -> tuple[SupportEvent, ...]:
+        """:meth:`history` read in the caller's session (one export snapshot)."""
+        rows = s.scalars(
+            sa.select(SupportActionEventORM)
+            .where(SupportActionEventORM.subject_ref == str(account_id))
+            .order_by(SupportActionEventORM.event_order)
+        )
+        return tuple(_event(r) for r in rows)
 
     def status(self, operation_id: UUID) -> OperationStatus:
         """Authoritative outcome of an operation, reconciling a committed

@@ -516,14 +516,25 @@ class RequestStore:
         environment: str | None = None,
     ) -> list[str]:
         with self._ops() as s:
-            query = sa.select(DataRequestORM.request_id).order_by(
-                DataRequestORM.requested_at, DataRequestORM.request_id
+            return self.request_ids_in(
+                s, subject_ref=subject_ref, environment=environment
             )
-            if subject_ref is not None:
-                query = query.where(DataRequestORM.subject_ref == subject_ref)
-            if environment is not None:
-                query = query.where(DataRequestORM.environment == environment)
-            return list(s.scalars(query))
+
+    @staticmethod
+    def request_ids_in(
+        s: Session,
+        *,
+        subject_ref: str | None = None,
+        environment: str | None = None,
+    ) -> list[str]:
+        query = sa.select(DataRequestORM.request_id).order_by(
+            DataRequestORM.requested_at, DataRequestORM.request_id
+        )
+        if subject_ref is not None:
+            query = query.where(DataRequestORM.subject_ref == subject_ref)
+        if environment is not None:
+            query = query.where(DataRequestORM.environment == environment)
+        return list(s.scalars(query))
 
     def reissue_credential(self, request_id: str) -> str:
         """Replace a confirmed request's receipt credential (the previous one
@@ -554,42 +565,47 @@ class RequestStore:
             )
 
     def view(self, request_id: str) -> RequestView:
-        now = self._now()
         with self._ops() as s:
-            header = self._header(s, request_id)
-            events = list(
-                s.scalars(
-                    sa.select(DataRequestEventORM)
-                    .where(DataRequestEventORM.request_id == request_id)
-                    .order_by(DataRequestEventORM.event_order)
-                )
+            return self.view_in(s, request_id)
+
+    def view_in(self, s: Session, request_id: str) -> RequestView:
+        """A request's view read in the caller's session (CRD Issue 22: an
+        export reads every operational record in one transaction)."""
+        now = self._now()
+        header = self._header(s, request_id)
+        events = list(
+            s.scalars(
+                sa.select(DataRequestEventORM)
+                .where(DataRequestEventORM.request_id == request_id)
+                .order_by(DataRequestEventORM.event_order)
             )
-            phase_rows = list(
-                s.scalars(
-                    sa.select(PhaseEventORM)
-                    .where(PhaseEventORM.request_id == request_id)
-                    .order_by(PhaseEventORM.event_order)
-                )
+        )
+        phase_rows = list(
+            s.scalars(
+                sa.select(PhaseEventORM)
+                .where(PhaseEventORM.request_id == request_id)
+                .order_by(PhaseEventORM.event_order)
             )
-            receipts = [
-                {
-                    "receipt_id": r.receipt_id,
-                    "receipt_kind": r.receipt_kind,
-                    "attempt_id": r.attempt_id,
-                    "created_at": r.created_at,
-                    "body": json.loads(r.body_json),
-                }
-                for r in s.scalars(
-                    sa.select(ReceiptORM)
-                    .where(ReceiptORM.request_id == request_id)
-                    .order_by(ReceiptORM.created_at, ReceiptORM.receipt_id)
-                )
-            ]
-            artifact_row = s.scalars(
-                sa.select(ExportArtifactORM)
-                .where(ExportArtifactORM.request_id == request_id)
-                .order_by(ExportArtifactORM.created_at.desc())
-            ).first()
+        )
+        receipts = [
+            {
+                "receipt_id": r.receipt_id,
+                "receipt_kind": r.receipt_kind,
+                "attempt_id": r.attempt_id,
+                "created_at": r.created_at,
+                "body": json.loads(r.body_json),
+            }
+            for r in s.scalars(
+                sa.select(ReceiptORM)
+                .where(ReceiptORM.request_id == request_id)
+                .order_by(ReceiptORM.created_at, ReceiptORM.receipt_id)
+            )
+        ]
+        artifact_row = s.scalars(
+            sa.select(ExportArtifactORM)
+            .where(ExportArtifactORM.request_id == request_id)
+            .order_by(ExportArtifactORM.created_at.desc())
+        ).first()
         last = events[-1]
 
         def first(name: str) -> datetime | None:

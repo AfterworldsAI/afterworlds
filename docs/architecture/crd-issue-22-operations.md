@@ -97,7 +97,14 @@ fixed at those triggers; approval waits, retries, restarts and attempts never mo
 missed deadlines; a completed request keeps `missed_deadlines` (and its receipt `deadlines.*_met`), so a late
 completion is never relabelled on time.
 
-**Export:** one read transaction; only player-visible projections (transcript, visible state, setup view);
+**Export:** one read transaction of the content store, whose first read selects the Stories, so Story
+membership, every Story record and the ledger share one boundary. For an account, the operational records
+(account/profile, own requests, support actions) are read in one control-store transaction started after
+that snapshot (locally: inside the same content transaction). The manifest's `snapshot_boundary` names
+both reads (`content`, `operational` with its store, the order in which they were taken and the event-order
+cutoffs), and each support action carries `entitlement_event_in_export`: the ledger event in this
+export's ledger, or `null` when the effect is not in it (in progress, or recorded after the content
+boundary). Only player-visible projections (transcript, visible state, setup view);
 ZIP of JSON + Markdown with a versioned `manifest.json` (scope, subject, policy version, snapshot boundary
 per Story, per-class/per-Story counts, included classes, explicit exclusions, reading note — no import/restore
 path). Account exports add the account view (contact address, the only profile field collected), the own

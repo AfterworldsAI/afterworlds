@@ -236,17 +236,27 @@ def current_scope_story_ids(
     if header.scope == "story":
         return list(json.loads(header.story_refs))
     with content() as s:
-        if environment == "remote":
-            return sorted(
-                s.scalars(
-                    sa.select(AccountResourceORM.resource_id).where(
-                        AccountResourceORM.account_id == header.subject_ref,
-                        AccountResourceORM.resource_type == "story",
-                        AccountResourceORM.retired_at.is_(None),
-                    )
+        return current_scope_story_ids_in(s, header, environment)
+
+
+def current_scope_story_ids_in(
+    s: Session, header: DataRequestORM, environment: str
+) -> list[str]:
+    """:func:`current_scope_story_ids` read in the caller's session (an
+    export selects its Stories inside its content snapshot)."""
+    if header.scope == "story":
+        return list(json.loads(header.story_refs))
+    if environment == "remote":
+        return sorted(
+            s.scalars(
+                sa.select(AccountResourceORM.resource_id).where(
+                    AccountResourceORM.account_id == header.subject_ref,
+                    AccountResourceORM.resource_type == "story",
+                    AccountResourceORM.retired_at.is_(None),
                 )
             )
-        return sorted(s.scalars(sa.select(StoryORM.story_id)))
+        )
+    return sorted(s.scalars(sa.select(StoryORM.story_id)))
 
 
 def ensure_inventory(ctx: DeletionContext, view: RequestView) -> dict[str, list[str]]:
