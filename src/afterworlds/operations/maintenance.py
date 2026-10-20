@@ -15,7 +15,8 @@ a restored store (then run ``storage_cli verify-restore``);
 ``release-suppression`` releases a suppression only when its end conditions
 are verified; ``reviews`` lists annual reviews due. A remote deployment
 holds the three store locks (#205 ``maintenance_locks``), so none runs
-beside a serving app; a local one must be run with the app stopped.
+beside a serving app. ``compact``, ``enforce-restore`` and ``finalize`` are
+remote-only: a local app holds no lock that could prove it is stopped.
 Configuration comes from the same environment variables as the app.
 """
 
@@ -90,6 +91,9 @@ def _client() -> Callable[[], ClientAPI]:
     return lambda: build_chroma_client(config)
 
 
+_REMOTE_ONLY = frozenset({"compact", "enforce-restore", "finalize"})
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="CRD Issue 22 maintenance")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -100,6 +104,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     now = utc_now()
+    if args.command in _REMOTE_ONLY and load_settings().deployment != "remote":
+        # A local app holds no store lock, so nothing here could prove it is
+        # stopped; local physical remnants are owner-controlled instead.
+        print(
+            f"{args.command} refused: available only for a remote deployment",
+            file=sys.stderr,
+        )
+        return 1
     vector = Path(RetrievalMemoryConfig.from_env().persist_directory)
     if args.command != "compact" and compaction_unfinished(vector):
         print(

@@ -152,3 +152,18 @@ def test_interrupted_swap_is_refused_then_resumed(
     assert files_with(vector_dir, MARK) == []
     assert _snapshot(config) == before
     _release()
+
+
+def test_local_deployment_refuses_store_maintenance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from afterworlds.operations import maintenance
+
+    monkeypatch.setenv("AFTERWORLDS_DEPLOYMENT", "local")
+    monkeypatch.setenv("AFTERWORLDS_DATABASE_URL", f"sqlite:///{tmp_path / 'l.db'}")
+    monkeypatch.setenv("AFTERWORLDS_FRONTEND_DIST", str(tmp_path))
+    monkeypatch.setenv("AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY", str(tmp_path / "c"))
+    for command in ("compact", "enforce-restore", "finalize"):
+        assert maintenance.main([command]) == 1
+        assert "remote deployment" in capsys.readouterr().err
+    assert not (tmp_path / "l.db").exists()

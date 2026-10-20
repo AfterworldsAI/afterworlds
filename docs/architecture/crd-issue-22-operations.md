@@ -170,7 +170,7 @@ and receipt (`operations/deletion.py`).
 | Captures | refused while any deletion's physical compaction is pending (`storage_cli capture`) |
 | Compaction staging (`.<vector>.compact-new/`) and export (`.<vector>.compact-export.json`) | plain copies of every remaining record, owner-only, beside the live vector store; removed when the swap completes. While either exists the app, `storage_cli` and every maintenance command except `compact` refuse to run; rerun `compact` to finish |
 | Control store | not restored with content; host-controlled backup is a #205 launch gate |
-| Local device files, keyring, user-downloaded exports, provider-held copies | not touched remotely; local physical remnants are `owner_controlled` (local `compact` available) |
+| Local device files, keyring, user-downloaded exports, provider-held copies | not touched remotely; local physical remnants are `owner_controlled`; the maintenance `compact`, `enforce-restore` and `finalize` commands refuse locally (no store lock proves a local app is stopped) |
 
 ## 8. Runbooks
 
