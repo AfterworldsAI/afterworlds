@@ -201,7 +201,9 @@ available export be downloaded first (the requester was told to export before cl
 afterworlds.operations.maintenance compact`; restart; `finalize` (or **Re-check completion**). Run it
 before any `storage_cli capture` (capture refuses otherwise). If it fails (a typed `failed (...); retry`
 line, exit 1) or is interrupted, run it again: it resumes a completed rebuild or discards an incomplete
-one, and nothing serves the stores until it finishes.
+one, and nothing serves the stores until it finishes. Always restart the app in a new process after compaction:
+a process that held deleted text in memory (as the serving app did) can persist it into vector index
+files if it writes them later.
 
 **Backup pending / final completion.** A deletion stays `in_progress` (`backups_pending`) until every
 affected backup is disposed: `storage_cli due` / `dispose` (#205), then `maintenance finalize`. Past 30

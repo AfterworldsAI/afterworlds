@@ -147,6 +147,8 @@ def test_interrupted_swap_is_refused_then_resumed(
     compact_vector_store(vector_dir, lambda: build_chroma_client(config))
     _release()
     assert not compaction_unfinished(vector_dir)
-    assert _snapshot(config) == before
+    # Scan before this test process (which read the deleted text) reopens the
+    # store: a process that held it must not write the store afterwards.
     assert files_with(vector_dir, MARK) == []
+    assert _snapshot(config) == before
     _release()

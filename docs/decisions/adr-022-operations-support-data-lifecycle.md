@@ -47,6 +47,9 @@ completion only when physical compaction, backups and the commercial dependency 
 Offline compaction with the store locks held: content `VACUUM`, and a vector rebuild whose import runs in a
 fresh subprocess. Reason: on the pinned chromadb 1.5.9 a rebuild inside a process that had read deleted text
 produced a new HNSW segment file containing that text (freed-memory bytes); the subprocess never held it.
+The same effect means a process that ever read deleted text (the app that
+served the Story, or a maintenance process that deleted chunks) must not write the vector store after
+compaction: compaction runs with the app stopped, and the app is restarted afterwards in a fresh process.
 Capture refuses while compaction is pending, because the SQLite backup API and directory copy carry free
 pages and orphan segments. This is a narrow addition to #205's capture preconditions.
 
