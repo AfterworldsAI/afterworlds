@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from afterworlds.api.app import create_app
 from afterworlds.api.config import ApiSettings
-from tests.operations._data import chunk_count, play_branching, plant, rows_with, unzip
+from tests.operations._data import chunk_count, plant, play_branching, rows_with, unzip
 
 
 @pytest.fixture()
@@ -24,6 +24,7 @@ def local(app_settings: ApiSettings, monkeypatch: pytest.MonkeyPatch) -> Any:
 
 def _seed_byok(app: Any) -> None:
     from datetime import UTC, datetime
+    from decimal import Decimal
 
     from afterworlds.entitlement.enums import EntitlementEventType, HostedAccessPlan
     from afterworlds.entitlement.payloads import (
@@ -31,7 +32,6 @@ def _seed_byok(app: Any) -> None:
         SubscriptionCreditGrantPayload,
     )
     from afterworlds.entitlement.service import EntitlementService
-    from decimal import Decimal
 
     with app.state.session_factory() as s:
         service = EntitlementService(s)

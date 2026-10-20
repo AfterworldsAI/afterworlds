@@ -71,7 +71,11 @@ export function setSignedOutListener(listener: (() => void) | null): void {
   onSignedOut = listener;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  options: { staff?: boolean } = {},
+): Promise<T> {
   const res = await fetch(path, {
     ...init,
     // The custom header marks a same-origin client request: the remote
@@ -87,7 +91,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as ApiError | null;
     if (body && "error_code" in body) {
-      if (res.status === 401 && body.error_code === "authentication_required") {
+      if (
+        res.status === 401 &&
+        body.error_code === "authentication_required" &&
+        !options.staff
+      ) {
         onSignedOut?.();
       }
       throw new ApiRequestError(res.status, body);
@@ -319,4 +327,204 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ acknowledge_provider_contact: true }),
     }),
+};
+
+// CRD Issue 22: Story and account-wide export/deletion, requester side. The
+// subject is always the signed-in (or local) owner -- never chosen here.
+export type DataRequest = components["schemas"]["DataRequestDTO"];
+export type DeletionPreview = components["schemas"]["DeletionPreviewResponse"];
+export type ConfirmDeletionResult =
+  components["schemas"]["ConfirmDeletionResponse"];
+
+export const dataRequests = {
+  list: () =>
+    request<components["schemas"]["DataRequestListResponse"]>(
+      "/api/data-requests",
+    ).then((r) => r.requests),
+
+  get: (requestId: string) =>
+    request<DataRequest>(`/api/data-requests/${requestId}`),
+
+  create: (
+    kind: DataRequest["kind"],
+    scope: DataRequest["scope"],
+    storyId: string | null = null,
+  ) =>
+    request<DataRequest>("/api/data-requests", {
+      method: "POST",
+      body: JSON.stringify({ kind, scope, story_id: storyId }),
+    }),
+
+  preview: (requestId: string) =>
+    request<DeletionPreview>(`/api/data-requests/${requestId}/deletion-preview`),
+
+  // The password travels only in this body (remote account deletion).
+  confirm: (
+    requestId: string,
+    expectedRevision: number,
+    scopeRevision: string,
+    password: string | null,
+  ) =>
+    request<ConfirmDeletionResult>(`/api/data-requests/${requestId}/confirm`, {
+      method: "POST",
+      body: JSON.stringify({
+        expected_revision: expectedRevision,
+        scope_revision: scopeRevision,
+        password,
+      }),
+    }),
+
+  // Local owner only: authorize and run their own request.
+  executeLocal: (requestId: string, expectedRevision: number) =>
+    request<DataRequest>(`/api/data-requests/${requestId}/execute`, {
+      method: "POST",
+      body: JSON.stringify({ expected_revision: expectedRevision }),
+    }),
+
+  artifactUrl: (requestId: string) => `/api/data-requests/${requestId}/artifact`,
+
+  // Post-closure status: the one-time credential, never the ID alone.
+  receipt: (requestId: string, credential: string) =>
+    request<DataRequest>("/api/data-requests/receipt", {
+      method: "POST",
+      body: JSON.stringify({ request_id: requestId, credential }),
+    }),
+};
+
+// CRD Issue 22: Owner-administrator support. Staff requests never end the
+// ordinary session view: a staff 401 means only the staff session ended.
+export type AdminAccountView =
+  components["schemas"]["AdminAccountViewResponse"];
+export type EntitlementHistory =
+  components["schemas"]["EntitlementHistoryResponse"];
+export type SupportOperation =
+  components["schemas"]["SupportOperationResponse"];
+export type AdjustmentPreview =
+  components["schemas"]["CreditAdjustmentPreviewResponse"];
+export type AnomalyReport = components["schemas"]["AnomalyReportResponse"];
+export type Anomaly = components["schemas"]["AnomalyDTO"];
+
+function staff<T>(path: string, init?: RequestInit): Promise<T> {
+  return request<T>(path, init, { staff: true });
+}
+
+function post(body: unknown): RequestInit {
+  return { method: "POST", body: JSON.stringify(body) };
+}
+
+export const staffApi = {
+  signIn: (contactAddress: string, password: string) =>
+    staff<components["schemas"]["StaffSessionResponse"]>(
+      "/api/admin/session",
+      post({ contact_address: contactAddress, password }),
+    ),
+
+  signOut: () =>
+    staff<components["schemas"]["StaffSessionResponse"]>(
+      "/api/admin/session",
+      { method: "DELETE" },
+    ),
+
+  account: (accountId: string) =>
+    staff<AdminAccountView>(`/api/admin/accounts/${accountId}`),
+
+  history: (accountId: string, afterSequence = 0, limit = 50) =>
+    staff<EntitlementHistory>(
+      `/api/admin/accounts/${accountId}/entitlement-history?after_sequence=${afterSequence}&limit=${limit}`,
+    ),
+
+  supportActions: (accountId: string) =>
+    staff<components["schemas"]["SupportHistoryResponse"]>(
+      `/api/admin/accounts/${accountId}/support-actions`,
+    ),
+
+  previewAdjustment: (
+    accountId: string,
+    hosted: string | null,
+    topUp: string | null,
+  ) =>
+    staff<AdjustmentPreview>(
+      `/api/admin/accounts/${accountId}/credit-adjustments/preview`,
+      post({ hosted_credit_delta: hosted, top_up_credit_delta: topUp }),
+    ),
+
+  // Never retried automatically: an uncertain outcome is read back with
+  // operationStatus under the same operation ID.
+  adjust: (
+    accountId: string,
+    operationId: string,
+    hosted: string | null,
+    topUp: string | null,
+    reason: string,
+    expectedLastEventId: string | null,
+  ) =>
+    staff<SupportOperation>(
+      `/api/admin/accounts/${accountId}/credit-adjustments`,
+      post({
+        operation_id: operationId,
+        hosted_credit_delta: hosted,
+        top_up_credit_delta: topUp,
+        reason,
+        expected_last_entitlement_event_id: expectedLastEventId,
+      }),
+    ),
+
+  operationStatus: (operationId: string) =>
+    staff<SupportOperation>(`/api/admin/support-operations/${operationId}`),
+
+  dataRequests: () =>
+    staff<components["schemas"]["DataRequestListResponse"]>(
+      "/api/admin/data-requests",
+    ).then((r) => r.requests),
+
+  approve: (requestId: string, expectedRevision: number, reason: string | null) =>
+    staff<DataRequest>(
+      `/api/admin/data-requests/${requestId}/approve`,
+      post({ expected_revision: expectedRevision, reason }),
+    ),
+
+  reject: (
+    requestId: string,
+    expectedRevision: number,
+    reasonCode: components["schemas"]["RejectDataRequest"]["reason_code"],
+    reason: string,
+  ) =>
+    staff<DataRequest>(
+      `/api/admin/data-requests/${requestId}/reject`,
+      post({
+        expected_revision: expectedRevision,
+        reason_code: reasonCode,
+        reason,
+      }),
+    ),
+
+  execute: (requestId: string, expectedRevision: number) =>
+    staff<DataRequest>(
+      `/api/admin/data-requests/${requestId}/execute`,
+      post({ expected_revision: expectedRevision }),
+    ),
+
+  finalize: (requestId: string) =>
+    staff<DataRequest>(`/api/admin/data-requests/${requestId}/finalize`, {
+      method: "POST",
+    }),
+
+  anomalies: () => staff<AnomalyReport>("/api/admin/anomalies"),
+
+  noteAnomaly: (
+    anomalyId: string,
+    state: components["schemas"]["AnomalyNoteRequest"]["state"],
+    noteCode: components["schemas"]["AnomalyNoteRequest"]["note_code"],
+    noteText: string | null,
+  ) =>
+    staff<Anomaly>(
+      `/api/admin/anomalies/${encodeURIComponent(anomalyId)}/notes`,
+      post({ state, note_code: noteCode, note_text: noteText }),
+    ),
+
+  retentionSweep: () =>
+    staff<components["schemas"]["RetentionSweepResponse"]>(
+      "/api/admin/maintenance/retention-sweep",
+      { method: "POST" },
+    ),
 };
