@@ -16,7 +16,7 @@ from afterworlds.api.app import create_app
 from afterworlds.operations import maintenance
 from afterworlds.remote import storage_cli
 from afterworlds.remote.storage import StoreRefused
-from tests.api._remote import RemoteHarness, make_remote, remote_settings
+from tests.api._remote import PASSWORD, RemoteHarness, make_remote, remote_settings
 from tests.operations._data import (
     chunk_count,
     files_with,
@@ -85,8 +85,8 @@ def test_backup_pending_compaction_restore_enforcement_and_final_receipt(
         "/api/auth/sign-in",
         json={
             "contact_address": "a@example.test",
-            "password": "correct horse battery staple",
-        },  # pragma: allowlist secret
+            "password": PASSWORD,
+        },
     )
     staff = h.staff()
     req = a.post(
@@ -151,21 +151,27 @@ def test_backup_pending_compaction_restore_enforcement_and_final_receipt(
             "/api/auth/sign-in",
             json={
                 "contact_address": "a@example.test",
-                "password": "correct horse battery staple",
-            },  # pragma: allowlist secret
+                "password": PASSWORD,
+            },
         )
         b = h.client()
         b.post(
             "/api/auth/sign-in",
             json={
                 "contact_address": "b@example.test",
-                "password": "correct horse battery staple",
-            },  # pragma: allowlist secret
+                "password": PASSWORD,
+            },
         )
         assert a.get(f"/api/stories/{s1}").status_code == 404
         assert a.get(f"/api/stories/{s2}").status_code == 200
         assert b.get(f"/api/stories/{sb}/turns").json()["turns"]
         assert chunk_count(s1) == 0 and chunk_count(s2) > 0
+        # The rebuilt vector store serves the production paths: a turn on a
+        # surviving Story retrieves (strict embedding-model guard) and ingests.
+        kept = chunk_count(s2)
+        turn = a.post(f"/api/stories/{s2}/turns", json={"user_input": "Onward."})
+        assert turn.status_code == 200 and turn.json()["disposition"] == "delivered"
+        assert chunk_count(s2) > kept
         staff = h.staff(enroll=False)
         # Still backup-pending: b1 exists (b2 was proven clean at capture).
         view = staff.post(f"/api/admin/data-requests/{rid}/finalize").json()
@@ -185,8 +191,8 @@ def test_backup_pending_compaction_restore_enforcement_and_final_receipt(
             "/api/auth/sign-in",
             json={
                 "contact_address": "a@example.test",
-                "password": "correct horse battery staple",
-            },  # pragma: allowlist secret
+                "password": PASSWORD,
+            },
         )
         final = a.get(f"/api/data-requests/{rid}").json()
         assert final["state"] == "completed"

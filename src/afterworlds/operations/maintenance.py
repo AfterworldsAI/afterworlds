@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import gc
 import json
+import subprocess
 import sys
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -31,10 +32,14 @@ from pathlib import Path
 
 from chromadb.api import ClientAPI
 from chromadb.api.shared_system_client import SharedSystemClient
+from chromadb.errors import ChromaError
 from sqlalchemy.orm import Session, sessionmaker
 
 from afterworlds.api.config import load_settings
-from afterworlds.operations.compaction import compact_stores
+from afterworlds.operations.compaction import (
+    compact_stores,
+    compaction_unfinished,
+)
 from afterworlds.operations.deletion import DeletionContext, evaluate
 from afterworlds.operations.enforcement import enforce_restore, record_compaction
 from afterworlds.operations.requests import RequestState, RequestStore
@@ -95,6 +100,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     now = utc_now()
+    vector = Path(RetrievalMemoryConfig.from_env().persist_directory)
+    if args.command != "compact" and compaction_unfinished(vector):
+        print(
+            f"{args.command} refused: a store compaction did not finish; run "
+            "`compact` again first",
+            file=sys.stderr,
+        )
+        return 1
     try:
         with _stores() as (content, control, db_path, vector_dir, env):
             ops = control if control is not None else content
@@ -157,6 +170,13 @@ def main(argv: list[str] | None = None) -> int:
                 print(json.dumps(reviews_due(ops, control, now=now)))
     except (StoreRefused, ControlStoreUnavailable, KeyError) as exc:
         print(f"{args.command} refused: {exc}", file=sys.stderr)
+        return 1
+    except (ChromaError, subprocess.CalledProcessError, OSError) as exc:
+        # Nothing is reported done; an interrupted compaction resumes on retry.
+        print(
+            f"{args.command} failed ({type(exc).__name__}); retry the command",
+            file=sys.stderr,
+        )
         return 1
     return 0
 

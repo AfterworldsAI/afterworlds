@@ -82,7 +82,8 @@ existing ID. No route sets `completed`: only an executor's verified result does.
 explicit scope confirmation (`confirmed_at`, against the displayed `scope_revision`, plus password
 re-authentication for a remote account). `export_deadline_at`, `live_deadline_at`, `backup_deadline_at` are
 fixed at those triggers; approval waits, retries, restarts and attempts never move them. `overdue` lists
-missed deadlines.
+missed deadlines; a completed request keeps `missed_deadlines` (and its receipt `deadlines.*_met`), so a late
+completion is never relabelled on time.
 
 **Export:** one read transaction; only player-visible projections (transcript, visible state, setup view);
 ZIP of JSON + Markdown with a versioned `manifest.json` (scope, subject, policy version, snapshot boundary
@@ -167,6 +168,7 @@ and receipt (`operations/deletion.py`).
 | Export artifacts | removed at deletion, 7-day expiry or 24-hour staging cleanup; never captured in backups |
 | Backups (#205 inventory) | 21-day life from original capture (copies/restores keep it); deletion final only when every affected backup is disposed (`backup_disposition`) ≤ 30 days from confirmation |
 | Captures | refused while any deletion's physical compaction is pending (`storage_cli capture`) |
+| Compaction staging (`.<vector>.compact-new/`) and export (`.<vector>.compact-export.json`) | plain copies of every remaining record, owner-only, beside the live vector store; removed when the swap completes. While either exists the app, `storage_cli` and every maintenance command except `compact` refuse to run; rerun `compact` to finish |
 | Control store | not restored with content; host-controlled backup is a #205 launch gate |
 | Local device files, keyring, user-downloaded exports, provider-held copies | not touched remotely; local physical remnants are `owner_controlled` (local `compact` available) |
 
@@ -188,14 +190,18 @@ session-bound) and the scope; **Approve**, then **Execute**. Read the result: `c
 `detail_code` say why; fix and **Retry** — a new attempt within the same deadlines); `in_progress` with
 `progress_code` (pending phases). A Story/account in deletion is fenced (`409` for new changes) at once.
 **Reject** only out-of-scope or unverifiable requests, with a code and reason. The administrator's own
-account cannot be erased while bound.
+account cannot be erased while bound. Before executing an account deletion, check the requester's
+export requests: executing it removes every service-managed export artifact of the account, so let an
+available export be downloaded first (the requester was told to export before closure).
 
 **Artifact delivery/expiry.** The owner downloads while `available`; run retention expiry daily
 (console **Run retention expiry** or `python -m afterworlds.operations.maintenance expire`).
 
 **Physical compaction (within the 7-day live deadline).** Stop the app; `python -m
 afterworlds.operations.maintenance compact`; restart; `finalize` (or **Re-check completion**). Run it
-before any `storage_cli capture` (capture refuses otherwise).
+before any `storage_cli capture` (capture refuses otherwise). If it fails (a typed `failed (...); retry`
+line, exit 1) or is interrupted, run it again: it resumes a completed rebuild or discards an incomplete
+one, and nothing serves the stores until it finishes.
 
 **Backup pending / final completion.** A deletion stays `in_progress` (`backups_pending`) until every
 affected backup is disposed: `storage_cli due` / `dispose` (#205), then `maintenance finalize`. Past 30

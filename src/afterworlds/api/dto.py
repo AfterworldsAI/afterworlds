@@ -1080,6 +1080,8 @@ class DataRequestDTO(BaseModel):
     live_deadline_at: datetime | None
     backup_deadline_at: datetime | None
     overdue: list[str]
+    #: Deadlines a completed request missed: a late completion stays visible.
+    missed_deadlines: list[str] = Field(default_factory=list)
     progress_code: str | None
     policy_version: str
     transitions: list[DataRequestTransitionDTO]

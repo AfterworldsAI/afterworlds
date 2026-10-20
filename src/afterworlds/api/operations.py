@@ -174,6 +174,7 @@ def request_dto(view: RequestView, *, administrator: bool) -> DataRequestDTO:
         live_deadline_at=view.live_deadline_at,
         backup_deadline_at=view.backup_deadline_at,
         overdue=list(view.overdue),
+        missed_deadlines=list(view.missed_deadlines),
         progress_code=view.progress_code,
         policy_version=view.policy_version,
         transitions=[

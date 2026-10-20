@@ -291,6 +291,12 @@ export default function DataRequestsPanel({ local }: { local: boolean }) {
               {r.progress_code && (
                 <> ({r.progress_code.replaceAll("_", " ")})</>
               )}
+              {(r.missed_deadlines ?? []).length > 0 && (
+                <span role="alert">
+                  {" "}
+                  Completed late: {(r.missed_deadlines ?? []).join(", ")}
+                </span>
+              )}
               {r.overdue.length > 0 && (
                 <span role="alert"> Overdue: {r.overdue.join(", ")}</span>
               )}

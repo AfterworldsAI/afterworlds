@@ -30,6 +30,7 @@ from pathlib import Path
 from chromadb.api.shared_system_client import SharedSystemClient
 
 from afterworlds.api.config import load_settings
+from afterworlds.operations.compaction import compaction_unfinished
 from afterworlds.operations.enforcement import physical_disposal_pending
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.pipeline.retrieval.client import build_chroma_client
@@ -133,6 +134,13 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     config = RetrievalMemoryConfig.from_env()
     vector_dir = Path(config.persist_directory)
+    if compaction_unfinished(vector_dir):
+        print(
+            f"{args.command} refused: a store compaction did not finish; run "
+            "`python -m afterworlds.operations.maintenance compact` again",
+            file=sys.stderr,
+        )
+        return 1
     confidential = [settings.notice_outbox_dir] if settings.notice_outbox_dir else []
     db_path = sqlite_path(settings.database_url)
     with maintenance_locks(

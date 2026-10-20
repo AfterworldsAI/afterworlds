@@ -51,6 +51,7 @@ from afterworlds.api.routes.turns import router as turns_router
 from afterworlds.api.routes.visible_state import router as visible_state_router
 from afterworlds.api.rpg_actions import RpgActions
 from afterworlds.operations.anomalies import AnomalyService
+from afterworlds.operations.compaction import compaction_unfinished
 from afterworlds.operations.service import DataRequestService
 from afterworlds.operations.support import SupportService
 from afterworlds.operations.vectors import story_chunk_deleter
@@ -222,6 +223,11 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
                 "enforcement and verification; it cannot be served yet"
             )
         check_vector_store(vector_dir, control_factory)
+        if compaction_unfinished(vector_dir):
+            raise StoreRefused(
+                "a store compaction did not finish; run `python -m "
+                "afterworlds.operations.maintenance compact` again first"
+            )
         upgrade_to_head(settings.database_url)
         engine = app.state.engine = create_engine(settings.database_url)
         if initializing is not None:
@@ -236,6 +242,12 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
         # skipped Alembic-only DDL (append-only audit triggers) and, on a
         # fresh DB, any table whose ORM module app.py did not happen to
         # import. See db_bootstrap.py's docstring for the full defect writeup.
+        local_vectors = Path(RetrievalMemoryConfig.from_env().persist_directory)
+        if compaction_unfinished(local_vectors):
+            raise StoreRefused(
+                "a store compaction did not finish; run `python -m "
+                "afterworlds.operations.maintenance compact` again first"
+            )
         upgrade_to_head(settings.database_url)
         engine = app.state.engine = create_engine(settings.database_url)
     session_factory = create_session_factory(engine)

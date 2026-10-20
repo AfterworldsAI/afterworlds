@@ -148,6 +148,15 @@ def import_vectors(export: Path, target: Path) -> dict[str, int]:
     return counts
 
 
+def compaction_unfinished(vector_dir: Path) -> bool:
+    """A compaction started and did not finish: its staging store or export
+    (plain copies of every remaining record) still exist beside the live
+    vector store, which may be partly replaced. Nothing may serve or maintain
+    the stores until ``compact`` is run again."""
+    staging, export = _staging(vector_dir)
+    return staging.exists() or export.exists()
+
+
 def _clear(directory: Path, keep: set[str]) -> None:
     for entry in directory.iterdir():
         if entry.name in keep:

@@ -41,14 +41,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Session, sessionmaker
 
-from afterworlds.entitlement.enums import EntitlementEventType
 from afterworlds.entitlement.inspection import read_projection
-from afterworlds.entitlement.orm import EntitlementEvent
+from afterworlds.entitlement.retention import record_rights_evidence_from_ledger
 from afterworlds.operations.disposal import (
     dispose_story_content,
     referenced_turn_ids,
@@ -60,9 +59,8 @@ from afterworlds.operations.orm import (
     ExportArtifactORM,
     PhaseEventORM,
     RequestInventoryORM,
-    RightsEvidenceORM,
 )
-from afterworlds.operations.policy import ANNUAL_REVIEW, POLICY_VERSION
+from afterworlds.operations.policy import POLICY_VERSION
 from afterworlds.operations.requests import RequestState, RequestStore, RequestView
 from afterworlds.persistence.orm.node import NodeORM, TurnORM
 from afterworlds.persistence.orm.ownership import AccountResourceORM
@@ -417,44 +415,11 @@ def purge_sql(
 def record_rights_evidence(
     ctx: DeletionContext, subject_ref: str
 ) -> tuple[str, dict[str, int]]:
-    """Minimum perpetual BYOK-rights evidence from the licence event, before
-    closure (entitlement owner's ledger is the source)."""
-    with ctx.content() as s:
-        event = s.scalars(
-            sa.select(EntitlementEvent)
-            .where(
-                EntitlementEvent.sojourner_id == UUID(subject_ref),
-                EntitlementEvent.event_type
-                == EntitlementEventType.BYOK_LICENSE_ACTIVATED.value,
-            )
-            .order_by(EntitlementEvent.global_sequence)
-        ).first()
-        if event is None:
-            return "not_applicable", {}
-        payload = json.loads(event.payload_json)
-    now = ctx.now()
-    with ctx.ops.begin() as s:
-        exists = s.scalar(
-            sa.select(RightsEvidenceORM.rights_id).where(
-                RightsEvidenceORM.source_event_id == str(event.event_id)
-            )
-        )
-        if exists is None:
-            s.add(
-                RightsEvidenceORM(
-                    rights_id=str(uuid4()),
-                    subject_ref=subject_ref,
-                    right_kind="byok_perpetual_license",
-                    status="active",
-                    purchased_at=str(payload.get("purchased_at")),
-                    external_source=payload.get("external_source"),
-                    external_reference_id=payload.get("external_reference_id"),
-                    source_event_id=str(event.event_id),
-                    recorded_at=iso(now),
-                    annual_review_at=iso(now + ANNUAL_REVIEW),
-                )
-            )
-    return "succeeded", {"rights": 1}
+    """Minimum perpetual BYOK-rights evidence before closure (entitlement
+    owner's ledger is the source)."""
+    return record_rights_evidence_from_ledger(
+        ctx.content, ctx.ops, subject_ref, now=ctx.now()
+    )
 
 
 def commercial_dependency(ctx: DeletionContext, subject_ref: str) -> str:
@@ -797,11 +762,36 @@ def deletion_receipt(ctx: DeletionContext, view: RequestView) -> dict[str, Any]:
             for code, p in phases.items()
         },
         "retained_categories": list(retained_for(view.scope, view.environment)),
+        "deadlines": {
+            "live_deletion_deadline_at": (
+                iso(view.live_deadline_at) if view.live_deadline_at else None
+            ),
+            "final_deletion_deadline_at": (
+                iso(view.backup_deadline_at) if view.backup_deadline_at else None
+            ),
+            "live_deletion_met": _met(view, view.live_deadline_at),
+            "final_deletion_met": (
+                view.backup_deadline_at is None or ctx.now() <= view.backup_deadline_at
+            ),
+        },
         "backup_disposition": (
             phases["backups"].outcome_code if "backups" in phases else None
         ),
         "notices": list(NOTICES),
     }
+
+
+def _met(view: RequestView, deadline: datetime | None) -> bool:
+    """Every live phase (logical and physical) finished by *deadline*."""
+    if deadline is None:
+        return True
+    done = [
+        p.observed_at
+        for p in view.phases
+        if p.phase_code in ("vector_logical", "sql_content", "physical_compaction")
+        and p.outcome_code in ("succeeded", "owner_controlled")
+    ]
+    return bool(done) and max(done) <= deadline
 
 
 def deletion_preview(

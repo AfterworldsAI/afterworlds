@@ -455,3 +455,62 @@ def test_deadlines_are_fixed_at_their_triggers_and_overdue_is_visible(
     assert store.view(export).overdue == ("export_production",)
     clock["now"] = T0 + timedelta(hours=5, days=7, seconds=1)
     assert "live_deletion" in store.view(deletion).overdue
+
+
+def test_self_service_closed_licence_survives_ledger_expiry(
+    stores: tuple[sessionmaker[Session], sessionmaker[Session]],
+) -> None:
+    from afterworlds.entitlement.payloads import ByokLicenseActivatedPayload
+
+    content, control = stores
+    subject = uuid.uuid4()
+    with content() as s:
+        EntitlementService(s).receive_entitlement_event(
+            subject,
+            EntitlementEventType.BYOK_LICENSE_ACTIVATED,
+            ByokLicenseActivatedPayload(
+                purchased_at=T0, external_source="store", external_reference_id="lic-9"
+            ),
+        )
+    with control.begin() as s:
+        # Closed through #205 self-service: never passed through erasure.
+        s.add(
+            HostedAccountORM(
+                account_id=str(subject),
+                identity_subject_ref=str(uuid.uuid4()),
+                status="closed",
+                created_at=iso(T0),
+                updated_at=iso(T0),
+                closed_at=iso(T0),
+                policy_version="v",
+            )
+        )
+    sweep(
+        ops=control, content=content, control=control, now=add_calendar_months(T0, 24)
+    )
+    with control() as s:
+        rights = s.scalars(sa.select(RightsEvidenceORM)).one()
+    assert rights.subject_ref == str(subject)
+    assert rights.external_reference_id == "lic-9"
+    with content() as s:
+        assert replay_check(s, subject).status.value == "absent"
+
+
+def test_a_late_completion_keeps_its_missed_deadline(
+    stores: tuple[sessionmaker[Session], sessionmaker[Session]],
+) -> None:
+    _content, control = stores
+    clock = {"now": T0}
+    store = RequestStore(control, now=lambda: clock["now"])
+    actor = RequestActor("requester", "p", "remote", str(uuid.uuid4()))
+    rid = store.create(
+        actor, kind=RequestKind.EXPORT, scope=RequestScope.ACCOUNT, story_refs=[]
+    )
+    admin = RequestActor("administrator", "owner", "remote")
+    store.approve(admin, rid, expected_revision=1, reason=None)
+    attempt = store.begin_attempt(admin, rid, expected_revision=2)
+    clock["now"] = T0 + timedelta(days=8)
+    store.end_attempt(rid, attempt, RequestState.COMPLETED)
+    view = store.view(rid)
+    assert view.state == "completed" and view.overdue == ()
+    assert view.missed_deadlines == ("export_production",)

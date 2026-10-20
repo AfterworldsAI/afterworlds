@@ -176,6 +176,8 @@ class RequestView:
     artifact: ArtifactView | None
     #: active_data_removed_backup_pending etc. -- phase-level summary.
     progress_code: str | None = None
+    #: Deadlines a closed request missed (a late completion stays visible).
+    missed_deadlines: tuple[str, ...] = ()
     extra: dict[str, Any] = field(default_factory=dict)
 
 
@@ -602,6 +604,24 @@ class RequestStore:
                 overdue.append("live_deletion")
             if backup_deadline and is_overdue(backup_deadline, now):
                 overdue.append("final_deletion")
+        closed_at = parse_iso(last.closed_at) if last.closed_at else None
+        missed: list[str] = []
+        if state is RequestState.COMPLETED and closed_at is not None:
+            if export_deadline and closed_at > export_deadline:
+                missed.append("export_production")
+            live_done = max(
+                (
+                    p.observed_at
+                    for p in phases
+                    if p.phase_code in (*LIVE_PHASES, "physical_compaction")
+                    and p.outcome_code in ("succeeded", "owner_controlled")
+                ),
+                default=None,
+            )
+            if live_deadline and live_done and live_done > live_deadline:
+                missed.append("live_deletion")
+            if backup_deadline and closed_at > backup_deadline:
+                missed.append("final_deletion")
         return RequestView(
             request_id=header.request_id,
             kind=header.kind,
@@ -660,6 +680,7 @@ class RequestStore:
                 else None
             ),
             progress_code=_progress(header.kind, state, phases),
+            missed_deadlines=tuple(missed),
         )
 
     # -- internals ---------------------------------------------------------

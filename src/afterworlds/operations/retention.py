@@ -32,7 +32,10 @@ from uuid import UUID
 import sqlalchemy as sa
 from sqlalchemy.orm import Session, sessionmaker
 
-from afterworlds.entitlement.retention import expire_subject_history
+from afterworlds.entitlement.retention import (
+    expire_subject_history,
+    record_rights_evidence_from_ledger,
+)
 from afterworlds.operations.export import remove_artifact
 from afterworlds.operations.lifecycle import dispose_rows
 from afterworlds.operations.orm import (
@@ -274,6 +277,9 @@ def expire_closed_ledgers(
     for account_id, closed_at in accounts:
         if account_id in done or not _months(closed_at, now):
             continue
+        # The perpetual right outlives the ledger: evidence first (accounts
+        # closed by #205 self-service never passed through erasure).
+        record_rights_evidence_from_ledger(content, control, account_id, now=now)
         with content.begin() as s:
             removed = expire_subject_history(s, UUID(account_id))
         with control.begin() as s:

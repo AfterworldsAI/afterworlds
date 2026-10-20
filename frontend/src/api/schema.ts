@@ -1798,6 +1798,8 @@ export interface components {
             backup_deadline_at: string | null;
             /** Overdue */
             overdue: string[];
+            /** Missed Deadlines */
+            missed_deadlines?: string[];
             /** Progress Code */
             progress_code: string | null;
             /** Policy Version */

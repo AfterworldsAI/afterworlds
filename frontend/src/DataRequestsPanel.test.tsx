@@ -107,6 +107,7 @@ describe("DataRequestsPanel", () => {
             requests: [
               request({
                 state: "completed",
+                missed_deadlines: ["export_production"],
                 artifact: {
                   status: "available",
                   available_at: "2026-10-19T00:00:00Z",
@@ -143,7 +144,7 @@ describe("DataRequestsPanel", () => {
     });
     render(<DataRequestsPanel local={false} />);
     expect(await screen.findByText(/Export of “The Gate”/)).toBeInTheDocument();
-    expect(screen.getByText(/Completed/)).toBeInTheDocument();
+    expect(screen.getByText(/: Completed/)).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /Download export/ }),
     ).toHaveAttribute(
@@ -155,6 +156,9 @@ describe("DataRequestsPanel", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/Overdue: final_deletion/)).toBeInTheDocument();
     expect(screen.getByText(/backups: pending/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Completed late: export_production/),
+    ).toBeInTheDocument();
   });
 
   it("previews, confirms account deletion with the password and shows the receipt code once", async () => {
