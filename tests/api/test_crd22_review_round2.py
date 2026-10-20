@@ -445,7 +445,7 @@ class TestSettlementSource:
                 raise OperationalError("INSERT", {}, Exception("disk full"))
 
         anomalies.record_settlement_failure(
-            None if store == "none" else Failing(),  # type: ignore[arg-type]
+            None if store == "none" else anomalies.SettlementSink(Failing()),  # type: ignore[arg-type]
             subject_ref="s",
             turn_id="t",
             error_class="EntitlementSettlementError",
@@ -623,3 +623,192 @@ class TestNoticeErasure:
         assert not any(
             b"gone@" in p.read_bytes() for p in remote.outbox.iterdir() if p.is_file()
         )
+
+
+class TestIdenticalRetryOutcome:
+    """Review of 03506df9, P1-1: an identical retry while the original is
+    paused at the pre-effect point, beside an unrelated authorized event,
+    never records an outcome that disagrees with the one effect."""
+
+    def test_retry_beside_an_effect_in_flight_agrees_with_it(
+        self, remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from afterworlds.entitlement.enums import EntitlementEventType
+        from afterworlds.entitlement.orm import EntitlementEvent
+        from afterworlds.entitlement.payloads import SubscriptionCreditGrantPayload
+        from afterworlds.entitlement.service import EntitlementService
+
+        a = remote.enroll("a@example.test")
+        a_id = remote.account_id(a)
+        remote.seed_hosted(a_id)
+        staff = remote.staff()
+        op = str(uuid.uuid4())
+        expected = staff.get(f"/api/admin/accounts/{a_id}").json()[
+            "last_entitlement_event_id"
+        ]
+        body = {
+            "operation_id": op,
+            "hosted_credit_delta": "5",
+            "reason": "goodwill",
+            "expected_last_entitlement_event_id": expected,
+        }
+        paused, go = threading.Event(), threading.Event()
+        real = EntitlementService.receive_entitlement_event
+
+        def at_pre_effect(
+            self: Any, subject: Any, kind: Any, *a_: Any, **kw: Any
+        ) -> Any:
+            if (
+                kind is EntitlementEventType.MANUAL_CREDIT_ADJUSTMENT
+                and not paused.is_set()
+            ):
+                paused.set()
+                go.wait(10)
+            return real(self, subject, kind, *a_, **kw)
+
+        monkeypatch.setattr(
+            EntitlementService, "receive_entitlement_event", at_pre_effect
+        )
+
+        def unrelated() -> None:  # another authorized owner event (CRD Issue 13)
+            with remote.app.state.session_factory() as s:
+                real(
+                    EntitlementService(s),
+                    uuid.UUID(a_id),
+                    EntitlementEventType.SUBSCRIPTION_CREDIT_GRANT,
+                    SubscriptionCreditGrantPayload(hosted_credit_delta=Decimal("1")),
+                )
+
+        url = f"/api/admin/accounts/{a_id}/credit-adjustments"
+        out: dict[str, Any] = {}
+        original = threading.Thread(
+            target=lambda: out.__setitem__("a", staff.post(url, json=body))
+        )
+        original.start()
+        assert paused.wait(10)
+        other = threading.Thread(target=unrelated)
+        other.start()
+        time.sleep(0.3)
+        retry = threading.Thread(
+            target=lambda: out.__setitem__("r", staff.post(url, json=body))
+        )
+        retry.start()
+        time.sleep(0.3)
+        go.set()
+        for t in (original, other, retry):
+            t.join(30)
+        monkeypatch.undo()
+
+        assert out["a"].status_code == 200, out["a"].text
+        assert out["r"].status_code == 200, out["r"].text
+        first, again = out["a"].json(), out["r"].json()
+        assert first["outcome_code"] == again["outcome_code"] == "committed"
+        with remote.app.state.session_factory() as s:
+            effects = list(
+                s.scalars(
+                    sa.select(EntitlementEvent.event_id).where(
+                        EntitlementEvent.idempotency_key
+                        == f"crd22-support-adjustment:{op}"
+                    )
+                )
+            )
+        assert [str(e) for e in effects] == [first["source_entitlement_event_id"]]
+        assert (
+            again["source_entitlement_event_id"] == first["source_entitlement_event_id"]
+        )
+        # After a restart the recorded outcome is the same.
+        fresh = SupportService(
+            remote.app.state.control_factory,
+            remote.app.state.session_factory,
+            remote.app.state.identity,
+        )
+        status = fresh.status(uuid.UUID(op))
+        assert status.outcome_code == "committed"
+        assert (
+            status.source_entitlement_event_id == first["source_entitlement_event_id"]
+        )
+
+
+class TestSettlementCoverageAcrossRestart:
+    """Review of 03506df9, P1-2: a delivered turn whose settlement failed and
+    whose anomaly could not be recorded leaves durable, content-free
+    evidence; after a restart the source is still degraded -- not
+    "available" just because the table is readable -- until staff close it."""
+
+    def test_unrecorded_failure_stays_degraded_after_restart(
+        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from sqlalchemy.exc import OperationalError
+
+        from afterworlds.api.routes import turns as turns_route
+        from afterworlds.entitlement.errors import EntitlementSettlementError
+        from afterworlds.entitlement.service import EntitlementService
+        from afterworlds.operations import anomalies
+        from tests.api._remote import make_remote
+
+        monkeypatch.setenv(
+            "AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY", str(tmp_path / "chroma")
+        )
+        monkeypatch.setenv("AFTERWORLDS_FAKE_PROVIDER", "1")
+        monkeypatch.setattr(anomalies, "_UNRECORDED", threading.Event())
+        first = make_remote(tmp_path)
+        try:
+            a = first.enroll("a@example.test")
+            first.seed_hosted(first.account_id(a))
+            sid = play_branching(a, "Tale", "Warm up.")
+
+            def fail(*_: Any, **__: Any) -> Any:
+                raise EntitlementSettlementError("metrics missing")
+
+            class Refusing:
+                def begin(self) -> Any:
+                    raise OperationalError("INSERT", {}, Exception("disk full"))
+
+            monkeypatch.setattr(EntitlementService, "settle_hosted_turn_cost", fail)
+            monkeypatch.setattr(
+                turns_route,
+                "_settlement_sink",
+                lambda request: anomalies.SettlementSink(
+                    Refusing(),  # type: ignore[arg-type]
+                    request.app.state.session_factory,
+                ),
+            )
+            turn = a.post(f"/api/stories/{sid}/turns", json={"user_input": "Go on."})
+            assert turn.status_code == 200, turn.text  # delivered, not blocked
+            assert turn.json()["settlement_warning"]
+        finally:
+            first.close()
+        monkeypatch.undo()
+
+        # Restart: a fresh process (no in-memory flag), stores readable.
+        monkeypatch.setenv(
+            "AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY", str(tmp_path / "chroma")
+        )
+        monkeypatch.setenv("AFTERWORLDS_FAKE_PROVIDER", "1")
+        monkeypatch.setattr(anomalies, "_UNRECORDED", threading.Event())
+        second = make_remote(tmp_path)
+        try:
+            staff = second.staff()
+            report = staff.get("/api/admin/anomalies").json()
+            assert report["sources"]["settlement_failures"] == "degraded"
+            (gap,) = [
+                x
+                for x in report["anomalies"]
+                if x["source_kind"] == "settlement_coverage"
+            ]
+            assert gap["subject_ref"] is None  # content-free: no subject, no Turn
+            assert "a@example.test" not in str(gap)
+            # Investigating keeps it degraded; only a staff close restores it.
+            for state, degraded in (("investigating", True), ("closed", False)):
+                noted = staff.post(
+                    f"/api/admin/anomalies/{gap['anomaly_id']}/notes",
+                    json={"state": state, "note_code": "resolved"},
+                )
+                assert noted.status_code == 200, noted.text
+                report = staff.get("/api/admin/anomalies").json()
+                assert (
+                    report["sources"]["settlement_failures"] == "degraded"
+                ) is degraded
+            assert report["sources"]["settlement_failures"] == "available"
+        finally:
+            second.close()

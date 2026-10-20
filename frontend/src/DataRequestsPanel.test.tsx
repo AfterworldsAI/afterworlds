@@ -350,6 +350,10 @@ describe("ReceiptLookup", () => {
       ],
     });
     render(<ReceiptLookup />);
+    expect(screen.queryByLabelText("Receipt code")).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Check a data request…" }),
+    );
     const check = screen.getByRole("button", { name: "Check request" });
     expect(check).toBeDisabled();
     fireEvent.change(screen.getByLabelText("Request ID"), {

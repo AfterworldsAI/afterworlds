@@ -381,17 +381,6 @@ class SupportService:
             return self.status(request.operation_id)
         requested = first
         key = IDEMPOTENCY_PREFIX + str(request.operation_id)
-        with self._content() as s:
-            found = find_by_idempotency_key(s, key)
-            projection = read_projection(s, request.account_id)
-        if found is not None:
-            # Response or outcome record was lost after the effect committed:
-            # accepted only if the owner's event is exactly this action.
-            outcome = OUTCOME_COMMITTED if _matches(found, requested) else "conflict"
-            return self._finish(requested, outcome, str(found.event_id))
-        current = projection.last_entitlement_event_id if projection else None
-        if current != request.expected_last_event_id:
-            return self._finish(requested, "rejected_stale", None)
         payload = ManualCreditAdjustmentPayload(
             hosted_credit_delta=hd,
             top_up_credit_delta=td,
@@ -400,20 +389,52 @@ class SupportService:
         )
         try:
             with self._content() as s:
-                event = EntitlementService(s).receive_entitlement_event(
-                    request.account_id,
-                    EntitlementEventType.MANUAL_CREDIT_ADJUSTMENT,
-                    payload,
-                    idempotency_key=key,
-                )
-                event_id = str(event.event_id)
-        except EntitlementSettlementError:
-            return self._finish(requested, "rejected_precondition", None)
-        except EntitlementIdempotencyConflictError:
-            return self._finish(requested, "conflict", None)
-        except EntitlementConcurrencyError:
-            # Rolled back inside the owner: no effect; a new operation may run.
-            return self._finish(requested, "failed", None)
+                # One execution decision per operation (review of 03506df9,
+                # P1-1): the effect and every no-effect outcome are decided
+                # under the content store's write lock, and a no-effect outcome
+                # is recorded before the lock is released. So once an
+                # operation is rejected no execution of it can commit later,
+                # and an identical retry sees either the owner's event or the
+                # recorded outcome -- never a stale guess beside an effect in
+                # flight. The entitlement owner keeps its own transaction and
+                # idempotency; the ops store is the separate control store
+                # (support is remote-only), so no lock is nested on one file.
+                s.connection().exec_driver_sql("BEGIN IMMEDIATE")
+                found = find_by_idempotency_key(s, key)
+                if found is None:
+                    if self._terminal(request.operation_id):
+                        s.rollback()
+                        return self.status(request.operation_id)
+                    projection = read_projection(s, request.account_id)
+                    current = (
+                        projection.last_entitlement_event_id if projection else None
+                    )
+                    if current != request.expected_last_event_id:
+                        return self._decide(s, requested, "rejected_stale")
+                    try:
+                        found = EntitlementService(s).receive_entitlement_event(
+                            request.account_id,
+                            EntitlementEventType.MANUAL_CREDIT_ADJUSTMENT,
+                            payload,
+                            idempotency_key=key,
+                        )
+                    except EntitlementSettlementError:
+                        return self._decide(s, requested, "rejected_precondition")
+                    except EntitlementIdempotencyConflictError:
+                        return self._decide(s, requested, "conflict")
+                    except EntitlementConcurrencyError:
+                        # Rolled back inside the owner: no effect.
+                        return self._decide(s, requested, "failed")
+                    event_id = str(found.event_id)
+                else:
+                    s.rollback()
+                    # Response or outcome record was lost after the effect
+                    # committed: accepted only if the owner's event is exactly
+                    # this action.
+                    outcome = (
+                        OUTCOME_COMMITTED if _matches(found, requested) else "conflict"
+                    )
+                    return self._finish(requested, outcome, str(found.event_id))
         except SQLAlchemyError:
             raise OperationError(
                 OperationErrorKind.OUTCOME_UNKNOWN,
@@ -439,6 +460,19 @@ class SupportService:
                 .order_by(SupportActionEventORM.event_order)
             )
             return tuple(_event(r) for r in rows)
+
+    def _terminal(self, operation_id: UUID) -> bool:
+        return any(e.outcome_code in _TERMINAL for e in self._events(operation_id))
+
+    def _decide(
+        self, s: Session, requested: SupportEvent, outcome: str
+    ) -> OperationStatus:
+        """Record a no-effect outcome while *s* still holds the content write
+        lock, then release it."""
+        try:
+            return self._finish(requested, outcome, None)
+        finally:
+            s.rollback()
 
     def _reconcile(self, requested: SupportEvent) -> None:
         key = IDEMPOTENCY_PREFIX + requested.operation_id

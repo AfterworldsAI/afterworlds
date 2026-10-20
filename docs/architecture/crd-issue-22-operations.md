@@ -64,7 +64,10 @@ console offers no control that claims to perform them.
   different target, deltas, reason or actor is a conflict, and recovery from the idempotency key accepts
   the entitlement event only if its subject and typed payload match the claim. The console submits
   exactly the previewed request, ignores stale previews, locks the form while an action is pending or
-  uncertain, and starts a new operation ID only after a terminal result. Order: staff revalidated → `requested` event committed (audit failure ⇒ no effect) → stale check →
+  uncertain, and starts a new operation ID only after a terminal result. Each execution decides under the
+  content store's write lock: idempotency key, then any recorded outcome, then the stale check, then
+  either the effect or a recorded no-effect outcome before the lock is released, so an identical retry
+  beside an effect in flight always agrees with the one event. Order: staff revalidated → `requested` event committed (audit failure ⇒ no effect) → stale check →
   `receive_entitlement_event(MANUAL_CREDIT_ADJUSTMENT, adjusted_by=<staff principal>,
   idempotency_key="crd22-support-adjustment:<operation_id>")` → `committed` event with the entitlement
   `event_id`. Deltas with more than four decimals are refused, not rounded. Same `operation_id` + same
@@ -252,7 +255,10 @@ confirmation time and deadlines do not change.
 
 **Anomalies.** `/#staff` → Anomalies: failed/uncertain support actions, failed/blocked/overdue requests,
 replay/projection inconsistency, durable delivered-turn settlement failures (recorded inside the admitted
-turn worker, so a cancelled HTTP request cannot drop them), unfinished restores. `sources`
+turn worker, so a cancelled HTTP request cannot drop them; if the control-store write fails, a
+content-free `settlement_coverage` gap -- codes and time, no subject or Turn -- is kept in the content
+chain's anomaly table and keeps the source `degraded` across restarts until staff **Close** it after
+reviewing the ledger and logs), unfinished restores. `sources`
 shows what was read (`unavailable` ≠ healthy; `commercial_events: not_integrated`). Notes
 (Investigating/Close) append history and repair nothing; fix state only through §3 actions.
 
@@ -278,8 +284,9 @@ await the Owner's qualified advice. No complete US/Canada/Mexico compliance is c
   dependency_unavailable` and never completes; payment/webhook/refund/reconciliation events are not
   integrated into anomalies.
 - Physical compaction and restore enforcement are offline (app stopped).
-- The settlement anomaly source reports `degraded` when this process could not record a settlement
-  failure (process-lifetime flag; the turn response carried the warning).
+- Settlement coverage: a failure the control store could not record leaves a durable, content-free gap
+  (source `degraded` until closed). If the content store refuses that write too, only the process
+  flag and the fixed-category log remain (both live stores refusing writes).
 - Reason/note fields are guarded by shape patterns only (§3); they are not PII or secret detection.
 - Restores after a closed account's ledger expiry follow #205's unchanged continuity rule (refused or
   accepted-then-re-expired; §8 Restore).

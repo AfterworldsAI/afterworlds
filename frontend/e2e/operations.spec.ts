@@ -295,6 +295,7 @@ test("account-wide export then deletion, with a receipt after closure", async ()
   await b.reload();
   await expect(b.getByRole("heading", { name: "Sign in" })).toBeVisible();
   // The signed-out app reads the request by its receipt code.
+  await b.getByRole("button", { name: "Check a data request…" }).click();
   const form = b.getByRole("region", { name: "Check a data request" });
   const lookup = form.getByRole("region", { name: "Request status" });
   await form.getByLabel("Request ID").fill(requestId);

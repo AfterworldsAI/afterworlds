@@ -100,6 +100,16 @@ export function ReceiptLookup() {
   const [found, setFound] = useState<DataRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Opened on demand: the sign-in page then carries no second code field.
+  const [open, setOpen] = useState(false);
+  if (!open)
+    return (
+      <p>
+        <button type="button" onClick={() => setOpen(true)}>
+          Check a data request…
+        </button>
+      </p>
+    );
   return (
     <section aria-labelledby="receipt-heading">
       <h2 id="receipt-heading">Check a data request</h2>

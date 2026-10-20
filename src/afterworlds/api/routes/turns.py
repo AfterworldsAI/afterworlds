@@ -62,6 +62,7 @@ from afterworlds.models.enums import BranchingPlayStatus, StoryMode
 from afterworlds.models.story import Story
 from afterworlds.operations.anomalies import (
     SETTLEMENT_SINK,
+    SettlementSink,
     record_settlement_failure,
 )
 from afterworlds.persistence.crud.node import list_turns_by_story
@@ -424,6 +425,12 @@ def _run_turn_sync(
         session.close()
 
 
+def _settlement_sink(request: Request) -> SettlementSink:
+    ops = request.app.state.ops_factory
+    content = request.app.state.session_factory
+    return SettlementSink(ops, content if content is not ops else None)
+
+
 @router.post("/{story_id}/turns", response_model=TurnSubmissionResponse)
 async def submit_turn(
     story_id: UUID,
@@ -436,7 +443,7 @@ async def submit_turn(
     sojourner_id: UUID = Depends(get_sojourner_id),
     lock: asyncio.Lock = Depends(get_story_lock),
 ) -> TurnSubmissionResponse:
-    SETTLEMENT_SINK.set(request.app.state.ops_factory)
+    SETTLEMENT_SINK.set(_settlement_sink(request))
     response = await run_under_story_lock(
         lock,
         _submit_turn_sync,
@@ -470,7 +477,7 @@ async def begin_story(
     the ordinary access-path selection, pipeline and settlement. Runs under
     the story's turn lock, so repeated or concurrent requests serialize; once
     started, it answers ``already_started`` without any provider call."""
-    SETTLEMENT_SINK.set(request.app.state.ops_factory)
+    SETTLEMENT_SINK.set(_settlement_sink(request))
     response = await run_under_story_lock(
         lock,
         _begin_sync,
@@ -514,7 +521,7 @@ async def resume_rpg_sequence(
     narrated: success-equivalent (15b-32). The client refetches the
     transcript and the pending interaction instead of presenting an error.
     """
-    SETTLEMENT_SINK.set(request.app.state.ops_factory)
+    SETTLEMENT_SINK.set(_settlement_sink(request))
     response = await run_under_story_lock(
         lock,
         _resume_sync,

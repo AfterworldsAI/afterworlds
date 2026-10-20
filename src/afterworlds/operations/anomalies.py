@@ -72,18 +72,33 @@ class AnomalyReport:
     generated_at: datetime
 
 
-#: Where an admitted turn worker records a settlement failure: set by the
-#: turn routes for the request (copied into its worker thread).
-SETTLEMENT_SINK: ContextVar[sessionmaker[Session] | None] = ContextVar(
+@dataclass(frozen=True)
+class SettlementSink:
+    """Where an admitted turn worker records a settlement failure: the ops
+    store, and -- remotely, where that is the control store -- the content
+    store, which keeps a content-free coverage gap if the ops write fails."""
+
+    ops: sessionmaker[Session]
+    gap_store: sessionmaker[Session] | None = None
+
+
+#: Set by the turn routes for the request (copied into its worker thread).
+SETTLEMENT_SINK: ContextVar[SettlementSink | None] = ContextVar(
     "afterworlds_settlement_sink", default=None
 )
+#: A settlement failure that could not be recorded is kept, without subject
+#: or Turn, in the content chain's anomaly table (review of 03506df9, P1-2):
+#: after a restart the source is still reported degraded until staff close
+#: the gap -- table availability alone never restores coverage.
+GAP_KIND = "settlement_coverage"
+GAP_SIGNAL = "settlement_unrecorded"
 #: Set when a settlement failure could not be recorded in this process, so
 #: the anomaly view reports the source degraded instead of healthy.
 _UNRECORDED = threading.Event()
 
 
 def record_settlement_failure(
-    ops: sessionmaker[Session] | None,
+    sink: SettlementSink | None,
     *,
     subject_ref: str,
     turn_id: str | None,
@@ -96,12 +111,12 @@ def record_settlement_failure(
     No store (a caller that set no ``SETTLEMENT_SINK``) is such a failure too,
     so it degrades the source instead of disappearing."""
     source = turn_id or str(uuid4())
-    if ops is None:
+    if sink is None:
         _UNRECORDED.set()
         logger.error("anomaly record failed: category=settlement_anomaly_unrecorded")
         return
     try:
-        with ops.begin() as s:
+        with sink.ops.begin() as s:
             s.add(
                 AnomalyEventORM(
                     event_id=str(uuid4()),
@@ -120,6 +135,35 @@ def record_settlement_failure(
     except SQLAlchemyError:
         _UNRECORDED.set()
         logger.error("anomaly record failed: category=settlement_anomaly_unrecorded")
+        _record_gap(sink.gap_store, now)
+
+
+def _record_gap(store: sessionmaker[Session] | None, now: datetime) -> None:
+    """Durable, content-free evidence that settlement coverage is incomplete
+    (codes and time only). If this store refuses too, only the process flag
+    and the log remain (documented limit: both live stores refusing writes)."""
+    if store is None:
+        return
+    gap = str(uuid4())
+    try:
+        with store.begin() as s:
+            s.add(
+                AnomalyEventORM(
+                    event_id=str(uuid4()),
+                    schema_version=1,
+                    anomaly_id=f"{GAP_KIND}:{gap}",
+                    subject_ref=None,
+                    source_kind=GAP_KIND,
+                    source_id=gap,
+                    observed_at=iso(now),
+                    safe_signal_code=GAP_SIGNAL,
+                    investigation_state="open",
+                    actor_ref="system",
+                    note_code="ops_store_write_failed",
+                )
+            )
+    except SQLAlchemyError:
+        logger.error("anomaly record failed: category=settlement_coverage_unrecorded")
 
 
 class AnomalyService:
@@ -263,12 +307,42 @@ class AnomalyService:
                     )
                 )
 
+        def coverage_gaps() -> None:
+            # Remote only: the content store keeps gaps the control store
+            # could not take (locally they are one store).
+            if self._control is None or self._content is self._ops:
+                return
+            with self._content() as s:
+                for row in s.scalars(
+                    sa.select(AnomalyEventORM)
+                    .where(AnomalyEventORM.source_kind == GAP_KIND)
+                    .order_by(AnomalyEventORM.event_order)
+                ):
+                    found.append(
+                        (
+                            GAP_KIND,
+                            row.source_id,
+                            None,
+                            parse_iso(row.observed_at),
+                            GAP_SIGNAL,
+                            "A delivered turn's settlement failure could not be "
+                            "recorded; settlement failures may be missing from "
+                            "this view since then. Review the ledger and logs, "
+                            "then close this.",
+                        )
+                    )
+
         read("support_operations", support)
         read("data_requests", requests)
         read("entitlement_replay", ledger)
         if self._control is not None:
             read("restores", restores)
 
+        gaps_readable = True
+        try:
+            coverage_gaps()
+        except SQLAlchemyError:
+            gaps_readable = False
         streams: dict[str, list[AnomalyEventORM]] = {}
         try:
             with self._ops() as s:
@@ -276,12 +350,20 @@ class AnomalyService:
                     sa.select(AnomalyEventORM).order_by(AnomalyEventORM.event_order)
                 ):
                     streams.setdefault(row.anomaly_id, []).append(row)
-            # A failure this process could not record makes the source
-            # degraded (process-lifetime; the turn response carried the
-            # warning).
-            sources["settlement_failures"] = (
-                "degraded" if _UNRECORDED.is_set() else "available"
-            )
+            # Degraded while this process could not record a failure, or
+            # while any durable coverage gap is not closed by staff.
+            open_gap = False
+            for kind, sid, _subject, _at, signal, _text in found:
+                if kind == GAP_KIND:
+                    notes = streams.get(f"{kind}:{sid}:{signal}", [])
+                    if not notes or notes[-1].investigation_state != "closed":
+                        open_gap = True
+            if not gaps_readable:
+                sources["settlement_failures"] = "unavailable"
+            elif _UNRECORDED.is_set() or open_gap:
+                sources["settlement_failures"] = "degraded"
+            else:
+                sources["settlement_failures"] = "available"
         except SQLAlchemyError:
             sources["settlement_failures"] = "unavailable"
 
