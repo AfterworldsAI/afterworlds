@@ -356,7 +356,9 @@ export const dataRequests = {
     }),
 
   preview: (requestId: string) =>
-    request<DeletionPreview>(`/api/data-requests/${requestId}/deletion-preview`),
+    request<DeletionPreview>(
+      `/api/data-requests/${requestId}/deletion-preview`,
+    ),
 
   // The password travels only in this body (remote account deletion).
   confirm: (
@@ -381,7 +383,8 @@ export const dataRequests = {
       body: JSON.stringify({ expected_revision: expectedRevision }),
     }),
 
-  artifactUrl: (requestId: string) => `/api/data-requests/${requestId}/artifact`,
+  artifactUrl: (requestId: string) =>
+    `/api/data-requests/${requestId}/artifact`,
 
   // Post-closure status: the one-time credential, never the ID alone.
   receipt: (requestId: string, credential: string) =>
@@ -420,10 +423,9 @@ export const staffApi = {
     ),
 
   signOut: () =>
-    staff<components["schemas"]["StaffSessionResponse"]>(
-      "/api/admin/session",
-      { method: "DELETE" },
-    ),
+    staff<components["schemas"]["StaffSessionResponse"]>("/api/admin/session", {
+      method: "DELETE",
+    }),
 
   account: (accountId: string) =>
     staff<AdminAccountView>(`/api/admin/accounts/${accountId}`),
@@ -477,7 +479,11 @@ export const staffApi = {
       "/api/admin/data-requests",
     ).then((r) => r.requests),
 
-  approve: (requestId: string, expectedRevision: number, reason: string | null) =>
+  approve: (
+    requestId: string,
+    expectedRevision: number,
+    reason: string | null,
+  ) =>
     staff<DataRequest>(
       `/api/admin/data-requests/${requestId}/approve`,
       post({ expected_revision: expectedRevision, reason }),
