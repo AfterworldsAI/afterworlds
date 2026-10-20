@@ -14,15 +14,14 @@ never a guessable request ID alone.
 
 from __future__ import annotations
 
-import asyncio
-from contextlib import AsyncExitStack
+import logging
+from collections.abc import Callable, Iterator
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import FileResponse
-from starlette.background import BackgroundTask
+from fastapi.responses import StreamingResponse
 
 from afterworlds.api.deps import AdmittedWorkerRoute
 from afterworlds.api.dto import (
@@ -42,6 +41,8 @@ from afterworlds.api.remote_access import get_actor
 from afterworlds.operations.requests import RequestKind, RequestScope
 from afterworlds.operations.service import DataRequestService
 from afterworlds.remote.identity import Actor
+
+logger = logging.getLogger("afterworlds.api.data_requests")
 
 router = APIRouter(
     prefix="/api/data-requests", tags=["data-requests"], route_class=AdmittedWorkerRoute
@@ -137,58 +138,65 @@ def confirm_deletion(
 @router.post(
     "/{request_id}/execute", response_model=DataRequestDTO, responses=_RESPONSES
 )
-async def execute_local_request(
+def execute_local_request(
     request_id: UUID,
     body: DataRequestStepRequest,
     request: Request,
     actor: Actor = Depends(get_actor),
 ) -> DataRequestDTO:
-    """Local owner only. A deletion first takes the per-Story turn locks of
-    every Story in scope, so no in-flight turn can land after it."""
-    service = _service(request)
-    view = await run_in_threadpool(
-        lambda: run_operation(lambda: service.get_own(actor, str(request_id)))
+    """Local owner only. A deletion holds the local owner fence exclusive for
+    its whole run (``DataRequestService.execute_local``)."""
+    result = run_operation(
+        lambda: _service(request).execute_local(
+            actor, str(request_id), expected_revision=body.expected_revision
+        )
     )
-    locks: list[asyncio.Lock] = []
-    if view.kind == "deletion":
-        story_ids = await run_in_threadpool(
-            lambda: run_operation(lambda: service.preview(actor, str(request_id)))
-        )
-        registry = request.app.state.story_locks
-        locks = [registry[UUID(sid)] for sid in sorted(story_ids["story_ids"])]
-    async with AsyncExitStack() as stack:
-        for lock in locks:
-            await stack.enter_async_context(lock)
-        result = await run_in_threadpool(
-            lambda: run_operation(
-                lambda: service.execute_local(
-                    actor, str(request_id), expected_revision=body.expected_revision
-                )
-            )
-        )
     return request_dto(result, administrator=False)
+
+
+#: Bytes per streamed chunk of an export download.
+DOWNLOAD_CHUNK = 64 * 1024
+
+
+def _stream_artifact(path: Path, on_complete: Callable[[], None]) -> Iterator[bytes]:
+    """The whole artifact, in order, then ``on_complete``: the server asks for
+    the next chunk only after the previous send completed, so reaching the
+    end proves every byte was handed to the transport. A disconnect or send
+    failure stops the iteration and nothing is recorded (review round 2,
+    F3). There is no Range service: every response is the full artifact."""
+    with path.open("rb") as handle:
+        while chunk := handle.read(DOWNLOAD_CHUNK):
+            yield chunk
+    try:
+        on_complete()
+    except (
+        Exception
+    ):  # noqa: BLE001 -- an unrecorded delivery only keeps erasure waiting
+        logger.error("export delivery not recorded: category=delivery_unrecorded")
 
 
 @router.get(
     "/{request_id}/artifact",
-    response_class=FileResponse,
+    response_class=StreamingResponse,
     responses={**_RESPONSES, 200: {"content": {"application/zip": {}}}},
 )
 def download_artifact(
     request_id: UUID, request: Request, actor: Actor = Depends(get_actor)
-) -> FileResponse:
+) -> StreamingResponse:
     service = _service(request)
     path, artifact_id = run_operation(
         lambda: service.artifact_path(actor, str(request_id))
     )
-    # Delivery is recorded only after the whole body was sent; a broken
-    # transfer leaves it undelivered (account erasure then still waits).
-    return FileResponse(
-        path,
+    return StreamingResponse(
+        _stream_artifact(path, lambda: service.mark_delivered(artifact_id)),
         media_type="application/zip",
-        filename=f"afterworlds-export-{request_id}.zip",
-        headers={"Cache-Control": "no-store"},
-        background=BackgroundTask(service.mark_delivered, artifact_id),
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Length": str(path.stat().st_size),
+            "Content-Disposition": (
+                f'attachment; filename="afterworlds-export-{request_id}.zip"'
+            ),
+        },
     )
 
 

@@ -18,7 +18,9 @@ never repairs, retries or charges anything.
 from __future__ import annotations
 
 import logging
+import threading
 from collections.abc import Callable
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from uuid import uuid4
@@ -70,6 +72,16 @@ class AnomalyReport:
     generated_at: datetime
 
 
+#: Where an admitted turn worker records a settlement failure: set by the
+#: turn routes for the request (copied into its worker thread).
+SETTLEMENT_SINK: ContextVar[sessionmaker[Session] | None] = ContextVar(
+    "afterworlds_settlement_sink", default=None
+)
+#: Set when a settlement failure could not be recorded in this process, so
+#: the anomaly view reports the source degraded instead of healthy.
+_UNRECORDED = threading.Event()
+
+
 def record_settlement_failure(
     ops: sessionmaker[Session],
     *,
@@ -100,6 +112,7 @@ def record_settlement_failure(
                 )
             )
     except SQLAlchemyError:
+        _UNRECORDED.set()
         logger.error("anomaly record failed: category=settlement_anomaly_unrecorded")
 
 
@@ -257,7 +270,12 @@ class AnomalyService:
                     sa.select(AnomalyEventORM).order_by(AnomalyEventORM.event_order)
                 ):
                     streams.setdefault(row.anomaly_id, []).append(row)
-            sources["settlement_failures"] = "available"
+            # A failure this process could not record makes the source
+            # degraded (process-lifetime; the turn response carried the
+            # warning).
+            sources["settlement_failures"] = (
+                "degraded" if _UNRECORDED.is_set() else "available"
+            )
         except SQLAlchemyError:
             sources["settlement_failures"] = "unavailable"
 

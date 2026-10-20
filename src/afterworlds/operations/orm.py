@@ -36,6 +36,14 @@ class SupportActionEventORM(OperationsBase):
     """Support action event (matrix: support action event / support owner)."""
 
     __tablename__ = "ops_support_events"
+    __table_args__ = (
+        sa.Index(
+            "uq_ops_support_requested",
+            "operation_id",
+            unique=True,
+            sqlite_where=sa.text("outcome_code = 'requested'"),
+        ),
+    )
 
     event_order: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     event_id: Mapped[str] = mapped_column(sa.String(36), nullable=False, unique=True)

@@ -255,12 +255,18 @@ def create_operations_schema(op: Any) -> None:
         sa.Column("recorded_at", _TS, nullable=False),
         sa.Column("annual_review_at", _TS, nullable=False),
     )
+    # One claim per logical support operation (review round 2, F7).
+    op.execute(
+        "CREATE UNIQUE INDEX uq_ops_support_requested ON ops_support_events "
+        "(operation_id) WHERE outcome_code = 'requested'"
+    )
     for table in APPEND_ONLY:
         op.execute(update_trigger(table))
         op.execute(guarded_delete_trigger(table))
 
 
 def drop_operations_schema(op: Any) -> None:
+    op.execute("DROP INDEX IF EXISTS uq_ops_support_requested")
     for table in APPEND_ONLY:
         op.execute(f"DROP TRIGGER IF EXISTS prevent_{table}_update")
         op.execute(f"DROP TRIGGER IF EXISTS prevent_{table}_delete")

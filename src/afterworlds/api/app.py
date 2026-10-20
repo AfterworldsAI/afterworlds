@@ -274,6 +274,9 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
     else:
         app.state.identity = None
         app.state.access_policy = AccessPolicy()
+        # CRD Issue 22: the single local owner's fence (local deletions take
+        # it exclusive; every other local request holds it shared).
+        app.state.account_fence = AccountFence()
         app.state.sojourner_id = provision_sojourner_id(session_factory)
     # Per-story turn-submission lock registry (Binding Decision 8). A single
     # choke point created once here, not per-request.
@@ -322,7 +325,7 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
         ),
         export_dir=export_dir(settings),
         identity=app.state.identity,
-        fence=app.state.account_fence if remote else None,
+        fence=app.state.account_fence,
         support=app.state.support if remote else None,
     )
     app.state.anomalies = AnomalyService(

@@ -229,13 +229,33 @@ class DataRequestService:
                 "Remote requests are executed by the administrator.",
             )
         requester = self._requester(actor)
+        if view.kind != RequestKind.DELETION.value:
+            return self._authorize_and_run(requester, view, expected_revision)
+        # A local deletion holds the local owner's fence exclusive for its
+        # whole run: in-flight turns and Story creation finish first, and none
+        # is admitted until the final scope is removed (review round 2, F1).
+        assert self.deletion.fence is not None
+        try:
+            with self.deletion.fence.exclusive(
+                UUID(actor.account_id.hex), timeout=30.0
+            ):
+                return self._authorize_and_run(requester, view, expected_revision)
+        except FenceBusy:
+            raise OperationError(
+                OperationErrorKind.IN_PROGRESS,
+                "Other work is still running; try again shortly.",
+            ) from None
+
+    def _authorize_and_run(
+        self, requester: RequestActor, view: RequestView, expected_revision: int
+    ) -> RequestView:
         revision = expected_revision
         if view.state == RequestState.AWAITING_AUTHORIZATION.value:
             self.store.approve(
-                requester, request_id, expected_revision=revision, reason=None
+                requester, view.request_id, expected_revision=revision, reason=None
             )
             revision += 1
-        return self._run(requester, request_id, revision)
+        return self._run(requester, view.request_id, revision)
 
     def artifact_path(self, actor: Actor, request_id: str) -> tuple[Path, str]:
         """The owner's available artifact file and its ID (to mark delivery

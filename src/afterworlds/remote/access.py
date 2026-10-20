@@ -19,7 +19,7 @@ admitted before them can land after they complete.
 from __future__ import annotations
 
 import inspect
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
@@ -282,6 +282,7 @@ def record_suppression_fenced(
     effective_boundary_at: datetime,
     now: datetime,
     timeout: float,
+    precondition: Callable[[], None] | None = None,
 ) -> str:
     """The supported way for CRD Issue 22 to record a deletion suppression.
 
@@ -289,8 +290,12 @@ def record_suppression_fenced(
     request admitted earlier has finished and no later one is admitted until
     the instruction is durable: no effect lands after this returns. Raises
     :class:`FenceBusy` (nothing recorded) if in-flight work does not finish
-    within *timeout*."""
+    within *timeout*. *precondition* (CRD Issue 22) runs inside the
+    exclusive section, after in-flight work drained and before anything is
+    recorded; if it raises, nothing is recorded and the exception propagates."""
     with fence.exclusive(account_id, timeout=timeout):
+        if precondition is not None:
+            precondition()
         return record_suppression(
             control,
             subject_ref=str(account_id),

@@ -28,10 +28,11 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 from uuid import UUID, uuid4
 
 import sqlalchemy as sa
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from afterworlds.entitlement.enums import EntitlementEventType
@@ -165,6 +166,39 @@ class OperationStatus:
     events: tuple[SupportEvent, ...]
 
 
+def _canonical(
+    event: SupportEvent,
+) -> tuple[str, str | None, str | None, str | None, str]:
+    """The logical action an operation ID was claimed for."""
+    return (
+        event.target_ref,
+        event.hosted_credit_delta,
+        event.top_up_credit_delta,
+        event.reason_text,
+        event.actor_ref,
+    )
+
+
+def _matches(found: Any, requested: SupportEvent) -> bool:
+    """Whether the owner's event under this operation's key is exactly the
+    claimed action (subject, type and typed payload)."""
+    if (
+        str(found.sojourner_id) != requested.target_ref
+        or found.event_type != EntitlementEventType.MANUAL_CREDIT_ADJUSTMENT.value
+    ):
+        return False
+    try:
+        payload = ManualCreditAdjustmentPayload.model_validate_json(found.payload_json)
+    except ValueError:
+        return False
+    return (
+        _fmt(payload.hosted_credit_delta) == requested.hosted_credit_delta
+        and _fmt(payload.top_up_credit_delta) == requested.top_up_credit_delta
+        and payload.reason == requested.reason_text
+        and payload.adjusted_by == requested.actor_ref
+    )
+
+
 def _event(row: SupportActionEventORM) -> SupportEvent:
     return SupportEvent(
         event_id=row.event_id,
@@ -251,16 +285,20 @@ class SupportService:
         events = self._events(operation_id)
         if not events:
             raise OperationError(OperationErrorKind.NOT_FOUND, "Unknown operation.")
-        if events[-1].outcome_code == OUTCOME_REQUESTED:
+        terminal = next((e for e in events if e.outcome_code in _TERMINAL), None)
+        if terminal is None:
             self._reconcile(events[0])
             events = self._events(operation_id)
-        last = events[-1]
-        committed = next(
-            (e for e in events if e.outcome_code == OUTCOME_COMMITTED), None
+            terminal = next((e for e in events if e.outcome_code in _TERMINAL), None)
+        # The first terminal outcome is the outcome; nothing later changes it.
+        committed = (
+            terminal
+            if terminal and terminal.outcome_code == OUTCOME_COMMITTED
+            else None
         )
         return OperationStatus(
             operation_id=operation_id,
-            outcome_code=last.outcome_code,
+            outcome_code=terminal.outcome_code if terminal else OUTCOME_REQUESTED,
             source_entitlement_event_id=(
                 committed.source_entitlement_event_id if committed else None
             ),
@@ -288,26 +326,18 @@ class SupportService:
             )
         if self._identity.get_account(request.account_id) is None:
             raise OperationError(OperationErrorKind.NOT_FOUND, "Account not found.")
+        canonical = (
+            str(request.account_id),
+            _fmt(hd),
+            _fmt(td),
+            reason,
+            actor.principal_ref,
+        )
         existing = self._events(request.operation_id)
-        if existing:
-            first = existing[0]
-            if (
-                first.target_ref != str(request.account_id)
-                or first.action_code != ADJUST_CREDITS
-                or first.hosted_credit_delta != _fmt(hd)
-                or first.top_up_credit_delta != _fmt(td)
-                or first.reason_text != reason
-                or first.actor_ref != actor.principal_ref
-            ):
-                raise OperationError(
-                    OperationErrorKind.CONFLICT,
-                    "This operation ID was already used for a different action.",
-                )
-            if existing[-1].outcome_code in _TERMINAL:
-                return self.status(request.operation_id)
-            requested = first
-        else:
-            requested = self._append(
+        if not existing:
+            # The claim is atomic: one ``requested`` row per operation (unique
+            # index). A concurrent reuse loses here and is compared below.
+            claimed = self._append(
                 operation_id=request.operation_id,
                 account_id=request.account_id,
                 actor_ref=actor.principal_ref,
@@ -316,13 +346,25 @@ class SupportService:
                 reason=reason,
                 outcome=OUTCOME_REQUESTED,
             )
+            existing = (claimed,) if claimed else self._events(request.operation_id)
+        first = existing[0]
+        if _canonical(first) != canonical:
+            raise OperationError(
+                OperationErrorKind.CONFLICT,
+                "This operation ID was already used for a different action.",
+            )
+        if any(e.outcome_code in _TERMINAL for e in existing):
+            return self.status(request.operation_id)
+        requested = first
         key = IDEMPOTENCY_PREFIX + str(request.operation_id)
         with self._content() as s:
             found = find_by_idempotency_key(s, key)
             projection = read_projection(s, request.account_id)
         if found is not None:
-            # Response or outcome record was lost after the effect committed.
-            return self._finish(requested, OUTCOME_COMMITTED, str(found.event_id))
+            # Response or outcome record was lost after the effect committed:
+            # accepted only if the owner's event is exactly this action.
+            outcome = OUTCOME_COMMITTED if _matches(found, requested) else "conflict"
+            return self._finish(requested, outcome, str(found.event_id))
         current = projection.last_entitlement_event_id if projection else None
         if current != request.expected_last_event_id:
             return self._finish(requested, "rejected_stale", None)
@@ -379,7 +421,8 @@ class SupportService:
         with self._content() as s:
             found = find_by_idempotency_key(s, key)
         if found is not None:
-            self._finish(requested, OUTCOME_COMMITTED, str(found.event_id))
+            outcome = OUTCOME_COMMITTED if _matches(found, requested) else "conflict"
+            self._finish(requested, outcome, str(found.event_id))
 
     def _finish(
         self, requested: SupportEvent, outcome: str, source: str | None
@@ -429,7 +472,7 @@ class SupportService:
         top_up: Decimal | None,
         reason: str,
         outcome: str,
-    ) -> SupportEvent:
+    ) -> SupportEvent | None:
         row = self._row(
             operation_id=operation_id,
             account_id=account_id,
@@ -447,6 +490,8 @@ class SupportService:
                 s.add(row)
                 s.flush()
                 return _event(row)
+        except IntegrityError:
+            return None  # another request claimed this operation first
         except SQLAlchemyError:
             raise OperationError(
                 OperationErrorKind.UNAVAILABLE,

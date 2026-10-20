@@ -329,8 +329,7 @@ class TestExportBeforeClosure:
             raise RuntimeError("client went away")
 
         monkeypatch.setattr(service_module.DataRequestService, "mark_delivered", lost)
-        with pytest.raises(RuntimeError):
-            a.get(f"/api/data-requests/{exp['request_id']}/artifact")
+        a.get(f"/api/data-requests/{exp['request_id']}/artifact")  # not recorded
         monkeypatch.undo()
         assert _execute(staff, dele["request_id"])["state"] == "failed"
 

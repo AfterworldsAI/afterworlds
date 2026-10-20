@@ -491,29 +491,27 @@ def run_deletion(ctx: DeletionContext, view: RequestView, attempt_id: str) -> No
             )
             return
 
-    if account:
-        # #206 §5: closure never strands a requested export. Every export of
-        # the subject must be closed and any available artifact delivered.
-        blocker = _undelivered_exports(ctx, view)
-        if blocker is not None:
-            record(rid, attempt_id, "exports", "failed", detail_code=blocker)
-            ctx.store.end_attempt(
-                rid, attempt_id, RequestState.FAILED, reason_code=blocker
-            )
-            return
-        record(rid, attempt_id, "exports", "succeeded")
-
     # The enforced write boundary comes first: the fence drains every admitted
     # effect of the account and the suppression refuses any later one, so the
     # final inventory below sees every Turn and Story that can ever exist in
-    # scope (CRD Issue 22 review P1-1).
-    if remote:
-        assert ctx.control is not None and ctx.fence is not None
-        from afterworlds.remote.access import record_suppression_fenced
+    # scope (review P1-1). For an account, "every export closed and
+    # delivered" is checked at that same boundary -- inside the exclusive
+    # section, before anything is recorded -- so an export admitted just
+    # before it stays fulfillable and the deletion is simply retried (review
+    # round 2, F2). Locally the whole run already holds the owner fence.
+    def exports_clear() -> None:
+        if account:
+            blocker = _undelivered_exports(ctx, view)
+            if blocker is not None:
+                raise _Blocked(blocker)
 
-        if _suppression_for(ctx.control, rid) is None:
-            header = ctx.store.header(rid)
-            try:
+    try:
+        if remote:
+            assert ctx.control is not None and ctx.fence is not None
+            from afterworlds.remote.access import record_suppression_fenced
+
+            if _suppression_for(ctx.control, rid) is None:
+                header = ctx.store.header(rid)
                 record_suppression_fenced(
                     ctx.fence,
                     ctx.control,
@@ -524,27 +522,31 @@ def run_deletion(ctx: DeletionContext, view: RequestView, attempt_id: str) -> No
                     effective_boundary_at=view.confirmed_at,
                     now=ctx.now(),
                     timeout=ctx.fence_timeout,
+                    precondition=exports_clear,
                 )
-            except FenceBusy:
-                record(rid, attempt_id, "fence", "failed", detail_code="in_flight_work")
-                ctx.store.end_attempt(
-                    rid, attempt_id, RequestState.FAILED, reason_code="in_flight_work"
-                )
-                return
-        record(rid, attempt_id, "fence", "succeeded")
-    else:
-        record(rid, attempt_id, "fence", "succeeded", detail_code="local_story_locks")
-
+            else:
+                # Retry behind an existing suppression: no new export can be
+                # admitted any more; existing ones must still be closed.
+                exports_clear()
+            fence_detail = None
+        else:
+            exports_clear()
+            fence_detail = "local_owner_fence"
+    except _Blocked as blocked:
+        record(rid, attempt_id, "exports", "failed", detail_code=blocked.code)
+        ctx.store.end_attempt(
+            rid, attempt_id, RequestState.FAILED, reason_code=blocked.code
+        )
+        return
+    except FenceBusy:
+        record(rid, attempt_id, "fence", "failed", detail_code="in_flight_work")
+        ctx.store.end_attempt(
+            rid, attempt_id, RequestState.FAILED, reason_code="in_flight_work"
+        )
+        return
     if account:
-        # Again behind the fence: an export that was running when the first
-        # check passed has now finished; its artifact must be delivered too.
-        blocker = _undelivered_exports(ctx, view)
-        if blocker is not None:
-            record(rid, attempt_id, "exports", "failed", detail_code=blocker)
-            ctx.store.end_attempt(
-                rid, attempt_id, RequestState.FAILED, reason_code=blocker
-            )
-            return
+        record(rid, attempt_id, "exports", "succeeded")
+    record(rid, attempt_id, "fence", "succeeded", detail_code=fence_detail)
 
     inventory = ensure_inventory(ctx, view)
     record(
@@ -684,6 +686,12 @@ def run_deletion(ctx: DeletionContext, view: RequestView, attempt_id: str) -> No
         record(rid, attempt_id, "commercial", "not_applicable")
 
     evaluate(ctx, rid, attempt_id)
+
+
+class _Blocked(Exception):
+    def __init__(self, code: str) -> None:
+        super().__init__(code)
+        self.code = code
 
 
 def _undelivered_exports(ctx: DeletionContext, view: RequestView) -> str | None:
