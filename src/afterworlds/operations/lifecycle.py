@@ -50,7 +50,9 @@ def dispose_rows(
     rowids: list[int] = [
         int(r)
         for r in session.execute(
-            sa.select(sa.column("rowid", sa.Integer)).select_from(sa.table(table)).where(where)
+            sa.select(sa.column("rowid", sa.Integer))
+            .select_from(sa.table(table))
+            .where(where)
         ).scalars()
     ]
     if not rowids:

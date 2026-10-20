@@ -264,7 +264,8 @@ class TestCreditAdjustment:
             {"hosted": "6"},
             {"reason": "a different reason"},
         ):
-            assert _error(_adjust(staff, b_id, op=op, **changed)) == "operation_conflict"  # type: ignore[arg-type]
+            resp = _adjust(staff, b_id, op=op, **changed)  # type: ignore[arg-type]
+            assert _error(resp) == "operation_conflict"
         assert _error(_adjust(staff, other, op=op)) == "operation_conflict"
         assert len(_events(remote, b_id)) == 3
 
