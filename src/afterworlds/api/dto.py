@@ -1172,3 +1172,70 @@ class ReceiptLookupRequest(BaseModel):
     request_id: str = Field(min_length=1, max_length=64)
     credential: SecretStr = Field(min_length=1, max_length=128)
     schema_version: Literal[1] = 1
+
+
+# ---------------------------------------------------------------------------
+# CRD Issue 22 anomaly visibility and retention maintenance (administrator).
+# ---------------------------------------------------------------------------
+
+
+class AnomalyNoteDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    state: str
+    note_code: str | None
+    note_text: str | None
+    actor: str
+    recorded_at: datetime
+    schema_version: Literal[1] = 1
+
+
+class AnomalyDTO(BaseModel):
+    """Evidence, not a score: the durable source, subject, observation time,
+    a safe explanation and the investigation state."""
+
+    model_config = {"extra": "forbid"}
+
+    anomaly_id: str
+    source_kind: str
+    source_id: str
+    subject_ref: UUID | None
+    observed_at: datetime
+    signal_code: str
+    explanation: str
+    investigation_state: str
+    notes: list[AnomalyNoteDTO]
+    schema_version: Literal[1] = 1
+
+
+class AnomalyReportResponse(BaseModel):
+    """``sources`` says which inputs were read: ``unavailable`` is never an
+    all-clear; ``not_integrated`` marks CRD Issue 23 payment events."""
+
+    model_config = {"extra": "forbid"}
+
+    anomalies: list[AnomalyDTO]
+    sources: dict[str, str]
+    generated_at: datetime
+    schema_version: Literal[1] = 1
+
+
+class AnomalyNoteRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    state: Literal["open", "investigating", "closed"]
+    note_code: Literal[
+        "investigating", "explained_expected", "escalated", "resolved", "other"
+    ]
+    note_text: str | None = Field(default=None, max_length=280)
+    schema_version: Literal[1] = 1
+
+
+class RetentionSweepResponse(BaseModel):
+    """Counts removed at one instant under the approved D4 schedule."""
+
+    model_config = {"extra": "forbid"}
+
+    counts: dict[str, int]
+    swept_at: datetime
+    schema_version: Literal[1] = 1

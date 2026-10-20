@@ -30,6 +30,7 @@ from pathlib import Path
 from chromadb.api.shared_system_client import SharedSystemClient
 
 from afterworlds.api.config import load_settings
+from afterworlds.operations.enforcement import physical_disposal_pending
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.pipeline.retrieval.client import build_chroma_client
 from afterworlds.pipeline.retrieval.collections import (
@@ -143,6 +144,16 @@ def main(argv: list[str] | None = None) -> int:
         content = create_session_factory(engine)
         try:
             if args.command == "capture":
+                # CRD Issue 22: a capture before physical compaction would copy
+                # deleted content in free pages or vector segments.
+                pending = physical_disposal_pending(control)
+                if pending:
+                    raise StoreRefused(
+                        "deleted content awaits physical compaction ("
+                        + ", ".join(pending)
+                        + "); run `python -m afterworlds.operations.maintenance "
+                        "compact` first"
+                    )
                 print(
                     capture_snapshot(
                         control,

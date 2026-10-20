@@ -46,6 +46,7 @@ from afterworlds.api.routes.stories import story_router
 from afterworlds.api.routes.turns import router as turns_router
 from afterworlds.api.routes.visible_state import router as visible_state_router
 from afterworlds.api.rpg_actions import RpgActions
+from afterworlds.operations.anomalies import AnomalyService
 from afterworlds.operations.service import DataRequestService
 from afterworlds.operations.support import SupportService
 from afterworlds.operations.vectors import story_chunk_deleter
@@ -308,6 +309,14 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
         fence=app.state.account_fence if remote else None,
         support=app.state.support if remote else None,
     )
+    app.state.anomalies = AnomalyService(
+        control_factory if remote else session_factory,
+        session_factory,
+        app.state.data_requests.store,
+        control=control_factory if remote else None,
+        now=utc_now,
+    )
+    app.state.ops_factory = control_factory if remote else session_factory
     # DoR-E: the readiness seam is constructed once here and consumed only
     # inside the access-path selection helper (api/access_path.py callers) --
     # never in a route handler directly.

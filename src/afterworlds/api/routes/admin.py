@@ -10,6 +10,7 @@ session. Support workflows themselves are CRD Issue 22's.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -24,6 +25,10 @@ from afterworlds.api.account import (
 from afterworlds.api.deps import AdmittedWorkerRoute, get_session
 from afterworlds.api.dto import (
     AdminAccountViewResponse,
+    AnomalyDTO,
+    AnomalyNoteDTO,
+    AnomalyNoteRequest,
+    AnomalyReportResponse,
     CreditAdjustmentPreviewRequest,
     CreditAdjustmentPreviewResponse,
     CreditAdjustmentRequest,
@@ -32,6 +37,7 @@ from afterworlds.api.dto import (
     DataRequestStepRequest,
     EntitlementHistoryResponse,
     RejectDataRequest,
+    RetentionSweepResponse,
     RevokeSessionsRequest,
     RevokeSessionsResponse,
     SignInRequest,
@@ -57,6 +63,8 @@ from afterworlds.api.remote_access import (
 )
 from afterworlds.entitlement.inspection import list_events, replay_check
 from afterworlds.entitlement.service import EntitlementService
+from afterworlds.operations.anomalies import Anomaly
+from afterworlds.operations.retention import sweep
 from afterworlds.operations.service import DataRequestService
 from afterworlds.operations.support import (
     AdjustmentRequest,
@@ -64,6 +72,7 @@ from afterworlds.operations.support import (
     SupportService,
     parse_delta,
 )
+from afterworlds.remote.control_store import utc_now
 from afterworlds.remote.identity import (
     STAFF_SESSION_LIFETIME,
     Actor,
@@ -442,3 +451,91 @@ def finalize_data_request(
 ) -> DataRequestDTO:
     view = run_operation(lambda: _requests(request).finalize(actor, str(request_id)))
     return request_dto(view, administrator=True)
+
+
+# -- CRD Issue 22: anomaly visibility and retention maintenance -------------
+
+
+def _anomaly_dto(a: Anomaly) -> AnomalyDTO:
+    return AnomalyDTO(
+        anomaly_id=a.anomaly_id,
+        source_kind=a.source_kind,
+        source_id=a.source_id,
+        subject_ref=UUID(a.subject_ref) if a.subject_ref else None,
+        observed_at=a.observed_at,
+        signal_code=a.signal_code,
+        explanation=a.explanation,
+        investigation_state=a.investigation_state,
+        notes=[
+            AnomalyNoteDTO(
+                state=str(n["state"]),
+                note_code=n["note_code"],
+                note_text=n["note_text"],
+                actor=str(n["actor"]),
+                recorded_at=datetime.fromisoformat(str(n["recorded_at"])),
+            )
+            for n in a.notes
+        ],
+    )
+
+
+@router.get("/anomalies", response_model=AnomalyReportResponse, responses=_OP_RESPONSES)
+def get_anomalies(request: Request) -> AnomalyReportResponse:
+    report = run_operation(lambda: request.app.state.anomalies.report())
+    return AnomalyReportResponse(
+        anomalies=[_anomaly_dto(a) for a in report.anomalies],
+        sources=report.sources,
+        generated_at=report.generated_at,
+    )
+
+
+@router.post(
+    "/anomalies/{anomaly_id}/notes", response_model=AnomalyDTO, responses=_OP_RESPONSES
+)
+def note_anomaly(
+    anomaly_id: str,
+    body: AnomalyNoteRequest,
+    request: Request,
+    actor: Actor = Depends(get_actor),
+) -> AnomalyDTO:
+    if not run_identity(_identity(request).actor_is_current, actor):
+        raise ApiErrorResponse(
+            401, ApiErrorCode.AUTHENTICATION_REQUIRED, "Authentication required."
+        )
+    assert actor.principal_ref is not None
+    anomaly = run_operation(
+        lambda: request.app.state.anomalies.add_note(
+            actor.principal_ref,
+            anomaly_id,
+            state=body.state,
+            note_code=body.note_code,
+            note_text=body.note_text,
+        )
+    )
+    return _anomaly_dto(anomaly)
+
+
+@router.post(
+    "/maintenance/retention-sweep",
+    response_model=RetentionSweepResponse,
+    responses=_OP_RESPONSES,
+)
+def run_retention_sweep(
+    request: Request, actor: Actor = Depends(get_actor)
+) -> RetentionSweepResponse:
+    """Apply the approved D4 expiries now, inside the serving process (the
+    single writer). Physical compaction stays an offline command."""
+    if not run_identity(_identity(request).actor_is_current, actor):
+        raise ApiErrorResponse(
+            401, ApiErrorCode.AUTHENTICATION_REQUIRED, "Authentication required."
+        )
+    now = utc_now()
+    result = run_operation(
+        lambda: sweep(
+            ops=request.app.state.control_factory,
+            content=request.app.state.session_factory,
+            control=request.app.state.control_factory,
+            now=now,
+        )
+    )
+    return RetentionSweepResponse(counts=result.as_dict(), swept_at=now)
