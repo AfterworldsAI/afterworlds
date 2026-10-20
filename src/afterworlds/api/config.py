@@ -31,6 +31,9 @@ class ApiSettings:
     control_database_url: str | None = None
     notice_outbox_dir: Path | None = None
     cookie_secure: bool = True
+    #: CRD Issue 22 service-managed export artifacts (default: beside the
+    #: content store). Never inside a store, backup or the public root.
+    export_dir: Path | None = None
 
     def __post_init__(self) -> None:
         if self.deployment == "remote" and (
@@ -78,4 +81,9 @@ def load_settings() -> ApiSettings:
         control_database_url=os.environ.get("AFTERWORLDS_CONTROL_DATABASE_URL"),
         notice_outbox_dir=Path(outbox) if outbox else None,
         cookie_secure=os.environ.get("AFTERWORLDS_INSECURE_TEST_COOKIES") != "1",
+        export_dir=(
+            Path(os.environ["AFTERWORLDS_EXPORT_DIR"])
+            if os.environ.get("AFTERWORLDS_EXPORT_DIR")
+            else None
+        ),
     )

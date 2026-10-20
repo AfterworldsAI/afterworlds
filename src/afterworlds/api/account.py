@@ -43,8 +43,15 @@ from afterworlds.api.dto import (
     HostedCreditsDTO,
     OpenRouterModelRequest,
     ProviderEnabledRequest,
+    ReplayCheckDTO,
 )
 from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
+from afterworlds.entitlement.enums import HostedUnavailableReason
+from afterworlds.entitlement.inspection import (
+    ReplayCheck,
+    read_projection,
+    replay_check,
+)
 from afterworlds.entitlement.models import AccessPathStatus
 from afterworlds.entitlement.service import EntitlementService
 from afterworlds.pipeline.provider import (
@@ -148,8 +155,12 @@ def build_account_status(
 def build_admin_account_view(
     session: Session, record: AccountRecord
 ) -> AdminAccountViewResponse:
-    """Allowlisted operational view of one targeted hosted account (#205)."""
+    """Allowlisted operational view of one targeted hosted account (#205),
+    with CRD Issue 22's owning-source lookup fields. Read-only: nothing is
+    activated, repaired, probed or contacted."""
     status = EntitlementService(session).get_access_path_status(record.account_id)
+    projection = read_projection(session, record.account_id)
+    replay = replay_check(session, record.account_id)
     return AdminAccountViewResponse(
         account_id=record.account_id,
         status="closed" if record.status == "closed" else "active",
@@ -160,6 +171,49 @@ def build_admin_account_view(
         cloud_services=cloud_services_status(status),
         byok_license_active=status.byok_turn_available,
         byok_readiness_source=ByokReadinessSource.UNAVAILABLE_REMOTELY,
+        entitlement_state="absent" if projection is None else "present",
+        hosted_access_active=bool(projection and projection.hosted_access_active),
+        hosted_plan=(
+            projection.hosted_access_plan.value
+            if projection and projection.hosted_access_plan
+            else None
+        ),
+        cloud_services_expires_at=_utc(
+            projection.cloud_services_expires_at if projection else None
+        ),
+        byok_license_purchased_at=_utc(
+            projection.byok_license_purchased_at if projection else None
+        ),
+        last_entitlement_event_id=(
+            projection.last_entitlement_event_id if projection else None
+        ),
+        expected_conditions=expected_conditions(status),
+        replay=replay_dto(replay),
+    )
+
+
+def expected_conditions(status: AccessPathStatus) -> list[str]:
+    """Expected entitlement states support must not mistake for corruption."""
+    found = []
+    total = status.total_hosted_credit_balance
+    if total is not None and total < 0:
+        found.append("negative_balance")
+    reason = status.hosted_unavailable_reason
+    if reason is HostedUnavailableReason.CREDITS_EXHAUSTED:
+        found.append("credits_exhausted")
+    if reason is HostedUnavailableReason.SUBSCRIPTION_INACTIVE:
+        found.append("hosted_inactive")
+    if status.cloud_services_lapsed:
+        found.append("cloud_services_lapsed")
+    return found
+
+
+def replay_dto(check: ReplayCheck) -> ReplayCheckDTO:
+    return ReplayCheckDTO(
+        status=check.status.value,
+        detail_code=check.detail_code,
+        through_sequence=check.through_sequence,
+        mismatched_fields=list(check.mismatched_fields),
     )
 
 

@@ -192,6 +192,253 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/accounts/{account_id}/entitlement-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Entitlement History */
+        get: operations["get_entitlement_history_api_admin_accounts__account_id__entitlement_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/accounts/{account_id}/support-actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Support Actions */
+        get: operations["get_support_actions_api_admin_accounts__account_id__support_actions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/accounts/{account_id}/credit-adjustments/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Credit Adjustment */
+        post: operations["preview_credit_adjustment_api_admin_accounts__account_id__credit_adjustments_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/accounts/{account_id}/credit-adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adjust Credits */
+        post: operations["adjust_credits_api_admin_accounts__account_id__credit_adjustments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/support-operations/{operation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Support Operation */
+        get: operations["get_support_operation_api_admin_support_operations__operation_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/data-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List All Data Requests */
+        get: operations["list_all_data_requests_api_admin_data_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/data-requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Any Data Request */
+        get: operations["get_any_data_request_api_admin_data_requests__request_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/data-requests/{request_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Data Request */
+        post: operations["approve_data_request_api_admin_data_requests__request_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/data-requests/{request_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Data Request */
+        post: operations["reject_data_request_api_admin_data_requests__request_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/data-requests/{request_id}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Execute Data Request
+         * @description Run (or retry/resume) fulfillment as a new attempt. The response is
+         *     the recorded outcome: completed, failed, or in progress with its pending
+         *     phases.
+         */
+        post: operations["execute_data_request_api_admin_data_requests__request_id__execute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/data-requests/{request_id}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finalize Data Request */
+        post: operations["finalize_data_request_api_admin_data_requests__request_id__finalize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/anomalies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Anomalies */
+        get: operations["get_anomalies_api_admin_anomalies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/anomalies/{anomaly_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Note Anomaly */
+        post: operations["note_anomaly_api_admin_anomalies__anomaly_id__notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/maintenance/retention-sweep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Retention Sweep
+         * @description Apply the approved D4 expiries now, inside the serving process (the
+         *     single writer). Physical compaction stays an offline command.
+         */
+        post: operations["run_retention_sweep_api_admin_maintenance_retention_sweep_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stories": {
         parameters: {
             query?: never;
@@ -647,6 +894,151 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/data-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Data Requests */
+        get: operations["list_data_requests_api_data_requests_get"];
+        put?: never;
+        /** Create Data Request */
+        post: operations["create_data_request_api_data_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/data-requests/receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read Receipt */
+        post: operations["read_receipt_api_data_requests_receipt_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/data-requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Data Request */
+        get: operations["get_data_request_api_data_requests__request_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/data-requests/{request_id}/deletion-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Deletion Preview */
+        get: operations["get_deletion_preview_api_data_requests__request_id__deletion_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/data-requests/{request_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Deletion */
+        post: operations["confirm_deletion_api_data_requests__request_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/data-requests/{request_id}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Execute Local Request
+         * @description Local owner only. A deletion holds the local owner fence exclusive for
+         *     its whole run (``DataRequestService.execute_local``).
+         */
+        post: operations["execute_local_request_api_data_requests__request_id__execute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/data-requests/{request_id}/artifact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Artifact */
+        get: operations["download_artifact_api_data_requests__request_id__artifact_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/data-requests/{request_id}/receipt-credential": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reissue Receipt Credential
+         * @description Replace a receipt credential whose confirmation response was lost --
+         *     before closure only, with the owner's session and password.
+         */
+        post: operations["reissue_receipt_credential_api_data_requests__request_id__receipt_credential_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -767,6 +1159,129 @@ export interface components {
             byok_license_active: boolean;
             byok_readiness_source: components["schemas"]["ByokReadinessSource"];
             /**
+             * Entitlement State
+             * @default absent
+             * @enum {string}
+             */
+            entitlement_state: "absent" | "present";
+            /**
+             * Hosted Access Active
+             * @default false
+             */
+            hosted_access_active: boolean;
+            /** Hosted Plan */
+            hosted_plan?: string | null;
+            /** Cloud Services Expires At */
+            cloud_services_expires_at?: string | null;
+            /** Byok License Purchased At */
+            byok_license_purchased_at?: string | null;
+            /** Last Entitlement Event Id */
+            last_entitlement_event_id?: string | null;
+            /** Expected Conditions */
+            expected_conditions?: string[];
+            replay?: components["schemas"]["ReplayCheckDTO"] | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * AnomalyDTO
+         * @description Evidence, not a score: the durable source, subject, observation time,
+         *     a safe explanation and the investigation state.
+         */
+        AnomalyDTO: {
+            /** Anomaly Id */
+            anomaly_id: string;
+            /** Source Kind */
+            source_kind: string;
+            /** Source Id */
+            source_id: string;
+            /** Subject Ref */
+            subject_ref: string | null;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /** Signal Code */
+            signal_code: string;
+            /** Explanation */
+            explanation: string;
+            /** Investigation State */
+            investigation_state: string;
+            /** Notes */
+            notes: components["schemas"]["AnomalyNoteDTO"][];
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** AnomalyNoteDTO */
+        AnomalyNoteDTO: {
+            /** State */
+            state: string;
+            /** Note Code */
+            note_code: string | null;
+            /** Note Text */
+            note_text: string | null;
+            /** Actor */
+            actor: string;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** AnomalyNoteRequest */
+        AnomalyNoteRequest: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "open" | "investigating" | "closed";
+            /**
+             * Note Code
+             * @enum {string}
+             */
+            note_code: "investigating" | "explained_expected" | "escalated" | "resolved" | "other";
+            /** Note Text */
+            note_text?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * AnomalyReportResponse
+         * @description ``sources`` says which inputs were read: ``unavailable`` is never an
+         *     all-clear; ``not_integrated`` marks CRD Issue 23 payment events.
+         */
+        AnomalyReportResponse: {
+            /** Anomalies */
+            anomalies: components["schemas"]["AnomalyDTO"][];
+            /** Sources */
+            sources: {
+                [key: string]: string;
+            };
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /**
              * Schema Version
              * @default 1
              * @constant
@@ -796,7 +1311,7 @@ export interface components {
          * ApiErrorCode
          * @enum {string}
          */
-        ApiErrorCode: "not_found" | "validation_failed" | "entitlement_blocked" | "byok_credentials_required" | "turn_in_flight" | "setup_required" | "setup_state_conflict" | "mode_unavailable" | "internal_error" | "pending_roll_not_found" | "pending_roll_not_player_visible" | "pending_roll_already_consumed" | "pending_roll_revision_mismatch" | "pending_roll_term_mismatch" | "pending_roll_invalid_value" | "pending_roll_invalid_aggregate" | "action_sequence_not_found" | "action_sequence_already_completed" | "action_sequence_state_conflict" | "action_adjustment_not_allowed" | "action_adjustment_ineligible" | "mechanical_decision_invalid" | "mechanical_decision_revision_mismatch" | "sequence_not_ready_for_narration" | "credential_store_read_only" | "credential_store_unavailable" | "credential_settings_unavailable" | "credential_not_configured" | "credential_validation_superseded" | "credential_validation_unavailable" | "authentication_required" | "authentication_failed" | "staff_authority_required" | "request_origin_rejected" | "byok_local_only" | "deployment_route_unavailable" | "identity_unavailable" | "account_operation_in_progress";
+        ApiErrorCode: "not_found" | "validation_failed" | "entitlement_blocked" | "byok_credentials_required" | "turn_in_flight" | "setup_required" | "setup_state_conflict" | "mode_unavailable" | "internal_error" | "pending_roll_not_found" | "pending_roll_not_player_visible" | "pending_roll_already_consumed" | "pending_roll_revision_mismatch" | "pending_roll_term_mismatch" | "pending_roll_invalid_value" | "pending_roll_invalid_aggregate" | "action_sequence_not_found" | "action_sequence_already_completed" | "action_sequence_state_conflict" | "action_adjustment_not_allowed" | "action_adjustment_ineligible" | "mechanical_decision_invalid" | "mechanical_decision_revision_mismatch" | "sequence_not_ready_for_narration" | "credential_store_read_only" | "credential_store_unavailable" | "credential_settings_unavailable" | "credential_not_configured" | "credential_validation_superseded" | "credential_validation_unavailable" | "authentication_required" | "authentication_failed" | "staff_authority_required" | "request_origin_rejected" | "byok_local_only" | "deployment_route_unavailable" | "identity_unavailable" | "account_operation_in_progress" | "operation_conflict" | "operation_stale" | "operation_precondition_failed" | "operation_outcome_unknown" | "operation_unavailable" | "operation_unsupported";
         /**
          * BeginStoryResponse
          * @description ``POST .../begin`` (ADR-016b). ``started``: the opening was delivered
@@ -1071,10 +1586,58 @@ export interface components {
              */
             schema_version: 1;
         };
+        /** ConfirmDeletionRequest */
+        ConfirmDeletionRequest: {
+            /** Expected Revision */
+            expected_revision: number;
+            /** Scope Revision */
+            scope_revision: string;
+            /** Password */
+            password?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * ConfirmDeletionResponse
+         * @description ``receipt_credential`` is shown once (remote account deletion): keep it
+         *     to read this request's status and receipt after the account is closed.
+         */
+        ConfirmDeletionResponse: {
+            request: components["schemas"]["DataRequestDTO"];
+            /** Receipt Credential */
+            receipt_credential?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
         /** ContactAddressRequest */
         ContactAddressRequest: {
             /** Contact Address */
             contact_address: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * CreateDataRequest
+         * @description The subject is always the authenticated (or local) owner; a request
+         *     never names an account.
+         */
+        CreateDataRequest: {
+            kind: components["schemas"]["DataRequestKind"];
+            scope: components["schemas"]["DataRequestScope"];
+            /** Story Id */
+            story_id?: string | null;
             /**
              * Schema Version
              * @default 1
@@ -1131,12 +1694,319 @@ export interface components {
              */
             schema_version: 1;
         };
+        /** CreditAdjustmentPreviewRequest */
+        CreditAdjustmentPreviewRequest: {
+            /** Hosted Credit Delta */
+            hosted_credit_delta?: string | null;
+            /** Top Up Credit Delta */
+            top_up_credit_delta?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * CreditAdjustmentPreviewResponse
+         * @description Target, signed deltas, current and resulting balances, and the
+         *     stale-state token to submit with the adjustment.
+         */
+        CreditAdjustmentPreviewResponse: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            current: components["schemas"]["HostedCreditsDTO"];
+            /** Hosted Credit Delta */
+            hosted_credit_delta: string;
+            /** Top Up Credit Delta */
+            top_up_credit_delta: string;
+            /** Resulting Included */
+            resulting_included: string | null;
+            /** Resulting Top Up */
+            resulting_top_up: string | null;
+            /** Last Entitlement Event Id */
+            last_entitlement_event_id: string | null;
+            /** Refusal Code */
+            refusal_code: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * CreditAdjustmentRequest
+         * @description ``operation_id`` is the logical action's stable identity: resubmit the
+         *     same one after an uncertain result; never mint a new one to retry.
+         */
+        CreditAdjustmentRequest: {
+            /**
+             * Operation Id
+             * Format: uuid
+             */
+            operation_id: string;
+            /** Hosted Credit Delta */
+            hosted_credit_delta?: string | null;
+            /** Top Up Credit Delta */
+            top_up_credit_delta?: string | null;
+            /** Reason */
+            reason: string;
+            /** Expected Last Entitlement Event Id */
+            expected_last_entitlement_event_id: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
         /**
          * CritiqueIntensity
          * @description How directly the persona delivers feedback.
          * @enum {string}
          */
         CritiqueIntensity: "gentle" | "balanced" | "blunt" | "ruthless";
+        /**
+         * DataRequestDTO
+         * @description Authoritative status. ``state`` is the last recorded transition;
+         *     ``progress_code`` names pending deletion phases (for example
+         *     ``active_data_removed_backups_pending``); ``overdue`` lists missed
+         *     deadlines. Completion is never inferred from a queued step.
+         */
+        DataRequestDTO: {
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            kind: components["schemas"]["DataRequestKind"];
+            /**
+             * Environment
+             * @enum {string}
+             */
+            environment: "remote" | "local";
+            scope: components["schemas"]["DataRequestScope"];
+            /** Story Ids */
+            story_ids: string[];
+            state: components["schemas"]["DataRequestState"];
+            /** Revision */
+            revision: number;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /**
+             * Verified At
+             * Format: date-time
+             */
+            verified_at: string;
+            /** Confirmed At */
+            confirmed_at: string | null;
+            /** Approved At */
+            approved_at: string | null;
+            /** Closed At */
+            closed_at: string | null;
+            /** Export Deadline At */
+            export_deadline_at: string | null;
+            /** Live Deadline At */
+            live_deadline_at: string | null;
+            /** Backup Deadline At */
+            backup_deadline_at: string | null;
+            /** Overdue */
+            overdue: string[];
+            /** Missed Deadlines */
+            missed_deadlines?: string[];
+            /** Progress Code */
+            progress_code: string | null;
+            /** Policy Version */
+            policy_version: string;
+            /** Transitions */
+            transitions: components["schemas"]["DataRequestTransitionDTO"][];
+            /** Phases */
+            phases: components["schemas"]["DataRequestPhaseDTO"][];
+            /** Receipts */
+            receipts: components["schemas"]["DataRequestReceiptDTO"][];
+            artifact: components["schemas"]["ExportArtifactDTO"] | null;
+            /** Subject Ref */
+            subject_ref?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * DataRequestKind
+         * @enum {string}
+         */
+        DataRequestKind: "export" | "deletion";
+        /** DataRequestListResponse */
+        DataRequestListResponse: {
+            /** Requests */
+            requests: components["schemas"]["DataRequestDTO"][];
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** DataRequestPhaseDTO */
+        DataRequestPhaseDTO: {
+            /** Phase Code */
+            phase_code: string;
+            /** Outcome Code */
+            outcome_code: string;
+            /**
+             * Attempt Id
+             * Format: uuid
+             */
+            attempt_id: string;
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Detail Code */
+            detail_code: string | null;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /** Deadline At */
+            deadline_at: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * DataRequestReceiptDTO
+         * @description An export manifest or deletion receipt: IDs, counts, classes, times.
+         */
+        DataRequestReceiptDTO: {
+            /**
+             * Receipt Id
+             * Format: uuid
+             */
+            receipt_id: string;
+            /** Receipt Kind */
+            receipt_kind: string;
+            /**
+             * Attempt Id
+             * Format: uuid
+             */
+            attempt_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Body */
+            body: {
+                [key: string]: unknown;
+            };
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * DataRequestScope
+         * @enum {string}
+         */
+        DataRequestScope: "story" | "account";
+        /**
+         * DataRequestState
+         * @enum {string}
+         */
+        DataRequestState: "requested" | "awaiting_authorization" | "approved" | "in_progress" | "completed" | "failed" | "rejected";
+        /** DataRequestStepRequest */
+        DataRequestStepRequest: {
+            /** Expected Revision */
+            expected_revision: number;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** DataRequestTransitionDTO */
+        DataRequestTransitionDTO: {
+            /** Revision */
+            revision: number;
+            state: components["schemas"]["DataRequestState"];
+            /** Attempt Id */
+            attempt_id: string | null;
+            /** Actor Role */
+            actor_role: string;
+            /** Actor Ref */
+            actor_ref?: string | null;
+            /** Authorization Code */
+            authorization_code: string | null;
+            /** Reason Code */
+            reason_code: string | null;
+            /** Reason Text */
+            reason_text: string | null;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * DeletionPreviewResponse
+         * @description What confirmation would delete and retain, with its limits. Submit
+         *     ``scope_revision`` with the confirmation: a changed scope is refused.
+         */
+        DeletionPreviewResponse: {
+            scope: components["schemas"]["DataRequestScope"];
+            /** Story Ids */
+            story_ids: string[];
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Removed Classes */
+            removed_classes: string[];
+            /** Retained Categories */
+            retained_categories: components["schemas"]["RetainedCategoryDTO"][];
+            /** Scope Revision */
+            scope_revision: string;
+            /** Live Deletion Limit Days */
+            live_deletion_limit_days: number;
+            /** Final Deletion Limit Days */
+            final_deletion_limit_days: number | null;
+            /** Commercial Dependency */
+            commercial_dependency: string;
+            /** Notices */
+            notices: string[];
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
         /**
          * DeploymentKind
          * @enum {string}
@@ -1154,6 +2024,124 @@ export interface components {
          * @enum {string}
          */
         DiceSelectionRule: "sum_all" | "keep_highest" | "keep_lowest";
+        /**
+         * EntitlementHistoryItemDTO
+         * @description One entitlement event's allowlisted effect fields. Free-text
+         *     ``detail`` is never shown (``has_detail`` says one exists).
+         */
+        EntitlementHistoryItemDTO: {
+            /** Global Sequence */
+            global_sequence: number;
+            /**
+             * Event Id
+             * Format: uuid
+             */
+            event_id: string;
+            /** Event Type */
+            event_type: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Turn Id */
+            turn_id?: string | null;
+            /** Support Operation Id */
+            support_operation_id?: string | null;
+            /** Plan */
+            plan?: string | null;
+            /** Hosted Credit Delta */
+            hosted_credit_delta?: string | null;
+            /** Top Up Credit Delta */
+            top_up_credit_delta?: string | null;
+            /** Effective At */
+            effective_at?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Purchased At */
+            purchased_at?: string | null;
+            /** Reason Code */
+            reason_code?: string | null;
+            /** Manual Reason */
+            manual_reason?: string | null;
+            /** Adjusted By */
+            adjusted_by?: string | null;
+            /** External Source */
+            external_source?: string | null;
+            /** External Reference Id */
+            external_reference_id?: string | null;
+            /**
+             * Has Detail
+             * @default false
+             */
+            has_detail: boolean;
+            /** Parse Error */
+            parse_error?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * EntitlementHistoryResponse
+         * @description A page of the subject's entitlement events in replay order
+         *     (``global_sequence`` ascending, strictly after ``after_sequence``).
+         *     ``next_after_sequence`` continues it; None means this page is the end.
+         */
+        EntitlementHistoryResponse: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /**
+             * Order
+             * @default global_sequence_ascending
+             * @constant
+             */
+            order: "global_sequence_ascending";
+            /** After Sequence */
+            after_sequence: number;
+            /** Events */
+            events: components["schemas"]["EntitlementHistoryItemDTO"][];
+            /** Total Events */
+            total_events: number;
+            /** Next After Sequence */
+            next_after_sequence: number | null;
+            replay: components["schemas"]["ReplayCheckDTO"];
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** ExportArtifactDTO */
+        ExportArtifactDTO: {
+            /** Status */
+            status: string;
+            /** Available At */
+            available_at: string | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Removed At */
+            removed_at: string | null;
+            /** Size Bytes */
+            size_bytes: number | null;
+            /** Delivered At */
+            delivered_at?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1609,6 +2597,117 @@ export interface components {
             expected_instruction_revision: number;
             /** Term Results */
             term_results: components["schemas"]["PlayerRollTermResult"][];
+        };
+        /** ReceiptLookupRequest */
+        ReceiptLookupRequest: {
+            /** Request Id */
+            request_id: string;
+            /**
+             * Credential
+             * Format: password
+             */
+            credential: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * ReissueReceiptCredentialRequest
+         * @description Password re-authentication to replace a lost receipt credential.
+         */
+        ReissueReceiptCredentialRequest: {
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** RejectDataRequest */
+        RejectDataRequest: {
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Reason Code
+             * @enum {string}
+             */
+            reason_code: "out_of_scope" | "unverified_requester" | "duplicate" | "administrator";
+            /** Reason */
+            reason: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * ReplayCheckDTO
+         * @description Replay of the ordered ledger compared with the projection -- reported,
+         *     never repaired.
+         */
+        ReplayCheckDTO: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "consistent" | "mismatch" | "unreadable" | "absent";
+            /** Detail Code */
+            detail_code?: string | null;
+            /** Through Sequence */
+            through_sequence?: number | null;
+            /** Mismatched Fields */
+            mismatched_fields?: string[];
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** RetainedCategoryDTO */
+        RetainedCategoryDTO: {
+            /** Code */
+            code: string;
+            /** Purpose */
+            purpose: string;
+            /** End Condition */
+            end_condition: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * RetentionSweepResponse
+         * @description Counts removed at one instant under the approved D4 schedule.
+         */
+        RetentionSweepResponse: {
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /**
+             * Swept At
+             * Format: date-time
+             */
+            swept_at: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
         };
         /** RevokeSessionsRequest */
         RevokeSessionsRequest: {
@@ -2176,6 +3275,104 @@ export interface components {
          * @enum {string}
          */
         StyleDensity: "sparse" | "balanced" | "lush" | "literary" | "pulp";
+        /** SupportEventDTO */
+        SupportEventDTO: {
+            /**
+             * Event Id
+             * Format: uuid
+             */
+            event_id: string;
+            /** Event Order */
+            event_order: number;
+            /**
+             * Operation Id
+             * Format: uuid
+             */
+            operation_id: string;
+            /** Actor Ref */
+            actor_ref: string;
+            /** Action Code */
+            action_code: string;
+            /** Target Type */
+            target_type: string;
+            /** Target Ref */
+            target_ref: string;
+            /** Reason Code */
+            reason_code: string;
+            /** Reason Text */
+            reason_text: string | null;
+            /** Hosted Credit Delta */
+            hosted_credit_delta: string | null;
+            /** Top Up Credit Delta */
+            top_up_credit_delta: string | null;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /** Outcome Code */
+            outcome_code: string;
+            /** Source Entitlement Event Id */
+            source_entitlement_event_id: string | null;
+            /** Supersedes Event Id */
+            supersedes_event_id: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * SupportHistoryResponse
+         * @description The account's support stream in its own ``event_order``. Correlate with
+         *     entitlement history by ``source_entitlement_event_id`` only.
+         */
+        SupportHistoryResponse: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Events */
+            events: components["schemas"]["SupportEventDTO"][];
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * SupportOperationResponse
+         * @description Authoritative outcome: ``committed`` only with its entitlement event
+         *     and refreshed balances; ``requested`` means not yet confirmed.
+         */
+        SupportOperationResponse: {
+            /**
+             * Operation Id
+             * Format: uuid
+             */
+            operation_id: string;
+            /** Outcome Code */
+            outcome_code: string;
+            /** Source Entitlement Event Id */
+            source_entitlement_event_id: string | null;
+            /** Events */
+            events: components["schemas"]["SupportEventDTO"][];
+            account?: components["schemas"]["AdminAccountViewResponse"] | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
         /** TranscriptResponse */
         TranscriptResponse: {
             /** Turns */
@@ -3287,6 +4484,1091 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_entitlement_history_api_admin_accounts__account_id__entitlement_history_get: {
+        parameters: {
+            query?: {
+                after_sequence?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementHistoryResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_support_actions_api_admin_accounts__account_id__support_actions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportHistoryResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    preview_credit_adjustment_api_admin_accounts__account_id__credit_adjustments_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreditAdjustmentPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditAdjustmentPreviewResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    adjust_credits_api_admin_accounts__account_id__credit_adjustments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreditAdjustmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportOperationResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_support_operation_api_admin_support_operations__operation_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                operation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportOperationResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    list_all_data_requests_api_admin_data_requests_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequestListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_any_data_request_api_admin_data_requests__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequestDTO"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    approve_data_request_api_admin_data_requests__request_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataRequestStepRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequestDTO"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    reject_data_request_api_admin_data_requests__request_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectDataRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequestDTO"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    execute_data_request_api_admin_data_requests__request_id__execute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataRequestStepRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequestDTO"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    finalize_data_request_api_admin_data_requests__request_id__finalize_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequestDTO"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_anomalies_api_admin_anomalies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnomalyReportResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    note_anomaly_api_admin_anomalies__anomaly_id__notes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                anomaly_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnomalyNoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnomalyDTO"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    run_retention_sweep_api_admin_maintenance_retention_sweep_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetentionSweepResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4735,6 +7017,704 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    list_data_requests_api_data_requests_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequestListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    create_data_request_api_data_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDataRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequestDTO"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    read_receipt_api_data_requests_receipt_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReceiptLookupRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequestDTO"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_data_request_api_data_requests__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequestDTO"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_deletion_preview_api_data_requests__request_id__deletion_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionPreviewResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    confirm_deletion_api_data_requests__request_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmDeletionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfirmDeletionResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    execute_local_request_api_data_requests__request_id__execute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataRequestStepRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequestDTO"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    download_artifact_api_data_requests__request_id__artifact_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    reissue_receipt_credential_api_data_requests__request_id__receipt_credential_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReissueReceiptCredentialRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfirmDeletionResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

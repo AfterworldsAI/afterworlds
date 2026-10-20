@@ -26,16 +26,23 @@ import gc
 import sys
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from chromadb.api.shared_system_client import SharedSystemClient
 
 from afterworlds.api.config import load_settings
+from afterworlds.operations.compaction import compaction_unfinished
+from afterworlds.operations.enforcement import (
+    physical_disposal_pending,
+    restore_enforced,
+)
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.pipeline.retrieval.client import build_chroma_client
 from afterworlds.pipeline.retrieval.collections import (
     get_existing_story_memory_collection_for_delete,
 )
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
+from afterworlds.remote.control_orm import RestoreRecordORM
 from afterworlds.remote.control_store import (
     ControlStoreUnavailable,
     connect_control_store,
@@ -51,6 +58,7 @@ from afterworlds.remote.storage import (
     refuse_store_aliasing,
     restore_snapshot,
     sqlite_path,
+    suppressed_content_present,
     verify_restore,
 )
 
@@ -67,6 +75,13 @@ def _chunk_counter(config: RetrievalMemoryConfig) -> Callable[[str], int]:
         return len(collection.get(where={"story_id": story_id}).get("ids") or [])
 
     return count
+
+
+def _copied(control: Any, restore_id: str) -> bool:
+    """The restore replaced both stores and awaits enforcement."""
+    with control() as s:
+        row = s.get(RestoreRecordORM, restore_id)
+        return row is not None and row.status == "pending_enforcement"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -132,6 +147,13 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     config = RetrievalMemoryConfig.from_env()
     vector_dir = Path(config.persist_directory)
+    if compaction_unfinished(vector_dir):
+        print(
+            f"{args.command} refused: a store compaction did not finish; run "
+            "`python -m afterworlds.operations.maintenance compact` again",
+            file=sys.stderr,
+        )
+        return 1
     confidential = [settings.notice_outbox_dir] if settings.notice_outbox_dir else []
     db_path = sqlite_path(settings.database_url)
     with maintenance_locks(
@@ -143,6 +165,16 @@ def main(argv: list[str] | None = None) -> int:
         content = create_session_factory(engine)
         try:
             if args.command == "capture":
+                # CRD Issue 22: a capture before physical compaction would copy
+                # deleted content in free pages or vector segments.
+                pending = physical_disposal_pending(control)
+                if pending:
+                    raise StoreRefused(
+                        "deleted content awaits physical compaction ("
+                        + ", ".join(pending)
+                        + "); run `python -m afterworlds.operations.maintenance "
+                        "compact` first"
+                    )
                 print(
                     capture_snapshot(
                         control,
@@ -157,6 +189,20 @@ def main(argv: list[str] | None = None) -> int:
                     )
                 )
             elif args.command == "restore":
+                # CRD Issue 22: a fallback settlement-coverage gap kept only in
+                # the live content store moves to the control store (not
+                # restored with content) before that store is replaced.
+                from sqlalchemy.exc import SQLAlchemyError
+
+                from afterworlds.operations.anomalies import promote_coverage_gaps
+
+                try:
+                    promote_coverage_gaps(content, control, now=now)
+                except SQLAlchemyError:
+                    raise StoreRefused(
+                        "settlement coverage records in the live content store "
+                        "could not be preserved"
+                    ) from None
                 engine.dispose()  # the live file is about to be replaced
                 print(
                     restore_snapshot(
@@ -170,6 +216,25 @@ def main(argv: list[str] | None = None) -> int:
                     )
                 )
             elif args.command == "verify-restore":
+                # CRD Issue 22: a restored store is admitted only after every
+                # active deletion and retention expiry was re-applied
+                # (enforce-restore). #205's own refusals and its list of
+                # suppressed Stories still present come first, unchanged.
+                if _copied(control, args.restore_id) and not restore_enforced(
+                    control, args.restore_id
+                ):
+                    remaining = suppressed_content_present(
+                        control, content, _chunk_counter(config)
+                    )
+                    if remaining:
+                        print(
+                            "suppressed stories still present: " + ", ".join(remaining)
+                        )
+                        return 2
+                    raise StoreRefused(
+                        "the restore has not been enforced; run `python -m "
+                        "afterworlds.operations.maintenance enforce-restore` first"
+                    )
                 remaining = verify_restore(
                     control,
                     args.restore_id,

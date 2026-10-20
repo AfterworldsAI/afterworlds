@@ -17,6 +17,7 @@ the same ``404`` as a missing one.
 
 from __future__ import annotations
 
+import re
 from collections.abc import AsyncIterator, Callable
 from typing import NoReturn
 from uuid import UUID
@@ -58,11 +59,18 @@ PUBLIC_PATHS = frozenset(
         "/api/auth/recovery",
         "/api/auth/recovery/complete",
         "/api/admin/session",
+        # CRD Issue 22 post-closure receipt: credential-bound, never by ID.
+        "/api/data-requests/receipt",
     }
 )
 _REMOTE_ONLY_PREFIXES = ("/api/admin", "/api/auth/", "/api/account/close")
 _LOCAL_ONLY_PREFIX = "/api/account/byok/"
 CLOSE_PATH = "/api/account/close"
+#: CRD Issue 22: a local owner's execution of their own data request.
+LOCAL_EXECUTE = re.compile(r"^/api/data-requests/[^/]+/execute$")
+#: CRD Issue 22: reissuing a lost receipt credential writes only the request's
+#: own receipt record, so it stays available while the account is fenced.
+SUPPRESSION_EXEMPT_SUFFIX = "/receipt-credential"
 _SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 _IDENTITY_ERRORS: dict[IdentityErrorKind, tuple[int, ApiErrorCode]] = {
@@ -107,10 +115,32 @@ async def enforce_access(request: Request) -> AsyncIterator[None]:
                 ApiErrorCode.DEPLOYMENT_ROUTE_UNAVAILABLE,
                 "This route is available only in the remote deployment.",
             )
-        request.state.actor = Actor(
-            kind=ActorKind.LOCAL, account_id=request.app.state.sojourner_id
-        )
-        yield
+        actor = Actor(kind=ActorKind.LOCAL, account_id=request.app.state.sojourner_id)
+        request.state.actor = actor
+        if LOCAL_EXECUTE.match(path):
+            # The local owner's own fulfillment takes the owner fence
+            # exclusive itself (CRD Issue 22).
+            yield
+            return
+        # CRD Issue 22: every local request holds the single local owner's
+        # fence shared, so a local deletion orders Story creation and turn
+        # admission against its final scope, as the account fence does
+        # remotely.
+        local_fence: AccountFence = request.app.state.account_fence
+        try:
+            shared = local_fence.shared(actor.account_id)
+            shared.__enter__()
+        except FenceBusy:
+            raise ApiErrorResponse(
+                409,
+                ApiErrorCode.ACCOUNT_OPERATION_IN_PROGRESS,
+                "A data operation is in progress; try again shortly.",
+            ) from None
+        try:
+            mark_fence_held(actor.account_id, local_fence)
+            yield
+        finally:
+            shared.__exit__(None, None, None)
         return
     if request.method not in _SAFE_METHODS and request.headers.get(CSRF_HEADER) != "1":
         raise ApiErrorResponse(
@@ -160,8 +190,12 @@ async def enforce_access(request: Request) -> AsyncIterator[None]:
                 401, ApiErrorCode.AUTHENTICATION_REQUIRED, "Authentication required."
             )
         # An account under deletion admits no new account-owned effect.
-        if request.method not in _SAFE_METHODS and await run_in_threadpool(
-            access_policy(request).account_suppressed, actor.account_id
+        if (
+            request.method not in _SAFE_METHODS
+            and not path.endswith(SUPPRESSION_EXEMPT_SUFFIX)
+            and await run_in_threadpool(
+                access_policy(request).account_suppressed, actor.account_id
+            )
         ):
             raise ApiErrorResponse(
                 409,

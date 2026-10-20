@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field, SecretStr, StrictBool, StrictInt, field_validator
@@ -764,6 +764,19 @@ class StaffSessionResponse(BaseModel):
     schema_version: Literal[1] = 1
 
 
+class ReplayCheckDTO(BaseModel):
+    """Replay of the ordered ledger compared with the projection -- reported,
+    never repaired."""
+
+    model_config = {"extra": "forbid"}
+
+    status: Literal["consistent", "mismatch", "unreadable", "absent"]
+    detail_code: str | None = None
+    through_sequence: int | None = None
+    mismatched_fields: list[str] = Field(default_factory=list)
+    schema_version: Literal[1] = 1
+
+
 class AdminAccountViewResponse(BaseModel):
     """Owner-administrator view of one deliberately targeted hosted account.
 
@@ -781,6 +794,19 @@ class AdminAccountViewResponse(BaseModel):
     cloud_services: CloudServicesStatus
     byok_license_active: bool
     byok_readiness_source: ByokReadinessSource
+    # CRD Issue 22 support lookup: owning-source state, read-only.
+    #: "absent": no entitlement projection exists (never "zero").
+    entitlement_state: Literal["absent", "present"] = "absent"
+    hosted_access_active: bool = False
+    hosted_plan: str | None = None
+    cloud_services_expires_at: datetime | None = None
+    byok_license_purchased_at: datetime | None = None
+    #: Stale-state token for a remediation preview.
+    last_entitlement_event_id: UUID | None = None
+    #: Expected conditions, not anomalies: negative_balance,
+    #: credits_exhausted, hosted_inactive, cloud_services_lapsed.
+    expected_conditions: list[str] = Field(default_factory=list)
+    replay: ReplayCheckDTO | None = None
     schema_version: Literal[1] = 1
 
 
@@ -796,4 +822,433 @@ class RevokeSessionsResponse(BaseModel):
 
     account_id: UUID
     revoked_sessions: int
+    schema_version: Literal[1] = 1
+
+
+# ---------------------------------------------------------------------------
+# CRD Issue 22 support, history and remediation (Owner administrator only).
+# Untrusted text (reasons) is returned as plain text, never markup.
+# ---------------------------------------------------------------------------
+
+
+class EntitlementHistoryItemDTO(BaseModel):
+    """One entitlement event's allowlisted effect fields. Free-text
+    ``detail`` is never shown (``has_detail`` says one exists)."""
+
+    model_config = {"extra": "forbid"}
+
+    global_sequence: int
+    event_id: UUID
+    event_type: str
+    created_at: datetime
+    turn_id: UUID | None = None
+    support_operation_id: UUID | None = None
+    plan: str | None = None
+    hosted_credit_delta: str | None = None
+    top_up_credit_delta: str | None = None
+    effective_at: datetime | None = None
+    expires_at: datetime | None = None
+    purchased_at: datetime | None = None
+    reason_code: str | None = None
+    manual_reason: str | None = None
+    adjusted_by: str | None = None
+    external_source: str | None = None
+    external_reference_id: str | None = None
+    has_detail: bool = False
+    parse_error: str | None = None
+    schema_version: Literal[1] = 1
+
+
+class EntitlementHistoryResponse(BaseModel):
+    """A page of the subject's entitlement events in replay order
+    (``global_sequence`` ascending, strictly after ``after_sequence``).
+    ``next_after_sequence`` continues it; None means this page is the end."""
+
+    model_config = {"extra": "forbid"}
+
+    account_id: UUID
+    order: Literal["global_sequence_ascending"] = "global_sequence_ascending"
+    after_sequence: int
+    events: list[EntitlementHistoryItemDTO]
+    total_events: int
+    next_after_sequence: int | None
+    replay: ReplayCheckDTO
+    schema_version: Literal[1] = 1
+
+
+class SupportEventDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    event_id: UUID
+    event_order: int
+    operation_id: UUID
+    actor_ref: str
+    action_code: str
+    target_type: str
+    target_ref: str
+    reason_code: str
+    reason_text: str | None
+    hosted_credit_delta: str | None
+    top_up_credit_delta: str | None
+    requested_at: datetime
+    recorded_at: datetime
+    outcome_code: str
+    source_entitlement_event_id: UUID | None
+    supersedes_event_id: UUID | None
+    schema_version: Literal[1] = 1
+
+
+class SupportHistoryResponse(BaseModel):
+    """The account's support stream in its own ``event_order``. Correlate with
+    entitlement history by ``source_entitlement_event_id`` only."""
+
+    model_config = {"extra": "forbid"}
+
+    account_id: UUID
+    events: list[SupportEventDTO]
+    schema_version: Literal[1] = 1
+
+
+class CreditAdjustmentPreviewRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    hosted_credit_delta: str | None = Field(default=None, max_length=32)
+    top_up_credit_delta: str | None = Field(default=None, max_length=32)
+    schema_version: Literal[1] = 1
+
+
+class CreditAdjustmentPreviewResponse(BaseModel):
+    """Target, signed deltas, current and resulting balances, and the
+    stale-state token to submit with the adjustment."""
+
+    model_config = {"extra": "forbid"}
+
+    account_id: UUID
+    current: HostedCreditsDTO
+    hosted_credit_delta: str
+    top_up_credit_delta: str
+    resulting_included: str | None
+    resulting_top_up: str | None
+    last_entitlement_event_id: UUID | None
+    #: Why the entitlement owner would refuse it now (no effect would occur).
+    refusal_code: str | None
+    schema_version: Literal[1] = 1
+
+
+class CreditAdjustmentRequest(BaseModel):
+    """``operation_id`` is the logical action's stable identity: resubmit the
+    same one after an uncertain result; never mint a new one to retry."""
+
+    model_config = {"extra": "forbid"}
+
+    operation_id: UUID
+    hosted_credit_delta: str | None = Field(default=None, max_length=32)
+    top_up_credit_delta: str | None = Field(default=None, max_length=32)
+    reason: str = Field(min_length=1, max_length=280)
+    expected_last_entitlement_event_id: UUID | None
+    schema_version: Literal[1] = 1
+
+
+class SupportOperationResponse(BaseModel):
+    """Authoritative outcome: ``committed`` only with its entitlement event
+    and refreshed balances; ``requested`` means not yet confirmed."""
+
+    model_config = {"extra": "forbid"}
+
+    operation_id: UUID
+    outcome_code: str
+    source_entitlement_event_id: UUID | None
+    events: list[SupportEventDTO]
+    account: AdminAccountViewResponse | None = None
+    schema_version: Literal[1] = 1
+
+
+# ---------------------------------------------------------------------------
+# CRD Issue 22 data requests (Story and account-wide export/deletion).
+# ---------------------------------------------------------------------------
+
+
+class DataRequestKind(StrEnum):
+    EXPORT = "export"
+    DELETION = "deletion"
+
+
+class DataRequestScope(StrEnum):
+    STORY = "story"
+    ACCOUNT = "account"
+
+
+class DataRequestState(StrEnum):
+    REQUESTED = "requested"
+    AWAITING_AUTHORIZATION = "awaiting_authorization"
+    APPROVED = "approved"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    REJECTED = "rejected"
+
+
+class CreateDataRequest(BaseModel):
+    """The subject is always the authenticated (or local) owner; a request
+    never names an account."""
+
+    model_config = {"extra": "forbid"}
+
+    kind: DataRequestKind
+    scope: DataRequestScope
+    story_id: UUID | None = None
+    schema_version: Literal[1] = 1
+
+
+class DataRequestTransitionDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    revision: int
+    state: DataRequestState
+    attempt_id: UUID | None
+    #: requester | administrator | system
+    actor_role: str
+    #: Administrator views only.
+    actor_ref: str | None = None
+    authorization_code: str | None
+    reason_code: str | None
+    reason_text: str | None
+    recorded_at: datetime
+    schema_version: Literal[1] = 1
+
+
+class DataRequestPhaseDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    phase_code: str
+    #: pending | succeeded | failed | unverified | not_applicable |
+    #: dependency_unavailable | owner_controlled
+    outcome_code: str
+    attempt_id: UUID
+    counts: dict[str, int]
+    detail_code: str | None
+    observed_at: datetime
+    deadline_at: datetime | None
+    schema_version: Literal[1] = 1
+
+
+class DataRequestReceiptDTO(BaseModel):
+    """An export manifest or deletion receipt: IDs, counts, classes, times."""
+
+    model_config = {"extra": "forbid"}
+
+    receipt_id: UUID
+    receipt_kind: str
+    attempt_id: UUID
+    created_at: datetime
+    body: dict[str, Any]
+    schema_version: Literal[1] = 1
+
+
+class ExportArtifactDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    status: str
+    available_at: datetime | None
+    expires_at: datetime
+    removed_at: datetime | None
+    size_bytes: int | None
+    #: A download to the owner completed (its whole body was sent).
+    delivered_at: datetime | None = None
+    schema_version: Literal[1] = 1
+
+
+class DataRequestDTO(BaseModel):
+    """Authoritative status. ``state`` is the last recorded transition;
+    ``progress_code`` names pending deletion phases (for example
+    ``active_data_removed_backups_pending``); ``overdue`` lists missed
+    deadlines. Completion is never inferred from a queued step."""
+
+    model_config = {"extra": "forbid"}
+
+    request_id: UUID
+    kind: DataRequestKind
+    environment: Literal["remote", "local"]
+    scope: DataRequestScope
+    story_ids: list[UUID]
+    state: DataRequestState
+    revision: int
+    requested_at: datetime
+    verified_at: datetime
+    confirmed_at: datetime | None
+    approved_at: datetime | None
+    closed_at: datetime | None
+    export_deadline_at: datetime | None
+    live_deadline_at: datetime | None
+    backup_deadline_at: datetime | None
+    overdue: list[str]
+    #: Deadlines a completed request missed: a late completion stays visible.
+    missed_deadlines: list[str] = Field(default_factory=list)
+    progress_code: str | None
+    policy_version: str
+    transitions: list[DataRequestTransitionDTO]
+    phases: list[DataRequestPhaseDTO]
+    receipts: list[DataRequestReceiptDTO]
+    artifact: ExportArtifactDTO | None
+    #: Administrator views only.
+    subject_ref: UUID | None = None
+    schema_version: Literal[1] = 1
+
+
+class DataRequestListResponse(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    requests: list[DataRequestDTO]
+    schema_version: Literal[1] = 1
+
+
+class RetainedCategoryDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    code: str
+    purpose: str
+    end_condition: str
+    schema_version: Literal[1] = 1
+
+
+class DeletionPreviewResponse(BaseModel):
+    """What confirmation would delete and retain, with its limits. Submit
+    ``scope_revision`` with the confirmation: a changed scope is refused."""
+
+    model_config = {"extra": "forbid"}
+
+    scope: DataRequestScope
+    story_ids: list[UUID]
+    counts: dict[str, int]
+    removed_classes: list[str]
+    retained_categories: list[RetainedCategoryDTO]
+    scope_revision: str
+    live_deletion_limit_days: int
+    final_deletion_limit_days: int | None
+    commercial_dependency: str
+    notices: list[str]
+    schema_version: Literal[1] = 1
+
+
+class ConfirmDeletionRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    expected_revision: StrictInt
+    scope_revision: str = Field(min_length=1, max_length=64)
+    #: Required to confirm remote account deletion.
+    password: SecretStr | None = Field(default=None, max_length=1024)
+    schema_version: Literal[1] = 1
+
+
+class ConfirmDeletionResponse(BaseModel):
+    """``receipt_credential`` is shown once (remote account deletion): keep it
+    to read this request's status and receipt after the account is closed."""
+
+    model_config = {"extra": "forbid"}
+
+    request: DataRequestDTO
+    receipt_credential: str | None = None
+    schema_version: Literal[1] = 1
+
+
+class DataRequestStepRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    expected_revision: StrictInt
+    reason: str | None = Field(default=None, max_length=280)
+    schema_version: Literal[1] = 1
+
+
+class RejectDataRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    expected_revision: StrictInt
+    reason_code: Literal[
+        "out_of_scope", "unverified_requester", "duplicate", "administrator"
+    ]
+    reason: str = Field(min_length=1, max_length=280)
+    schema_version: Literal[1] = 1
+
+
+class ReissueReceiptCredentialRequest(BaseModel):
+    """Password re-authentication to replace a lost receipt credential."""
+
+    model_config = {"extra": "forbid"}
+
+    password: SecretStr = Field(min_length=1, max_length=1024)
+    schema_version: Literal[1] = 1
+
+
+class ReceiptLookupRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    request_id: str = Field(min_length=1, max_length=64)
+    credential: SecretStr = Field(min_length=1, max_length=128)
+    schema_version: Literal[1] = 1
+
+
+# ---------------------------------------------------------------------------
+# CRD Issue 22 anomaly visibility and retention maintenance (administrator).
+# ---------------------------------------------------------------------------
+
+
+class AnomalyNoteDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    state: str
+    note_code: str | None
+    note_text: str | None
+    actor: str
+    recorded_at: datetime
+    schema_version: Literal[1] = 1
+
+
+class AnomalyDTO(BaseModel):
+    """Evidence, not a score: the durable source, subject, observation time,
+    a safe explanation and the investigation state."""
+
+    model_config = {"extra": "forbid"}
+
+    anomaly_id: str
+    source_kind: str
+    source_id: str
+    subject_ref: UUID | None
+    observed_at: datetime
+    signal_code: str
+    explanation: str
+    investigation_state: str
+    notes: list[AnomalyNoteDTO]
+    schema_version: Literal[1] = 1
+
+
+class AnomalyReportResponse(BaseModel):
+    """``sources`` says which inputs were read: ``unavailable`` is never an
+    all-clear; ``not_integrated`` marks CRD Issue 23 payment events."""
+
+    model_config = {"extra": "forbid"}
+
+    anomalies: list[AnomalyDTO]
+    sources: dict[str, str]
+    generated_at: datetime
+    schema_version: Literal[1] = 1
+
+
+class AnomalyNoteRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    state: Literal["open", "investigating", "closed"]
+    note_code: Literal[
+        "investigating", "explained_expected", "escalated", "resolved", "other"
+    ]
+    note_text: str | None = Field(default=None, max_length=280)
+    schema_version: Literal[1] = 1
+
+
+class RetentionSweepResponse(BaseModel):
+    """Counts removed at one instant under the approved D4 schedule."""
+
+    model_config = {"extra": "forbid"}
+
+    counts: dict[str, int]
+    swept_at: datetime
     schema_version: Literal[1] = 1

@@ -90,6 +90,22 @@ export default defineConfig({
       timeout: 60_000,
       use: { baseURL: "http://127.0.0.1:8004" },
     },
+    {
+      // CRD Issue 22: support, export/deletion and receipts on the remote
+      // deployment -- its own scripts/e2e_remote_server.py instance.
+      name: "operations",
+      testMatch: "operations.spec.ts",
+      timeout: 120_000,
+      use: { baseURL: "http://127.0.0.1:8005", acceptDownloads: true },
+    },
+    {
+      // CRD Issue 22: local BYOK data operations, no account -- its own
+      // local store.
+      name: "local-data",
+      testMatch: "local-data.spec.ts",
+      timeout: 60_000,
+      use: { baseURL: "http://127.0.0.1:8006", acceptDownloads: true },
+    },
   ],
   webServer: [
     {
@@ -156,6 +172,35 @@ export default defineConfig({
       timeout: 60_000,
       env: {
         PYTHONPATH: `src${delimiter}.`,
+      },
+    },
+    {
+      command: "python scripts/e2e_remote_server.py --port 8005",
+      cwd: "..",
+      url: "http://127.0.0.1:8005/api/health",
+      reuseExistingServer: false,
+      timeout: 60_000,
+      env: {
+        PYTHONPATH: `src${delimiter}.`,
+      },
+    },
+    {
+      command:
+        "python -m uvicorn afterworlds.main:app --host 127.0.0.1 --port 8006",
+      cwd: "..",
+      url: "http://127.0.0.1:8006/api/health",
+      reuseExistingServer: false,
+      timeout: 30_000,
+      env: {
+        PYTHONPATH: "src",
+        AFTERWORLDS_DATABASE_URL: databaseUrl.replace(
+          /\.db$/,
+          "-local-data.db",
+        ),
+        AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY: `${retrievalPersistDirectory}-local-data`,
+        AFTERWORLDS_FRONTEND_DIST: "./frontend/dist",
+        AFTERWORLDS_FAKE_PROVIDER: "1",
+        AFTERWORLDS_CI: "1",
       },
     },
   ],

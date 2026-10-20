@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import AccountPanel from "./AccountPanel";
+import DataRequestsPanel, { ReceiptLookup } from "./DataRequestsPanel";
 import {
   api,
   ApiRequestError,
@@ -11,6 +12,7 @@ import { localStorageState } from "./localStorage";
 import SignIn from "./SignIn";
 import StoryList from "./StoryList";
 import StoryView from "./StoryView";
+import SupportConsole from "./SupportConsole";
 
 export default function App() {
   const [storyId, setStoryId] = useState<string | null>(() =>
@@ -19,6 +21,13 @@ export default function App() {
   // CRD Issue 20: the account view is a separate screen, re-read whenever it
   // opens and whenever a turn completes (settlement may have changed it).
   const [showAccount, setShowAccount] = useState(false);
+  // CRD Issue 22: your Story/account export and deletion requests.
+  const [showData, setShowData] = useState(false);
+  // CRD Issue 22: the Owner's staff console is a separate session at #staff;
+  // the server decides staff authority on every request.
+  const [staffView, setStaffView] = useState(
+    () => window.location.hash === "#staff",
+  );
   const [settledTurns, setSettledTurns] = useState(0);
   // Prerequisite #205: remote deployments need a session; local ones never
   // do. Presentation only -- the server enforces every request regardless.
@@ -37,6 +46,7 @@ export default function App() {
     localStorageState.clearAccountState();
     setStoryId(null);
     setShowAccount(false);
+    setShowData(false);
     setSignInNotice(notice);
     setSignOutError(null);
     setSession(() => ({
@@ -90,6 +100,12 @@ export default function App() {
   }
 
   useEffect(() => {
+    const onHash = () => setStaffView(window.location.hash === "#staff");
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  useEffect(() => {
     discover();
     setSignedOutListener(() =>
       signedOut("Your session ended. Sign in again to continue."),
@@ -118,6 +134,17 @@ export default function App() {
   }
 
   const remote = session?.deployment === "remote";
+  if (remote && staffView) {
+    return (
+      <main>
+        <header>
+          <h1>Afterworlds staff</h1>
+          <a href="#">Back to the app</a>
+        </header>
+        <SupportConsole />
+      </main>
+    );
+  }
   if (remote && !session?.signed_in) {
     return (
       <main>
@@ -131,6 +158,8 @@ export default function App() {
             setSession(status);
           }}
         />
+        {/* CRD Issue 22: a closed account's requests stay readable by receipt code. */}
+        <ReceiptLookup />
       </main>
     );
   }
@@ -149,8 +178,23 @@ export default function App() {
             Back to stories
           </button>
         )}
-        <button type="button" onClick={() => setShowAccount((v) => !v)}>
+        <button
+          type="button"
+          onClick={() => {
+            setShowData(false);
+            setShowAccount((v) => !v);
+          }}
+        >
           {showAccount ? "Close account" : "Account & BYOK"}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setShowAccount(false);
+            setShowData((v) => !v);
+          }}
+        >
+          {showData ? "Close your data" : "Your data"}
         </button>
         {remote && (
           <>
@@ -166,7 +210,9 @@ export default function App() {
         )}
       </header>
       {signOutError && <p role="alert">{signOutError}</p>}
-      {showAccount ? (
+      {showData ? (
+        <DataRequestsPanel local={!remote} />
+      ) : showAccount ? (
         <AccountPanel refreshKey={settledTurns} />
       ) : storyId ? (
         // Keyed: another story is a fresh view, so no late response or

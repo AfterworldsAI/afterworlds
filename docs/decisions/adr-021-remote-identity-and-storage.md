@@ -175,7 +175,8 @@ detachment through `account_resources`; Turn IDs are captured by the pre-detachm
   account's scope or a mismatched entitlement subject is refused before the service runs.
 - Delayed work carries the same explicit scope, rechecked at every write. The only delayed job today
   is `scripts/retrieval_backfill.py`; it runs inside both store locks, refuses a pending restore, and
-  a closure or suppression mid-job stops its remaining writes. No product websocket,
+  a closure or suppression mid-job stops its remaining writes. *(CRD Issue 22, 2026-10-19: export
+  artifacts and their download route now exist under the same account boundary -- ADR-022.)* No product websocket,
   stream, upload/download, export artifact endpoint or account-scoped cache exists. Any later one
   inherits this boundary.
 

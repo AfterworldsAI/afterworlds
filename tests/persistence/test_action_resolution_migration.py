@@ -187,7 +187,7 @@ def test_the_empty_schema_round_trips(db: Path) -> None:
     assert "contest_resolution_json" not in _columns(db, "rpg_roll_audit")
     assert any("rpg_roll_audit" in t for t in _triggers(db))
     command.upgrade(_cfg(db), "head")
-    assert _version(db) == "0045"  # head: prerequisite #205 remote ownership
+    assert _version(db) == "0046"  # head: CRD Issue 22 operations records
 
 
 @pytest.mark.parametrize(
@@ -217,6 +217,9 @@ def test_downgrade_refuses_while_lifecycle_data_exists(db: Path, seed: str) -> N
     downgrade refuses before any change, leaving rows, columns and triggers."""
     command.upgrade(_cfg(db), "head")
     _sql(db, seed)
+    # Later revisions' own downgrades (e.g. CRD Issue 22's 0046 operations
+    # tables) run first; the refusal under test is 0043's.
+    command.downgrade(_cfg(db), "0043")
     pending, triggers = _columns(db, "pending_roll_requests"), _triggers(db)
     with pytest.raises(RuntimeError, match="Nothing was changed"):
         command.downgrade(_cfg(db), "0042")

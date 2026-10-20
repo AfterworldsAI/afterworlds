@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Callable
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
@@ -59,6 +60,11 @@ from afterworlds.entitlement.policy import TurnCostPolicy
 from afterworlds.entitlement.service import EntitlementService
 from afterworlds.models.enums import BranchingPlayStatus, StoryMode
 from afterworlds.models.story import Story
+from afterworlds.operations.anomalies import (
+    SETTLEMENT_SINK,
+    SettlementSink,
+    record_settlement_failure,
+)
 from afterworlds.persistence.crud.node import list_turns_by_story
 from afterworlds.persistence.crud.session_state import (
     get_branching_session_state_by_story,
@@ -354,6 +360,17 @@ def _run_turn_sync(
                     },
                 )
                 settlement_warning = str(exc)
+                # CRD Issue 22: the durable, source-linked anomaly is recorded
+                # here, inside the admitted worker, so a cancelled or lost
+                # HTTP response cannot drop it (review round 2, F9). The turn
+                # stays delivered; nothing is retried or charged.
+                record_settlement_failure(
+                    SETTLEMENT_SINK.get(),
+                    subject_ref=str(sojourner_id),
+                    turn_id=str(result.turn_id) if result.turn_id else None,
+                    error_class=type(exc).__name__,
+                    now=datetime.now(UTC),
+                )
 
         provider_refusal_dto = (
             ProviderRefusalSummaryDTO(
@@ -408,6 +425,12 @@ def _run_turn_sync(
         session.close()
 
 
+def _settlement_sink(request: Request) -> SettlementSink:
+    ops = request.app.state.ops_factory
+    content = request.app.state.session_factory
+    return SettlementSink(ops, content if content is not ops else None)
+
+
 @router.post("/{story_id}/turns", response_model=TurnSubmissionResponse)
 async def submit_turn(
     story_id: UUID,
@@ -420,7 +443,8 @@ async def submit_turn(
     sojourner_id: UUID = Depends(get_sojourner_id),
     lock: asyncio.Lock = Depends(get_story_lock),
 ) -> TurnSubmissionResponse:
-    return await run_under_story_lock(
+    SETTLEMENT_SINK.set(_settlement_sink(request))
+    response = await run_under_story_lock(
         lock,
         _submit_turn_sync,
         request.app.state.session_factory,
@@ -430,6 +454,7 @@ async def submit_turn(
         sojourner_id,
         body.user_input,
     )
+    return response
 
 
 @router.post(
@@ -452,7 +477,8 @@ async def begin_story(
     the ordinary access-path selection, pipeline and settlement. Runs under
     the story's turn lock, so repeated or concurrent requests serialize; once
     started, it answers ``already_started`` without any provider call."""
-    return await run_under_story_lock(
+    SETTLEMENT_SINK.set(_settlement_sink(request))
+    response = await run_under_story_lock(
         lock,
         _begin_sync,
         request.app.state.session_factory,
@@ -461,6 +487,7 @@ async def begin_story(
         story_id,
         sojourner_id,
     )
+    return response
 
 
 @router.post(
@@ -494,7 +521,8 @@ async def resume_rpg_sequence(
     narrated: success-equivalent (15b-32). The client refetches the
     transcript and the pending interaction instead of presenting an error.
     """
-    return await run_under_story_lock(
+    SETTLEMENT_SINK.set(_settlement_sink(request))
+    response = await run_under_story_lock(
         lock,
         _resume_sync,
         request.app.state.session_factory,
@@ -505,6 +533,7 @@ async def resume_rpg_sequence(
         sojourner_id,
         sequence_id,
     )
+    return response
 
 
 _MAX_PAGE_SIZE = 200

@@ -11,7 +11,9 @@ import asyncio
 import contextlib
 import gc
 import logging
+import tempfile
 from collections import defaultdict
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID
 
@@ -29,11 +31,16 @@ from afterworlds.api.db_bootstrap import upgrade_to_head
 from afterworlds.api.deps import provision_sojourner_id
 from afterworlds.api.errors import ApiError, ApiErrorCode, ApiErrorResponse
 from afterworlds.api.fake_pipeline import fake_credential_check
+from afterworlds.api.operations import (
+    OPERATIONS_PATH_PREFIXES,
+    operations_validation_location,
+)
 from afterworlds.api.pipeline_wiring import build_pipeline, fake_provider_enabled
 from afterworlds.api.remote_access import authorize_story, enforce_access
 from afterworlds.api.routes.account import router as account_router
 from afterworlds.api.routes.admin import router as admin_router
 from afterworlds.api.routes.auth import router as auth_router
+from afterworlds.api.routes.data_requests import router as data_requests_router
 from afterworlds.api.routes.health import router as health_router
 from afterworlds.api.routes.personas import router as personas_router
 from afterworlds.api.routes.rpg_actions import router as rpg_actions_router
@@ -44,12 +51,18 @@ from afterworlds.api.routes.stories import story_router
 from afterworlds.api.routes.turns import router as turns_router
 from afterworlds.api.routes.visible_state import router as visible_state_router
 from afterworlds.api.rpg_actions import RpgActions
+from afterworlds.operations.anomalies import AnomalyService
+from afterworlds.operations.compaction import compaction_unfinished
+from afterworlds.operations.service import DataRequestService
+from afterworlds.operations.support import SupportService
+from afterworlds.operations.vectors import story_chunk_deleter
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.pipeline.provider import (
     ByokCredentialReadinessProvider,
     ByokSettingsService,
 )
 from afterworlds.pipeline.provider.credentials import make_credential_store
+from afterworlds.pipeline.retrieval.client import build_chroma_client
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.remote.access import AccessPolicy, IdentityUnavailable, ScopedSeam
 from afterworlds.remote.control_store import open_control_store, utc_now
@@ -148,6 +161,17 @@ def _release_construction(app: FastAPI, chroma_before: dict[str, int]) -> None:
                 handle.close()
 
 
+def export_dir(settings: ApiSettings) -> Path:
+    """Where service-managed export artifacts live (CRD Issue 22)."""
+    if settings.export_dir is not None:
+        return settings.export_dir
+    try:
+        db = sqlite_path(settings.database_url)
+    except StoreRefused:  # an in-memory test store has no directory
+        return Path(tempfile.gettempdir()) / "afterworlds-exports"
+    return db.with_name(db.name + ".exports")
+
+
 def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
     remote = settings.deployment == "remote"
 
@@ -164,6 +188,7 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
         # The public static root is served unauthenticated: no live store may
         # be in or around it (checked before any store is created).
         private: list[tuple[Path | str, str]] = [
+            (export_dir(settings), "the export artifact directory"),
             (sqlite_path(settings.database_url), "the content store"),
             (vector_dir, "the live vector store"),
             (outbox, "the notice outbox"),
@@ -199,6 +224,11 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
                 "enforcement and verification; it cannot be served yet"
             )
         check_vector_store(vector_dir, control_factory)
+        if compaction_unfinished(vector_dir):
+            raise StoreRefused(
+                "a store compaction did not finish; run `python -m "
+                "afterworlds.operations.maintenance compact` again first"
+            )
         upgrade_to_head(settings.database_url)
         engine = app.state.engine = create_engine(settings.database_url)
         if initializing is not None:
@@ -213,6 +243,12 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
         # skipped Alembic-only DDL (append-only audit triggers) and, on a
         # fresh DB, any table whose ORM module app.py did not happen to
         # import. See db_bootstrap.py's docstring for the full defect writeup.
+        local_vectors = Path(RetrievalMemoryConfig.from_env().persist_directory)
+        if compaction_unfinished(local_vectors):
+            raise StoreRefused(
+                "a store compaction did not finish; run `python -m "
+                "afterworlds.operations.maintenance compact` again first"
+            )
         upgrade_to_head(settings.database_url)
         engine = app.state.engine = create_engine(settings.database_url)
     session_factory = create_session_factory(engine)
@@ -233,10 +269,27 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
         app.state.control_factory = control_factory
         app.state.access_policy = AccessPolicy(identity, control_factory)
         app.state.account_fence = fence
+        # CRD Issue 22: remote operational records live in the control store.
+        app.state.support = SupportService(control_factory, session_factory, identity)
+        # Fallback settlement-coverage gaps join the control store's streams
+        # (best effort; the anomaly view also reads unpromoted ones).
+        from sqlalchemy.exc import SQLAlchemyError
+
+        from afterworlds.operations.anomalies import promote_coverage_gaps
+
+        try:
+            promote_coverage_gaps(
+                session_factory, control_factory, now=datetime.now(UTC)
+            )
+        except SQLAlchemyError:
+            logger.error("coverage gap promotion failed at startup")
         # ADR-021 D4: no shared subject -- each request's account is its own.
     else:
         app.state.identity = None
         app.state.access_policy = AccessPolicy()
+        # CRD Issue 22: the single local owner's fence (local deletions take
+        # it exclusive; every other local request holds it shared).
+        app.state.account_fence = AccountFence()
         app.state.sojourner_id = provision_sojourner_id(session_factory)
     # Per-story turn-submission lock registry (Binding Decision 8). A single
     # choke point created once here, not per-request.
@@ -273,6 +326,29 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
             ),
             app.state.account_fence,
         )
+    # CRD Issue 22: Story and account-wide data requests, both deployments.
+    retrieval_config = RetrievalMemoryConfig.from_env()
+    app.state.data_requests = DataRequestService(
+        ops=control_factory if remote else session_factory,
+        content=session_factory,
+        environment="remote" if remote else "local",
+        policy=app.state.access_policy,
+        delete_story_chunks=story_chunk_deleter(
+            lambda: build_chroma_client(retrieval_config)
+        ),
+        export_dir=export_dir(settings),
+        identity=app.state.identity,
+        fence=app.state.account_fence,
+        support=app.state.support if remote else None,
+    )
+    app.state.anomalies = AnomalyService(
+        control_factory if remote else session_factory,
+        session_factory,
+        app.state.data_requests.store,
+        control=control_factory if remote else None,
+        now=utc_now,
+    )
+    app.state.ops_factory = control_factory if remote else session_factory
     # DoR-E: the readiness seam is constructed once here and consumed only
     # inside the access-path selection helper (api/access_path.py callers) --
     # never in a route handler directly.
@@ -311,6 +387,7 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
     app.include_router(rpg_setup_router, dependencies=story_guard)
     app.include_router(personas_router)
     app.include_router(account_router)
+    app.include_router(data_requests_router)
 
     @app.exception_handler(ApiErrorResponse)
     async def _api_error_handler(
@@ -345,12 +422,19 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
         # CRD Issue 20: on the account/credential surface an unknown property
         # name is client-chosen (it could carry a key), so locations there
         # name only known fields.
+        # CRD Issue 22: the same holds for the support and data-request
+        # surfaces, whose bodies carry operator/requester text.
         account = request.url.path.startswith(ACCOUNT_PATH_PREFIX)
+        operations = request.url.path.startswith(OPERATIONS_PATH_PREFIXES)
         detail = {
             (
                 account_validation_location(tuple(error["loc"]))
                 if account
-                else ".".join(str(part) for part in error["loc"])
+                else (
+                    operations_validation_location(tuple(error["loc"]))
+                    if operations
+                    else ".".join(str(part) for part in error["loc"])
+                )
             ): str(error["msg"])
             for error in exc.errors()
         }

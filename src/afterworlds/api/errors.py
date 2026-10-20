@@ -59,6 +59,13 @@ class ApiErrorCode(StrEnum):
     DEPLOYMENT_ROUTE_UNAVAILABLE = "deployment_route_unavailable"
     IDENTITY_UNAVAILABLE = "identity_unavailable"
     ACCOUNT_OPERATION_IN_PROGRESS = "account_operation_in_progress"
+    # CRD Issue 22 operations (``api/operations.py``).
+    OPERATION_CONFLICT = "operation_conflict"
+    OPERATION_STALE = "operation_stale"
+    OPERATION_PRECONDITION_FAILED = "operation_precondition_failed"
+    OPERATION_OUTCOME_UNKNOWN = "operation_outcome_unknown"
+    OPERATION_UNAVAILABLE = "operation_unavailable"
+    OPERATION_UNSUPPORTED = "operation_unsupported"
 
 
 class ApiError(BaseModel):

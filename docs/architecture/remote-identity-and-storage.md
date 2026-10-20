@@ -61,7 +61,7 @@ No record holds a raw password, session token, code, BYOK key, profile JSON or S
 | Entitlement events / projection | Subject = `account_id` |
 | Provider refusal log | `sojourner_id` = `account_id` |
 | Shared Rules Packages, corpus, Rules Chroma collection | Shared authority; no account ownership |
-| Generated files / exports / signed artifacts | None exist; any later one inherits the Story guard |
+| Generated files / exports / signed artifacts | None existed at #205. *CRD Issue 22 (2026-10-19):* service-managed export artifacts live in the export directory, inventoried in `ops_export_artifacts` (control store), downloadable only by the owning account's session; see [`crd-issue-22-operations.md`](crd-issue-22-operations.md) §4/§7 |
 | Account-scoped caches | None exist (`story_locks` is an in-process lock registry keyed by Story ID; `rpg_setup._character_schema` caches a static schema) |
 | Websocket / stream / upload / callback endpoints | None exist |
 
@@ -227,7 +227,8 @@ then select the package during setup. The local `reset_corpus_baseline.py` remai
    backup, disposal works normally at any time. No clock changes: `due` and backup disposition keep
    their 21-day and 30-day rules. Retry or supersede a stuck restore before its deadline; one left
    `copying` past it is an open recovery failure for CRD Issue 22 (#206) fulfillment.
-4. Enforce every active deletion suppression (CRD Issue 22 supplies this), then
+4. Enforce every active deletion suppression (CRD Issue 22 supplies this: `python -m
+   afterworlds.operations.maintenance enforce-restore`, [`crd-issue-22-operations.md`](crd-issue-22-operations.md) §8), then
    `... storage_cli verify-restore --restore-id <id>`. It refuses an unfinished copy; exit `2` lists
    suppressed Stories still present, and an unavailable Chroma read fails rather than counting as zero.
    Only `verified` lets the app start.
@@ -247,7 +248,8 @@ then select the package during setup. The local `reset_corpus_baseline.py` remai
 - Sign-in abuse/rate protection before public exposure.
 - Initial-market financial/privacy applicability (US, Canada, Mexico) before affected exceptions and
   public launch.
-- CRD Issue 22 fulfillment (export, deletion, suppression creation, retention expiry, anomalies) and CRD
+- *(Delivered by CRD Issue 22, pending acceptance: [`crd-issue-22-operations.md`](crd-issue-22-operations.md).)*
+  CRD Issue 22 fulfillment (export, deletion, suppression creation, retention expiry, anomalies) and CRD
   Issue 23 payments.
 - Multiworker coordination, if ever required.
 - **Accepting an unprovable restore (Owner decision):** "When a content restore cannot prove that the restored entitlement ledger contains every recorded event (the live store is lost, or events were recorded after capture), what authority and reconciliation accept the restored money/access state before hosted service resumes?" The foundation guarantee is

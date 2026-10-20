@@ -717,7 +717,7 @@ If Cloud Services lapse, hosted active-use services suspend. Existing hosted use
 - Each hosted account owns only the hosted records it explicitly creates. Initial remote stores import no local/test/proof data, and unknown ownership is never guessed.
 - The Owner is the sole initial full administrator through a controlled server-side bootstrap; staff authority is a separate session context and never includes local-device access or raw BYOK key disclosure.
 - Remote accounts are a deployment of the same orchestration path; they remove no continuity function or safety envelope (Business invariant: one canonical Sojourn path).
-- CRD Issue 22 owns support, export/deletion fulfillment, retention and anomaly visibility over this foundation; CRD Issue 23 owns payments and trial enrollment.
+- CRD Issue 22 owns support, export/deletion fulfillment, retention and anomaly visibility over this foundation; CRD Issue 23 owns payments and trial enrollment. *(Implemented 2026-10-19, pending acceptance: ADR-022 and [`crd-issue-22-operations.md`](crd-issue-22-operations.md).)*
 
 ### Billing Platform Ownership
 

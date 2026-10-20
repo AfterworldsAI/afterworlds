@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import gc
 import json
+import sys
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -91,6 +92,74 @@ class RemoteHarness:
         body = c.get("/api/auth/session").json()
         assert body["signed_in"], body
         return str(body["account_id"])
+
+    def staff(
+        self, address: str = "owner@example.test", *, enroll: bool = True
+    ) -> TestClient:
+        """Enroll *address* if needed, provision it as the Owner administrator
+        through the real bootstrap command, and return its staff client."""
+        import io
+
+        from afterworlds.remote import bootstrap
+
+        assert self.settings.control_database_url is not None
+        if enroll:
+            self.enroll(address)
+        stdin = sys.stdin
+        try:
+            sys.stdin = io.StringIO(PASSWORD + "\n")
+            code = bootstrap.main(
+                [
+                    "--contact-address",
+                    address,
+                    "--control-db",
+                    self.settings.control_database_url,
+                    "--password-stdin",
+                ]
+            )
+        finally:
+            sys.stdin = stdin
+        assert code == 0
+        staff = self.client()
+        resp = staff.post(
+            "/api/admin/session",
+            json={"contact_address": address, "password": PASSWORD},
+        )
+        assert resp.status_code == 200, resp.text
+        return staff
+
+    def seed_hosted(self, account_id: str, credits: str = "1000") -> None:
+        """Activate hosted access and grant credits through the entitlement
+        owner (stands in for CRD Issue 23's commercial events)."""
+        import uuid
+        from datetime import UTC, datetime
+        from decimal import Decimal
+
+        from afterworlds.entitlement.enums import (
+            EntitlementEventType,
+            HostedAccessPlan,
+        )
+        from afterworlds.entitlement.payloads import (
+            HostedAccessActivatedPayload,
+            SubscriptionCreditGrantPayload,
+        )
+        from afterworlds.entitlement.service import EntitlementService
+
+        with self.app.state.session_factory() as session:
+            service = EntitlementService(session)
+            subject = uuid.UUID(account_id)
+            service.receive_entitlement_event(
+                subject,
+                EntitlementEventType.HOSTED_ACCESS_ACTIVATED,
+                HostedAccessActivatedPayload(
+                    plan=HostedAccessPlan.SUBSCRIPTION, effective_at=datetime.now(UTC)
+                ),
+            )
+            service.receive_entitlement_event(
+                subject,
+                EntitlementEventType.SUBSCRIPTION_CREDIT_GRANT,
+                SubscriptionCreditGrantPayload(hosted_credit_delta=Decimal(credits)),
+            )
 
     def close(self) -> None:
         for c in self.clients:

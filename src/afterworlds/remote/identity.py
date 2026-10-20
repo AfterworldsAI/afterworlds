@@ -515,6 +515,113 @@ class IdentityService:
             )
         return revoked
 
+    def erase_account(
+        self, account_id: UUID, *, actor_ref: str, request_id: str
+    ) -> str:
+        """CRD Issue 22 account erasure, the identity owner's step.
+
+        Under the account fence (exclusive, bounded wait) and the write lock:
+        close the account if still active, revoke every session, and remove
+        the principal's contact address, password verifier, sessions and
+        verification operations. Keeps only the minimized ``hosted_accounts``
+        tombstone (ID, ``closed``, ``closed_at``, policy version), so the
+        identifier is never reused and the closure clock stays anchored. An
+        account whose principal holds an active administrator binding is
+        refused: erasure never silently removes administrator authority.
+        Returns ``erased`` or ``already_erased``; raises :class:`FenceBusy`
+        (nothing changed) if in-flight work does not finish in time."""
+        now = self._now()
+        # Undelivered notices (codes and the contact address) are a managed
+        # copy too: removed first, so a failure leaves nothing erased.
+        address = self.contact_address_of(account_id)
+        if address is not None:
+            self._notices.purge(address)
+        with (
+            self.fence.exclusive(account_id, timeout=self.close_fence_timeout),
+            self._locked() as s,
+        ):
+            account = s.get(HostedAccountORM, str(account_id))
+            if account is None:
+                raise IdentityError(
+                    IdentityErrorKind.TARGET_NOT_FOUND, "Account not found."
+                )
+            principal_ref = account.identity_subject_ref
+            principal = s.get(IdentityPrincipalORM, principal_ref)
+            if principal is not None and self._has_binding(s, principal_ref):
+                raise IdentityError(
+                    IdentityErrorKind.INVALID_INPUT,
+                    "The administrator's own account cannot be erased while "
+                    "its binding is active.",
+                )
+            if account.status == "active":
+                account.status = "closed"
+                account.closed_at = iso(now)
+            account.updated_at = iso(now)
+            if principal is None:
+                return "already_erased"
+            self._revoke_principal_sessions(s, principal_ref, now, "account_erased")
+            s.execute(
+                sa.delete(AuthSessionORM).where(
+                    AuthSessionORM.principal_ref == principal_ref
+                )
+            )
+            s.execute(
+                sa.delete(VerificationOperationORM).where(
+                    VerificationOperationORM.principal_ref == principal_ref
+                )
+            )
+            bound = s.scalar(
+                sa.select(AdminBindingORM.binding_id).where(
+                    AdminBindingORM.principal_ref == principal_ref
+                )
+            )
+            if bound is None:
+                s.delete(principal)
+            else:
+                # A revoked binding's receipt keeps the principal row (FK):
+                # only its address and verifier go.
+                principal.contact_address = f"erased-{principal_ref}@invalid"
+                principal.password_verifier = _UNUSABLE_VERIFIER
+                principal.account_id = None
+                principal.updated_at = iso(now)
+            self._audit(
+                s,
+                actor_ref=actor_ref,
+                action_code="account_erased",
+                target_ref=account.account_id,
+                operation_id=request_id,
+                now=now,
+            )
+        return "erased"
+
+    def reauthenticate(self, actor: Actor, password: str) -> bool:
+        """Password re-authentication of a current Sojourner session (CRD
+        Issue 22 account-deletion confirmation). Same scrypt work either way."""
+        self._require_kind(actor, ActorKind.SOJOURNER)
+        with self._factory() as s:
+            principal = s.get(IdentityPrincipalORM, actor.principal_ref)
+            verifier = principal.password_verifier if principal else None
+        return verify_password(password, verifier) and self.actor_is_current(actor)
+
+    def contact_address_of(self, account_id: UUID) -> str | None:
+        """The account's own contact address, for its owner's export only."""
+        with self._factory() as s:
+            principal = s.scalar(
+                sa.select(IdentityPrincipalORM).where(
+                    IdentityPrincipalORM.account_id == str(account_id)
+                )
+            )
+            return principal.contact_address if principal else None
+
+    def principal_holds_binding(self, account_id: UUID) -> bool:
+        """Whether the account's principal holds the active administrator
+        binding (its erasure is refused)."""
+        with self._factory() as s:
+            account = s.get(HostedAccountORM, str(account_id))
+            return account is not None and self._has_binding(
+                s, account.identity_subject_ref
+            )
+
     def actor_is_current(self, actor: Actor) -> bool:
         """Whether *actor*'s session is still current right now (not revoked
         or expired, account active, staff binding active for staff)."""
