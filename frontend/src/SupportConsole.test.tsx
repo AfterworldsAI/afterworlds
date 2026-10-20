@@ -94,22 +94,35 @@ function page(after: number, next: number | null) {
   };
 }
 
-const empty = {
-  "GET /api/admin/data-requests": [
-    () => json(200, { requests: [], schema_version: 1 }),
-  ],
-  "GET /api/admin/anomalies": [
-    () =>
-      json(200, {
-        anomalies: [],
-        sources: {
-          entitlement_replay: "unavailable",
-          commercial_events: "not_integrated",
-        },
-        generated_at: "2026-10-19T00:00:00Z",
-        schema_version: 1,
-      }),
-  ],
+const unauthenticated = () =>
+  json(401, {
+    error_code: "authentication_required",
+    message: "Authentication required.",
+    detail: null,
+    schema_version: 1,
+  });
+
+// Fresh queues per test: the first admin read finds no staff session.
+const empty = () => {
+  const routes: Record<string, (() => Response)[]> = {
+    "GET /api/admin/data-requests": [
+      () => json(200, { requests: [], schema_version: 1 }),
+    ],
+    "GET /api/admin/anomalies": [
+      () =>
+        json(200, {
+          anomalies: [],
+          sources: {
+            entitlement_replay: "unavailable",
+            commercial_events: "not_integrated",
+          },
+          generated_at: "2026-10-19T00:00:00Z",
+          schema_version: 1,
+        }),
+    ],
+  };
+  routes["GET /api/admin/data-requests"]!.unshift(unauthenticated);
+  return routes;
 };
 
 async function signIn() {
@@ -132,7 +145,7 @@ describe("SupportConsole", () => {
     const signedOut = vi.fn();
     setSignedOutListener(signedOut);
     stubFetch({
-      ...empty,
+      ...empty(),
       "POST /api/admin/session": [
         () =>
           json(401, {
@@ -150,6 +163,7 @@ describe("SupportConsole", () => {
         [() => json(200, page(1, null))],
     });
     render(<SupportConsole />);
+    await screen.findByRole("button", { name: "Sign in to staff" });
     await signIn();
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Authentication required.",
@@ -182,7 +196,7 @@ describe("SupportConsole", () => {
 
   it("previews, confirms once and reads back an uncertain adjustment by the same ID", async () => {
     const calls = stubFetch({
-      ...empty,
+      ...empty(),
       "POST /api/admin/session": [
         () => json(200, { signed_in: true, schema_version: 1 }),
       ],
@@ -214,6 +228,7 @@ describe("SupportConsole", () => {
       ],
     });
     render(<SupportConsole />);
+    await screen.findByRole("button", { name: "Sign in to staff" });
     await signIn();
     fireEvent.change(await screen.findByLabelText("Account ID"), {
       target: { value: ACCOUNT },
@@ -249,7 +264,7 @@ describe("SupportConsole", () => {
     ).toHaveLength(1);
 
     stubFetch({
-      ...empty,
+      ...empty(),
       [`GET /api/admin/support-operations/${operationId}`]: [
         () =>
           json(200, {
@@ -317,6 +332,7 @@ describe("SupportConsole", () => {
         () => json(200, { signed_in: true, schema_version: 1 }),
       ],
       "GET /api/admin/data-requests": [
+        unauthenticated,
         () => json(200, { requests: [request], schema_version: 1 }),
         () =>
           json(200, {
@@ -361,6 +377,7 @@ describe("SupportConsole", () => {
       ],
     });
     render(<SupportConsole />);
+    await screen.findByRole("button", { name: "Sign in to staff" });
     await signIn();
     fireEvent.click(await screen.findByRole("button", { name: "Approve" }));
     fireEvent.click(

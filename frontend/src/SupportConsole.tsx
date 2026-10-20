@@ -518,8 +518,16 @@ function Anomalies() {
 }
 
 export default function SupportConsole() {
-  const [signedIn, setSignedIn] = useState(false);
+  // null: still asking the server whether a staff session exists.
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [sweep, setSweep] = useState<string | null>(null);
+  useEffect(() => {
+    staffApi
+      .dataRequests()
+      .then(() => setSignedIn(true))
+      .catch(() => setSignedIn(false));
+  }, []);
+  if (signedIn === null) return <p>Checking staff session…</p>;
   if (!signedIn) return <StaffSignIn onSignedIn={() => setSignedIn(true)} />;
   return (
     <div>
