@@ -44,6 +44,7 @@ from afterworlds.api.routes.stories import story_router
 from afterworlds.api.routes.turns import router as turns_router
 from afterworlds.api.routes.visible_state import router as visible_state_router
 from afterworlds.api.rpg_actions import RpgActions
+from afterworlds.operations.support import SupportService
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.pipeline.provider import (
     ByokCredentialReadinessProvider,
@@ -233,6 +234,8 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
         app.state.control_factory = control_factory
         app.state.access_policy = AccessPolicy(identity, control_factory)
         app.state.account_fence = fence
+        # CRD Issue 22: remote operational records live in the control store.
+        app.state.support = SupportService(control_factory, session_factory, identity)
         # ADR-021 D4: no shared subject -- each request's account is its own.
     else:
         app.state.identity = None

@@ -47,11 +47,11 @@ def dispose_rows(
     if where is None:
         return 0
     target = sa.table(table, sa.column("rowid"))
-    rowids = [
+    rowids: list[int] = [
         int(r)
-        for r in session.scalars(
-            sa.select(sa.column("rowid")).select_from(sa.table(table)).where(where)
-        )
+        for r in session.execute(
+            sa.select(sa.column("rowid", sa.Integer)).select_from(sa.table(table)).where(where)
+        ).scalars()
     ]
     if not rowids:
         return 0

@@ -764,6 +764,19 @@ class StaffSessionResponse(BaseModel):
     schema_version: Literal[1] = 1
 
 
+class ReplayCheckDTO(BaseModel):
+    """Replay of the ordered ledger compared with the projection -- reported,
+    never repaired."""
+
+    model_config = {"extra": "forbid"}
+
+    status: Literal["consistent", "mismatch", "unreadable", "absent"]
+    detail_code: str | None = None
+    through_sequence: int | None = None
+    mismatched_fields: list[str] = Field(default_factory=list)
+    schema_version: Literal[1] = 1
+
+
 class AdminAccountViewResponse(BaseModel):
     """Owner-administrator view of one deliberately targeted hosted account.
 
@@ -781,6 +794,19 @@ class AdminAccountViewResponse(BaseModel):
     cloud_services: CloudServicesStatus
     byok_license_active: bool
     byok_readiness_source: ByokReadinessSource
+    # CRD Issue 22 support lookup: owning-source state, read-only.
+    #: "absent": no entitlement projection exists (never "zero").
+    entitlement_state: Literal["absent", "present"] = "absent"
+    hosted_access_active: bool = False
+    hosted_plan: str | None = None
+    cloud_services_expires_at: datetime | None = None
+    byok_license_purchased_at: datetime | None = None
+    #: Stale-state token for a remediation preview.
+    last_entitlement_event_id: UUID | None = None
+    #: Expected conditions, not anomalies: negative_balance,
+    #: credits_exhausted, hosted_inactive, cloud_services_lapsed.
+    expected_conditions: list[str] = Field(default_factory=list)
+    replay: ReplayCheckDTO | None = None
     schema_version: Literal[1] = 1
 
 
@@ -796,4 +822,142 @@ class RevokeSessionsResponse(BaseModel):
 
     account_id: UUID
     revoked_sessions: int
+    schema_version: Literal[1] = 1
+
+
+# ---------------------------------------------------------------------------
+# CRD Issue 22 support, history and remediation (Owner administrator only).
+# Untrusted text (reasons) is returned as plain text, never markup.
+# ---------------------------------------------------------------------------
+
+
+class EntitlementHistoryItemDTO(BaseModel):
+    """One entitlement event's allowlisted effect fields. Free-text
+    ``detail`` is never shown (``has_detail`` says one exists)."""
+
+    model_config = {"extra": "forbid"}
+
+    global_sequence: int
+    event_id: UUID
+    event_type: str
+    created_at: datetime
+    turn_id: UUID | None = None
+    support_operation_id: UUID | None = None
+    plan: str | None = None
+    hosted_credit_delta: str | None = None
+    top_up_credit_delta: str | None = None
+    effective_at: datetime | None = None
+    expires_at: datetime | None = None
+    purchased_at: datetime | None = None
+    reason_code: str | None = None
+    manual_reason: str | None = None
+    adjusted_by: str | None = None
+    external_source: str | None = None
+    external_reference_id: str | None = None
+    has_detail: bool = False
+    parse_error: str | None = None
+    schema_version: Literal[1] = 1
+
+
+class EntitlementHistoryResponse(BaseModel):
+    """A page of the subject's entitlement events in replay order
+    (``global_sequence`` ascending, strictly after ``after_sequence``).
+    ``next_after_sequence`` continues it; None means this page is the end."""
+
+    model_config = {"extra": "forbid"}
+
+    account_id: UUID
+    order: Literal["global_sequence_ascending"] = "global_sequence_ascending"
+    after_sequence: int
+    events: list[EntitlementHistoryItemDTO]
+    total_events: int
+    next_after_sequence: int | None
+    replay: ReplayCheckDTO
+    schema_version: Literal[1] = 1
+
+
+class SupportEventDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    event_id: UUID
+    event_order: int
+    operation_id: UUID
+    actor_ref: str
+    action_code: str
+    target_type: str
+    target_ref: str
+    reason_code: str
+    reason_text: str | None
+    hosted_credit_delta: str | None
+    top_up_credit_delta: str | None
+    requested_at: datetime
+    recorded_at: datetime
+    outcome_code: str
+    source_entitlement_event_id: UUID | None
+    supersedes_event_id: UUID | None
+    schema_version: Literal[1] = 1
+
+
+class SupportHistoryResponse(BaseModel):
+    """The account's support stream in its own ``event_order``. Correlate with
+    entitlement history by ``source_entitlement_event_id`` only."""
+
+    model_config = {"extra": "forbid"}
+
+    account_id: UUID
+    events: list[SupportEventDTO]
+    schema_version: Literal[1] = 1
+
+
+class CreditAdjustmentPreviewRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    hosted_credit_delta: str | None = Field(default=None, max_length=32)
+    top_up_credit_delta: str | None = Field(default=None, max_length=32)
+    schema_version: Literal[1] = 1
+
+
+class CreditAdjustmentPreviewResponse(BaseModel):
+    """Target, signed deltas, current and resulting balances, and the
+    stale-state token to submit with the adjustment."""
+
+    model_config = {"extra": "forbid"}
+
+    account_id: UUID
+    current: HostedCreditsDTO
+    hosted_credit_delta: str
+    top_up_credit_delta: str
+    resulting_included: str | None
+    resulting_top_up: str | None
+    last_entitlement_event_id: UUID | None
+    #: Why the entitlement owner would refuse it now (no effect would occur).
+    refusal_code: str | None
+    schema_version: Literal[1] = 1
+
+
+class CreditAdjustmentRequest(BaseModel):
+    """``operation_id`` is the logical action's stable identity: resubmit the
+    same one after an uncertain result; never mint a new one to retry."""
+
+    model_config = {"extra": "forbid"}
+
+    operation_id: UUID
+    hosted_credit_delta: str | None = Field(default=None, max_length=32)
+    top_up_credit_delta: str | None = Field(default=None, max_length=32)
+    reason: str = Field(min_length=1, max_length=280)
+    expected_last_entitlement_event_id: UUID | None
+    schema_version: Literal[1] = 1
+
+
+class SupportOperationResponse(BaseModel):
+    """Authoritative outcome: ``committed`` only with its entitlement event
+    and refreshed balances; ``requested`` means not yet confirmed."""
+
+    model_config = {"extra": "forbid"}
+
+    operation_id: UUID
+    outcome_code: str
+    source_entitlement_event_id: UUID | None
+    events: list[SupportEventDTO]
+    account: AdminAccountViewResponse | None = None
     schema_version: Literal[1] = 1

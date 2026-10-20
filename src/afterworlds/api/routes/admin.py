@@ -16,16 +16,27 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.orm import Session
 
-from afterworlds.api.account import build_admin_account_view
+from afterworlds.api.account import (
+    build_admin_account_view,
+    hosted_credits,
+    replay_dto,
+)
 from afterworlds.api.deps import AdmittedWorkerRoute, get_session
 from afterworlds.api.dto import (
     AdminAccountViewResponse,
+    CreditAdjustmentPreviewRequest,
+    CreditAdjustmentPreviewResponse,
+    CreditAdjustmentRequest,
+    EntitlementHistoryResponse,
     RevokeSessionsRequest,
     RevokeSessionsResponse,
     SignInRequest,
     StaffSessionResponse,
+    SupportHistoryResponse,
+    SupportOperationResponse,
 )
 from afterworlds.api.errors import ApiError, ApiErrorCode, ApiErrorResponse
+from afterworlds.api.operations import history_item, run_operation, support_event
 from afterworlds.api.remote_access import (
     STAFF_COOKIE,
     clear_session_cookie,
@@ -34,6 +45,14 @@ from afterworlds.api.remote_access import (
     identity_service,
     run_identity,
     set_session_cookie,
+)
+from afterworlds.entitlement.inspection import list_events, replay_check
+from afterworlds.entitlement.service import EntitlementService
+from afterworlds.operations.support import (
+    AdjustmentRequest,
+    OperationStatus,
+    SupportService,
+    parse_delta,
 )
 from afterworlds.remote.identity import (
     STAFF_SESSION_LIFETIME,
@@ -46,6 +65,9 @@ router = APIRouter(prefix="/api/admin", tags=["admin"], route_class=AdmittedWork
 
 _RESPONSES: dict[int | str, dict[str, Any]] = {
     status: {"model": ApiError} for status in (401, 403, 404, 422, 503)
+}
+_OP_RESPONSES: dict[int | str, dict[str, Any]] = {
+    status: {"model": ApiError} for status in (401, 403, 404, 409, 422, 503)
 }
 
 
@@ -113,3 +135,194 @@ async def revoke_account_sessions(
         _identity(request).revoke_account_sessions, actor, account_id, body.reason
     )
     return RevokeSessionsResponse(account_id=account_id, revoked_sessions=revoked)
+
+
+# ---------------------------------------------------------------------------
+# CRD Issue 22: support lookup, ordered history and controlled remediation.
+# ---------------------------------------------------------------------------
+
+_HISTORY_MAX = 200
+
+
+def _support(request: Request) -> SupportService:
+    return request.app.state.support  # type: ignore[no-any-return]
+
+
+def _require_account(request: Request, account_id: UUID) -> None:
+    if run_identity(_identity(request).get_account, account_id) is None:
+        raise ApiErrorResponse(404, ApiErrorCode.NOT_FOUND, "Account not found.")
+
+
+@router.get(
+    "/accounts/{account_id}/entitlement-history",
+    response_model=EntitlementHistoryResponse,
+    responses=_OP_RESPONSES,
+)
+def get_entitlement_history(
+    account_id: UUID,
+    request: Request,
+    after_sequence: int = 0,
+    limit: int = 50,
+    session: Session = Depends(get_session),
+) -> EntitlementHistoryResponse:
+    if not 1 <= limit <= _HISTORY_MAX or after_sequence < 0:
+        raise ApiErrorResponse(
+            422,
+            ApiErrorCode.VALIDATION_FAILED,
+            f"limit must be 1-{_HISTORY_MAX} and after_sequence >= 0",
+        )
+    _require_account(request, account_id)
+    page = run_operation(
+        lambda: list_events(
+            session, account_id, after_sequence=after_sequence, limit=limit
+        )
+    )
+    return EntitlementHistoryResponse(
+        account_id=account_id,
+        after_sequence=after_sequence,
+        events=[history_item(e) for e in page.events],
+        total_events=page.total_events,
+        next_after_sequence=page.next_after_sequence,
+        replay=replay_dto(run_operation(lambda: replay_check(session, account_id))),
+    )
+
+
+@router.get(
+    "/accounts/{account_id}/support-actions",
+    response_model=SupportHistoryResponse,
+    responses=_OP_RESPONSES,
+)
+def get_support_actions(account_id: UUID, request: Request) -> SupportHistoryResponse:
+    _require_account(request, account_id)
+    events = run_operation(lambda: _support(request).history(account_id))
+    return SupportHistoryResponse(
+        account_id=account_id, events=[support_event(e) for e in events]
+    )
+
+
+@router.post(
+    "/accounts/{account_id}/credit-adjustments/preview",
+    response_model=CreditAdjustmentPreviewResponse,
+    responses=_OP_RESPONSES,
+)
+def preview_credit_adjustment(
+    account_id: UUID,
+    body: CreditAdjustmentPreviewRequest,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> CreditAdjustmentPreviewResponse:
+    _require_account(request, account_id)
+    preview = run_operation(
+        lambda: _support(request).preview_adjustment(
+            account_id,
+            parse_delta(body.hosted_credit_delta),
+            parse_delta(body.top_up_credit_delta),
+        )
+    )
+    status = EntitlementService(session).get_access_path_status(account_id)
+    projection = preview.projection
+    return CreditAdjustmentPreviewResponse(
+        account_id=account_id,
+        current=hosted_credits(status),
+        hosted_credit_delta=f"{preview.hosted_credit_delta:.4f}",
+        top_up_credit_delta=f"{preview.top_up_credit_delta:.4f}",
+        resulting_included=(
+            f"{preview.resulting_hosted:.4f}"
+            if preview.resulting_hosted is not None
+            else None
+        ),
+        resulting_top_up=(
+            f"{preview.resulting_top_up:.4f}"
+            if preview.resulting_top_up is not None
+            else None
+        ),
+        last_entitlement_event_id=(
+            projection.last_entitlement_event_id if projection else None
+        ),
+        refusal_code=preview.refusal_code,
+    )
+
+
+def _operation_response(
+    request: Request, session: Session, status: OperationStatus, account_id: UUID
+) -> SupportOperationResponse:
+    record = run_identity(_identity(request).get_account, account_id)
+    session.expire_all()
+    return SupportOperationResponse(
+        operation_id=status.operation_id,
+        outcome_code=status.outcome_code,
+        source_entitlement_event_id=(
+            UUID(status.source_entitlement_event_id)
+            if status.source_entitlement_event_id
+            else None
+        ),
+        events=[support_event(e) for e in status.events],
+        account=build_admin_account_view(session, record) if record else None,
+    )
+
+
+@router.post(
+    "/accounts/{account_id}/credit-adjustments",
+    response_model=SupportOperationResponse,
+    responses=_OP_RESPONSES,
+)
+def adjust_credits(
+    account_id: UUID,
+    body: CreditAdjustmentRequest,
+    request: Request,
+    actor: Actor = Depends(get_actor),
+    session: Session = Depends(get_session),
+) -> SupportOperationResponse:
+    status = run_operation(
+        lambda: _support(request).adjust_credits(
+            actor,
+            AdjustmentRequest(
+                operation_id=body.operation_id,
+                account_id=account_id,
+                hosted_credit_delta=parse_delta(body.hosted_credit_delta),
+                top_up_credit_delta=parse_delta(body.top_up_credit_delta),
+                reason=body.reason,
+                expected_last_event_id=body.expected_last_entitlement_event_id,
+            ),
+        )
+    )
+    if status.outcome_code != "committed":
+        # Rejection and failure stay distinguishable from success, carrying the
+        # operation identity for a status read.
+        status_code, code = _REJECTIONS.get(
+            status.outcome_code, (503, ApiErrorCode.OPERATION_OUTCOME_UNKNOWN)
+        )
+        raise ApiErrorResponse(
+            status_code,
+            code,
+            f"The adjustment was not applied ({status.outcome_code}).",
+            detail={
+                "operation_id": str(status.operation_id),
+                "outcome_code": status.outcome_code,
+            },
+        )
+    return _operation_response(request, session, status, account_id)
+
+
+_REJECTIONS: dict[str, tuple[int, ApiErrorCode]] = {
+    "rejected_stale": (409, ApiErrorCode.OPERATION_STALE),
+    "rejected_precondition": (409, ApiErrorCode.OPERATION_PRECONDITION_FAILED),
+    "conflict": (409, ApiErrorCode.OPERATION_CONFLICT),
+    "failed": (503, ApiErrorCode.OPERATION_UNAVAILABLE),
+}
+
+
+@router.get(
+    "/support-operations/{operation_id}",
+    response_model=SupportOperationResponse,
+    responses=_OP_RESPONSES,
+)
+def get_support_operation(
+    operation_id: UUID,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> SupportOperationResponse:
+    status = run_operation(lambda: _support(request).status(operation_id))
+    return _operation_response(
+        request, session, status, UUID(status.events[0].target_ref)
+    )
