@@ -268,3 +268,57 @@ def test_overdue_backup_cleanup_is_a_visible_failure(remote: RemoteHarness) -> N
     assert view["state"] == "failed"
     assert _phase(view, "backups") == "failed"
     assert "final_deletion" in view["overdue"] or view["state"] == "failed"
+
+
+def test_account_erasure_compaction_disposes_live_control_store(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Review round 2, F5: an erased account's contact address leaves no
+    remnant in the live control store's file, WAL or journal once compaction
+    ran; another account's stays."""
+    import json
+
+    h: RemoteHarness = make_remote(remote_env)
+    a = h.enroll("erased-owner@example.test")
+    b = h.enroll("kept-owner@example.test")
+    h.seed_hosted(h.account_id(a))
+    play_branching(a, "Mine", "I write.")
+    staff = h.staff()
+    req = a.post(
+        "/api/data-requests", json={"kind": "deletion", "scope": "account"}
+    ).json()
+    rid = req["request_id"]
+    preview = a.get(f"/api/data-requests/{rid}/deletion-preview").json()
+    confirmed = a.post(
+        f"/api/data-requests/{rid}/confirm",
+        json={
+            "expected_revision": req["revision"],
+            "scope_revision": preview["scope_revision"],
+            "password": PASSWORD,
+        },
+    )
+    assert confirmed.status_code == 200, confirmed.text
+    view = staff.get(f"/api/admin/data-requests/{rid}").json()
+    approved = staff.post(
+        f"/api/admin/data-requests/{rid}/approve",
+        json={"expected_revision": view["revision"], "reason": "verified owner"},
+    ).json()
+    done = staff.post(
+        f"/api/admin/data-requests/{rid}/execute",
+        json={"expected_revision": approved["revision"]},
+    ).json()
+    assert _phase(done, "identity") == "succeeded"
+    assert b.get("/api/data-requests").status_code == 200
+    h.close()
+
+    def control_hits(needle: str) -> list[str]:
+        return [
+            hit for hit in files_with(remote_env, needle) if hit.startswith("control")
+        ]
+
+    code, out = _cli(maintenance, capsys, "compact")
+    assert code == 0, out
+    assert control_hits("erased-owner@example.test") == []
+    assert control_hits("kept-owner@example.test")  # the other account remains
+    evidence = json.loads(out)["compacted"]
+    assert evidence["control"] == {"checkpoint_busy": 0, "wal_bytes": 0}

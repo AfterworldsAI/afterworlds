@@ -25,6 +25,8 @@ before any effect; any other occupant is refused untouched. Steps 3-4 are
 crash-safe: this claim's completed rebuild is resumed (its contents are
 copied again over whatever an interrupted swap left), its incomplete one is
 discarded and rebuilt. Evidence is counts, never content.
+
+Remotely the live control store is checkpointed and VACUUMed too.
 """
 
 from __future__ import annotations
@@ -62,6 +64,9 @@ def vacuum_sqlite(path: Path) -> dict[str, int]:
         conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         conn.execute("VACUUM")
         busy, _log, _ckpt = conn.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
+    if busy:
+        # A reader kept old frames in the WAL: nothing is reported disposed.
+        raise RuntimeError(f"{path.name}: WAL checkpoint was blocked")
     wal = path.with_name(path.name + "-wal")
     return {
         "checkpoint_busy": int(busy),
@@ -214,11 +219,33 @@ def _claim(vector_dir: Path, store_id: str) -> str:
             )
         return str(claim["operation_id"])
     operation_id = str(uuid4())
-    staging.mkdir()
-    fd = os.open(staging / _CLAIM, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    # The claim is written in full under a private name and published by one
+    # atomic rename, so the staging path never exists without its proof of
+    # ownership (review round 2, F4). An interrupted claim leaves only this
+    # content-free directory, which the next swap clears with the rest of
+    # the live store's old contents.
+    pending = vector_dir / f"{STAGING}-{operation_id}.claiming"
+    pending.mkdir()
+    fd = os.open(pending / _CLAIM, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as handle:
         json.dump({"store_id": store_id, "operation_id": operation_id}, handle)
+    os.rename(pending, staging)
     return operation_id
+
+
+def _teardown(staging: Path, operation_id: str) -> None:
+    """Remove a finished compaction's staging, its claim last: until every
+    dependent copy is gone the claim still identifies it for a retry, which
+    rebuilds from the (already replaced) live store."""
+    rebuilt = staging / "store"
+    (rebuilt / _COMPLETE).unlink(missing_ok=True)  # a partial copy is never resumed
+    if rebuilt.exists():
+        shutil.rmtree(rebuilt)
+    (staging / "export.json").unlink(missing_ok=True)
+    # Only the claim is left: move it off the staging path in one step.
+    finished = staging.with_name(f"{STAGING}-{operation_id}.finished")
+    os.rename(staging, finished)
+    shutil.rmtree(finished)
 
 
 def compact_vector_store(
@@ -264,7 +291,7 @@ def compact_vector_store(
             shutil.copytree(entry, vector_dir / entry.name)
         else:
             shutil.copy2(entry, vector_dir / entry.name)
-    shutil.rmtree(staging)
+    _teardown(staging, operation_id)
     return {"collections": done["counts"]}
 
 
@@ -272,10 +299,16 @@ def compact_stores(
     database_path: Path,
     vector_dir: Path,
     client_factory: Callable[[], ClientAPI],
+    control_path: Path | None = None,
 ) -> dict[str, Any]:
-    """Physically dispose of logically deleted content in both live stores
-    (app stopped). Raises on any failure; evidence otherwise."""
+    """Physically dispose of logically deleted content in the live stores
+    (app stopped): the content store, the vector store and -- remotely -- the
+    control store, whose erased principal, contact, session and verifier rows
+    would otherwise survive in free pages or the WAL (review round 2, F5).
+    Raises on any failure; evidence otherwise."""
     evidence: dict[str, Any] = {"content": vacuum_sqlite(database_path)}
+    if control_path is not None:
+        evidence["control"] = vacuum_sqlite(control_path)
     if (vector_dir / "chroma.sqlite3").is_file() or compaction_unfinished(vector_dir):
         evidence["vector"] = compact_vector_store(vector_dir, client_factory)
     return evidence

@@ -41,7 +41,7 @@ from afterworlds.operations.retention import (
 from afterworlds.operations.vectors import story_chunk_deleter
 from afterworlds.remote.control_orm import DeletionSuppressionORM
 from afterworlds.remote.control_store import iso
-from afterworlds.remote.storage import StoreRefused, pending_restores
+from afterworlds.remote.storage import StoreRefused, pending_restores, sqlite_path
 
 
 def physical_disposal_pending(ops: sessionmaker[Session]) -> list[str]:
@@ -62,6 +62,16 @@ def physical_disposal_pending(ops: sessionmaker[Session]) -> list[str]:
     return sorted(rid for rid, outcome in latest.items() if outcome == "pending")
 
 
+def control_file(control: sessionmaker[Session]) -> Path:
+    """The live control store's SQLite file, disposed of by compaction; a
+    control store that is not a SQLite file is refused (``StoreRefused``):
+    its physical disposal could not be shown."""
+    engine = control.kw["bind"]
+    path = sqlite_path(engine.url.render_as_string(hide_password=False))
+    engine.dispose()  # no pooled reader may hold WAL frames back
+    return path
+
+
 def record_compaction(
     ops: sessionmaker[Session], evidence: dict[str, Any], *, now: Callable[[], datetime]
 ) -> list[str]:
@@ -71,6 +81,7 @@ def record_compaction(
     done = physical_disposal_pending(ops)
     counts = {
         "content_wal_bytes": int(evidence.get("content", {}).get("wal_bytes", 0)),
+        "control_wal_bytes": int(evidence.get("control", {}).get("wal_bytes", 0)),
         "vector_records_rebuilt": sum(
             evidence.get("vector", {}).get("collections", {}).values()
         ),
@@ -143,7 +154,9 @@ def enforce_restore(
     expire_refusal_log(content, now, result)
     ledger = reapply_ledger_expiries(control, content, now=now)
     content.kw["bind"].dispose()
-    evidence = compact_stores(database_path, vector_dir, client_factory)
+    evidence = compact_stores(
+        database_path, vector_dir, client_factory, control_file(control)
+    )
     summary = {
         "suppressions_reapplied": len(suppressions),
         "requests_reapplied": reapplied,

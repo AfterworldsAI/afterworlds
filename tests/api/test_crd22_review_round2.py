@@ -426,3 +426,44 @@ class TestSettlementSource:
         monkeypatch.undo()
         report = staff.get("/api/admin/anomalies").json()
         assert [x for x in report["anomalies"] if x["source_kind"] == "turn_settlement"]
+
+
+class TestNoticeOwnership:
+    """F6: a notice is published complete; an interrupted write to the
+    erased address is still found and removed; unrelated notices stay; a
+    notice that cannot be attributed makes the purge fail visibly."""
+
+    def test_interrupted_write_is_purged_and_unrelated_kept(
+        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from afterworlds.remote import notices
+
+        outbox = notices.OutboxDirectoryTransport(tmp_path)
+        outbox.send(contact_address="other@example.test", kind="recovery", code="1")
+        real = notices.os.replace
+
+        def torn(*args: Any) -> None:
+            raise OSError("power loss")
+
+        monkeypatch.setattr(notices.os, "replace", torn)
+        for address in ("gone@example.test", "other@example.test"):
+            with pytest.raises(OSError):
+                outbox.send(contact_address=address, kind="recovery", code="2")
+        monkeypatch.setattr(notices.os, "replace", real)
+        assert not any("gone" in p.read_text() for p in tmp_path.glob("*.json"))
+
+        assert outbox.purge("gone@example.test") == 1
+        remaining = sorted(p.read_text(encoding="utf-8") for p in tmp_path.iterdir())
+        assert len(remaining) == 2
+        assert all("other@example.test" in body for body in remaining)
+        assert not any(b"gone@" in p.read_bytes() for p in tmp_path.iterdir())
+
+    def test_unattributable_final_notice_fails_the_purge(self, tmp_path: Any) -> None:
+        from afterworlds.remote import notices
+
+        outbox = notices.OutboxDirectoryTransport(tmp_path)
+        outbox.send(contact_address="gone@example.test", kind="recovery", code="1")
+        (tmp_path / "recovery-legacy.json").write_text('{"to": "gone@', "utf-8")
+        with pytest.raises(OSError, match="unattributable"):
+            outbox.purge("gone@example.test")
+        assert (tmp_path / "recovery-legacy.json").exists()

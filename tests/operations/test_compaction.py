@@ -213,3 +213,92 @@ def test_unbound_vector_store_is_refused(tmp_path: Path) -> None:
     (tmp_path / "plain").mkdir()
     with pytest.raises(StoreRefused, match="not bound"):
         compact_vector_store(tmp_path / "plain", lambda: None)  # type: ignore[arg-type,return-value]
+
+
+def _leftovers(vector_dir: Path) -> list[str]:
+    from afterworlds.operations.compaction import STAGING
+
+    return sorted(p.name for p in vector_dir.iterdir() if p.name.startswith(STAGING))
+
+
+@pytest.mark.parametrize("crash_at", ["claim_write", "claim_publish"])
+def test_interrupted_claim_never_strands_recovery(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, crash_at: str
+) -> None:
+    """Review round 2, F4: the staging path is published only with its full
+    claim; an interrupted claim blocks nothing and the retry completes."""
+    vector_dir = tmp_path / "chroma"
+    config = _seed(vector_dir, monkeypatch)
+    before = _snapshot(config)
+    _release()
+    target = compaction.json if crash_at == "claim_write" else compaction.os
+    name = "dump" if crash_at == "claim_write" else "rename"
+    real = getattr(target, name)
+
+    def crash(*args: Any, **kwargs: Any) -> Any:
+        if crash_at == "claim_write":
+            args[1].write('{"store_id": ')  # a torn claim
+        raise OSError("power loss")
+
+    monkeypatch.setattr(target, name, crash)
+    with pytest.raises(OSError):
+        compact_vector_store(vector_dir, lambda: build_chroma_client(config))
+    monkeypatch.setattr(target, name, real)
+    assert not compaction_unfinished(vector_dir)  # nothing was published
+    compact_vector_store(vector_dir, lambda: build_chroma_client(config))
+    _release()
+    assert _leftovers(vector_dir) == []
+    assert files_with(vector_dir, MARK) == []
+    assert _snapshot(config) == before
+    _release()
+
+
+@pytest.mark.parametrize("crash_at", ["rebuilt_copy", "claim_removal"])
+def test_interrupted_teardown_keeps_its_claim_and_resumes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, crash_at: str
+) -> None:
+    """Review round 2, F4: teardown removes the claim last, so a crash while
+    removing the dependent copies or the claim still leaves this store's
+    claimed staging, refused service and resumed by the next ``compact``."""
+    vector_dir = tmp_path / "chroma"
+    config = _seed(vector_dir, monkeypatch)
+    before = _snapshot(config)
+    _release()
+    real_rmtree, real_rename = compaction.shutil.rmtree, compaction.os.rename
+
+    def rmtree(path: Any, *args: Any, **kwargs: Any) -> Any:
+        tree = Path(path)
+        # Teardown: the completion record is already gone, the claim is not.
+        if (
+            crash_at == "rebuilt_copy"
+            and tree.name == "store"
+            and (tree.parent / "claim.json").exists()
+            and not (tree / ".compaction-complete.json").exists()
+        ):
+            raise OSError("power loss")
+        return real_rmtree(path, *args, **kwargs)
+
+    def rename(src: Any, dst: Any) -> Any:
+        if crash_at == "claim_removal" and str(dst).endswith(".finished"):
+            raise OSError("power loss")
+        return real_rename(src, dst)
+
+    monkeypatch.setattr(compaction.shutil, "rmtree", rmtree)
+    monkeypatch.setattr(compaction.os, "rename", rename)
+    with pytest.raises(OSError):
+        compact_vector_store(vector_dir, lambda: build_chroma_client(config))
+    monkeypatch.setattr(compaction.shutil, "rmtree", real_rmtree)
+    monkeypatch.setattr(compaction.os, "rename", real_rename)
+    assert compaction_unfinished(vector_dir)
+    settings = ApiSettings(
+        database_url=f"sqlite:///{tmp_path / 'local.db'}",
+        frontend_dist_dir=tmp_path / "no_frontend",
+    )
+    with pytest.raises(StoreRefused, match="compaction did not finish"):
+        create_app(settings)
+    compact_vector_store(vector_dir, lambda: build_chroma_client(config))
+    _release()
+    assert _leftovers(vector_dir) == []
+    assert files_with(vector_dir, MARK) == []
+    assert _snapshot(config) == before
+    _release()
