@@ -166,11 +166,17 @@ def files_with(root: Path, needle: str) -> list[str]:
     """Raw byte scan of every file under *root* (journals, free pages,
     vector segments)."""
     data = needle.encode()
-    return sorted(
-        str(p.relative_to(root))
-        for p in root.rglob("*")
-        if p.is_file() and data in p.read_bytes()
-    )
+    hits = []
+    for p in root.rglob("*"):
+        if not p.is_file():
+            continue
+        try:
+            body = p.read_bytes()
+        except PermissionError:  # an OS-locked lock file holds no content
+            continue
+        if data in body:
+            hits.append(str(p.relative_to(root)))
+    return sorted(hits)
 
 
 def unzip(body: bytes) -> dict[str, Any]:

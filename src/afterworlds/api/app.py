@@ -30,6 +30,10 @@ from afterworlds.api.db_bootstrap import upgrade_to_head
 from afterworlds.api.deps import provision_sojourner_id
 from afterworlds.api.errors import ApiError, ApiErrorCode, ApiErrorResponse
 from afterworlds.api.fake_pipeline import fake_credential_check
+from afterworlds.api.operations import (
+    OPERATIONS_PATH_PREFIXES,
+    operations_validation_location,
+)
 from afterworlds.api.pipeline_wiring import build_pipeline, fake_provider_enabled
 from afterworlds.api.remote_access import authorize_story, enforce_access
 from afterworlds.api.routes.account import router as account_router
@@ -390,12 +394,19 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
         # CRD Issue 20: on the account/credential surface an unknown property
         # name is client-chosen (it could carry a key), so locations there
         # name only known fields.
+        # CRD Issue 22: the same holds for the support and data-request
+        # surfaces, whose bodies carry operator/requester text.
         account = request.url.path.startswith(ACCOUNT_PATH_PREFIX)
+        operations = request.url.path.startswith(OPERATIONS_PATH_PREFIXES)
         detail = {
             (
                 account_validation_location(tuple(error["loc"]))
                 if account
-                else ".".join(str(part) for part in error["loc"])
+                else (
+                    operations_validation_location(tuple(error["loc"]))
+                    if operations
+                    else ".".join(str(part) for part in error["loc"])
+                )
             ): str(error["msg"])
             for error in exc.errors()
         }

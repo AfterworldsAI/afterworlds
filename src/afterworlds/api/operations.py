@@ -242,3 +242,45 @@ def preview_dto(preview: dict[str, Any]) -> DeletionPreviewResponse:
         commercial_dependency=preview["commercial_dependency"],
         notices=preview["notices"],
     )
+
+
+OPERATIONS_PATH_PREFIXES = ("/api/data-requests", "/api/admin")
+
+
+def _known_parts() -> frozenset[str]:
+    from afterworlds.api import dto
+
+    models = (
+        dto.CreateDataRequest,
+        dto.ConfirmDeletionRequest,
+        dto.DataRequestStepRequest,
+        dto.RejectDataRequest,
+        dto.ReceiptLookupRequest,
+        dto.CreditAdjustmentRequest,
+        dto.CreditAdjustmentPreviewRequest,
+        dto.AnomalyNoteRequest,
+        dto.RevokeSessionsRequest,
+        dto.SignInRequest,
+    )
+    params = {
+        "body",
+        "path",
+        "query",
+        "request_id",
+        "account_id",
+        "operation_id",
+        "anomaly_id",
+        "after_sequence",
+        "limit",
+    }
+    return frozenset(params.union(*(m.model_fields for m in models)))
+
+
+def operations_validation_location(loc: tuple[int | str, ...]) -> str:
+    """Dotted location naming only known fields: an unknown property name is
+    client-chosen (it could carry a secret) and is never echoed."""
+    known = _known_parts()
+    return ".".join(
+        str(part) if isinstance(part, int) or part in known else "<unrecognized>"
+        for part in loc
+    )

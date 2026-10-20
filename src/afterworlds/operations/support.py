@@ -55,6 +55,9 @@ from afterworlds.remote.identity import Actor, ActorKind, IdentityService
 
 REASON_MAX_LENGTH = 280
 _CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
+#: Provider keys and bearer-style tokens (Anthropic, OpenRouter, OpenAI and
+#: generic ``sk-``/``Bearer``-prefixed secrets).
+_CREDENTIAL = re.compile(r"(sk-[A-Za-z0-9_\-]{8,}|Bearer\s+\S{8,})", re.IGNORECASE)
 _DELTA = re.compile(r"^[+-]?\d{1,8}(\.\d{1,4})?$")
 #: Namespace of support adjustments in the global entitlement idempotency keys.
 IDEMPOTENCY_PREFIX = "crd22-support-adjustment:"
@@ -81,6 +84,13 @@ def bounded_text(value: str, what: str = "reason") -> str:
         raise OperationError(
             OperationErrorKind.INVALID_INPUT,
             f"A {what} of 1-{REASON_MAX_LENGTH} printable characters is required.",
+        )
+    if _CREDENTIAL.search(text):
+        # Never stored: a reason is a bounded explanation, not a place for a
+        # key or token (the text is not echoed back either).
+        raise OperationError(
+            OperationErrorKind.INVALID_INPUT,
+            f"The {what} looks like it contains a credential; remove it.",
         )
     return text
 
