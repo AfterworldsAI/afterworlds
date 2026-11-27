@@ -31,7 +31,6 @@ from typing import Any
 import anthropic
 from anthropic.types import (
     CacheControlEphemeralParam,
-    MessageParam,
     TextBlockParam,
     ToolUseBlock,
 )
@@ -259,7 +258,7 @@ class AnthropicDirectAdapter:
             kwargs: dict[str, Any] = {
                 "model": model,
                 "max_tokens": request.max_output_tokens,
-                "messages": [MessageParam(role="user", content=user_blocks)],
+                "messages": [{"role": "user", "content": user_blocks}],
                 "stream": False,
             }
             if system_blocks:
