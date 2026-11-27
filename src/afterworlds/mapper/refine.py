@@ -368,3 +368,23 @@ def _check_reachable(snap: Snapshot, area: Area) -> None:
             queue.append(nxt)
     if len(seen) != len(open_squares):
         raise RefinementFailed("the areas are unreachable from each other")
+
+
+#: Refinement is tried this many times, each with a fresh derived seed,
+#: before Sojourn falls back to coarse facts (map generation doc).
+REFINE_ATTEMPTS = 2
+
+
+def refine_with_retry(
+    snap: Snapshot, update: RefineArea, *, seed: int
+) -> tuple[Snapshot | None, tuple[str, ...]]:
+    """*snap* with *update*'s area gridded, trying up to
+    :data:`REFINE_ATTEMPTS` derived seeds. ``(None, reasons)`` when every
+    attempt was refused; the caller then works from coarse facts only."""
+    reasons: list[str] = []
+    for attempt in range(REFINE_ATTEMPTS):
+        try:
+            return _refine(snap, update, area_seed(seed, update.area, attempt)), ()
+        except RefinementFailed as exc:
+            reasons.append(exc.reason)
+    return None, tuple(reasons)
