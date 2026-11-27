@@ -22,6 +22,7 @@ import afterworlds.persistence.orm.mechanical  # noqa: F401
 import afterworlds.persistence.orm.rules_authority  # noqa: F401
 import afterworlds.persistence.orm.rolling_summary  # noqa: F401
 import afterworlds.persistence.orm.rpg  # noqa: F401
+import afterworlds.persistence.orm.spatial  # noqa: F401
 import afterworlds.persistence.orm.retrieval  # noqa: F401
 import afterworlds.persistence.orm.identity  # noqa: F401
 import afterworlds.persistence.orm.ownership  # noqa: F401

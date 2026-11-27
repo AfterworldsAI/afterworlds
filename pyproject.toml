@@ -26,6 +26,10 @@ dependencies = [
     # changes bump the semantic transform version and yield a new draft release.
     "pdfplumber==0.11.10",
     "pdfminer.six==20260107",
+    # Mapper (#211): field of view, BSP and noise for map refinement. numpy is
+    # tcod's own array dependency, used directly for transparency grids.
+    "tcod>=21.2",
+    "numpy>=2.0",
 ]
 
 [project.optional-dependencies]
