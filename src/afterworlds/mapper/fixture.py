@@ -50,7 +50,7 @@ HERO = "hero"
 GOBLIN = "goblin"
 LURKER = "lurker"
 HIDDEN_PIT = "hidden-pit"
-SECRET_DOOR = "secret-door"
+SECRET_DOOR = "secret-door"  # pragma: allowlist secret
 MILL_DOOR = "mill-door"
 
 

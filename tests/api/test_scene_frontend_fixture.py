@@ -4,6 +4,9 @@ encounter (issue #211), so the browser tests draw what the server sends.
 Regenerate after a deliberate view change with::
 
     AW_WRITE_SCENE_FIXTURE=1 pytest tests/api/test_scene_frontend_fixture.py
+
+The fixture's ``view_hash`` is recorded in ``.secrets.baseline`` as an
+audited false positive; a regenerated hash needs its entry refreshed.
 """
 
 from __future__ import annotations

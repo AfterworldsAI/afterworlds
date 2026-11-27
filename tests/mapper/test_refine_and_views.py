@@ -297,7 +297,7 @@ def test_player_view_hides_secrets_and_unexplored_space() -> None:
     assert player.wall(Edge(orient="v", col=2, row=8))
     text = json.dumps(player.model_dump(mode="json"))
     for secret in ("lurker", "secret", "hidden-pit", "dusty"):
-        if secret == "dusty":
+        if secret == "dusty":  # pragma: allowlist secret
             continue
         assert secret not in text
 
