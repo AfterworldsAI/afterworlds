@@ -495,6 +495,12 @@ class OrchestratorService:
         self._branching_ooc_handler_prompt: str = load_branching_ooc_handler_prompt()
         self._writing_ooc_handler_prompt: str = load_writing_ooc_handler_prompt()
 
+    @property
+    def spatial_turn_service(self) -> SpatialTurnService | None:
+        """The mapper's per-Turn service (issue #211), for the route
+        pre-check and the scene view; ``None`` when the mapper isn't wired."""
+        return self._spatial
+
     def close(self) -> None:
         """Release the orchestrator-owned executor.
 

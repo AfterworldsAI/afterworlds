@@ -66,6 +66,10 @@ class ApiErrorCode(StrEnum):
     OPERATION_OUTCOME_UNKNOWN = "operation_outcome_unknown"
     OPERATION_UNAVAILABLE = "operation_unavailable"
     OPERATION_UNSUPPORTED = "operation_unsupported"
+    # Issue #211 (mapper M1): a drawn route the server won't take, with a
+    # player-safe reason; a stale one was drawn on a view that has changed.
+    ROUTE_REFUSED = "route_refused"
+    ROUTE_STALE = "route_stale"
 
 
 class ApiError(BaseModel):

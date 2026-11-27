@@ -157,9 +157,20 @@ from afterworlds.pipeline.retrieval.write_service import RetrievalMemoryWriteSer
 from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
 from afterworlds.pipeline.rpg.config import AdjudicationConfig
 from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
+from afterworlds.pipeline.rpg.movement import (
+    MovementRules,
+    MoverProfile,
+    load_rules,
+    lookup_from_index,
+    profile_from_state,
+)
 from afterworlds.pipeline.rpg.scene import render as render_scene
 from afterworlds.pipeline.rpg.sequence import ActionResolutionService
 from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
+from afterworlds.pipeline.rpg.spatial_turn import (
+    SpatialTurnService,
+    mover_from_token_ref,
+)
 from afterworlds.pipeline.safety.config import SafetyConfig
 from afterworlds.pipeline.safety.service import SafetyService
 from afterworlds.pipeline.writer.config import WriterConfig
@@ -175,10 +186,12 @@ from afterworlds.services.context_builder import (
     RetrievalMemoryProvider,
     SQLiteRecentTurnsProvider,
 )
+from afterworlds.services.dnd5e_state.authority import authority_index
 from afterworlds.services.dnd5e_state.coordination import (
     StoredCoordination,
 )
 from afterworlds.services.dnd5e_state.coordination import read as read_coordination
+from afterworlds.services.dnd5e_state.store import get_character
 from afterworlds.services.dnd5e_state.turn import (
     RpgTurnHold,
     TurnCharacter,
@@ -273,6 +286,38 @@ def _make_rpg_session_resolver(
             session.close()
 
     return _resolve
+
+
+def _make_spatial_turn_service(
+    session_factory: sessionmaker[Session],
+) -> SpatialTurnService:
+    """Issue #211: the mapper's per-Turn service. The Sojourner's token is
+    the party token whose ref names the story's character
+    (``character:<sheet id>``); it is priced from the recorded character
+    state and the movement rules of the character's exact bound authority.
+    The read never commits, so the scene view stays read-only."""
+
+    def profile_for(story_id: UUID) -> tuple[MoverProfile, MovementRules] | None:
+        session = session_factory()
+        try:
+            state = get_rpg_session_state_by_story(session, story_id)
+            if state is None:
+                return None
+            stored = get_character(session, state.character_sheet_id)
+            if stored is None:
+                return None
+            profile = profile_from_state(str(stored.sheet_id), stored.state)
+            if profile is None:
+                return None
+            index = authority_index(session, stored.binding, now=_utc_now())
+            return profile, load_rules(lookup_from_index(index))
+        finally:
+            session.rollback()
+            session.close()
+
+    return SpatialTurnService(
+        session_factory, mover_from_token_ref("character", profile_for)
+    )
 
 
 def _utc_now() -> str:
@@ -743,6 +788,7 @@ def build_pipeline(
         writing_visible_state_service=writing_visible_state_service,
         retrieval_write_service=retrieval_write_service,
         retrieval_query_builder=retrieval_query_builder,
+        spatial_turn_service=_make_spatial_turn_service(session_factory),
     )
     return orchestrator, rpg_sequences
 

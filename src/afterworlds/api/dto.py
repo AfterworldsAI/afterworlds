@@ -94,10 +94,59 @@ class CreateStoryRequest(BaseModel):
     schema_version: Literal[1] = 1
 
 
+class MovePathDTO(BaseModel):
+    """A route the Sojourner drew on the scene view (issue #211): the squares
+    from the mover's square to the end, by label (``"B5"``), and the
+    ``view_hash`` of the view it was drawn on."""
+
+    model_config = {"extra": "forbid"}
+
+    squares: list[Annotated[str, Field(pattern=r"^[A-Z]{1,2}[1-9][0-9]{0,2}$")]] = (
+        Field(min_length=2, max_length=64)
+    )
+    dash: StrictBool = False
+    disengage: StrictBool = False
+    view_hash: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")] | None = None
+    schema_version: Literal[1] = 1
+
+
 class TurnSubmissionRequest(BaseModel):
     model_config = {"extra": "forbid"}
 
     user_input: str
+    #: Issue #211: a drawn route; it wins over a destination in the words.
+    move_path: MovePathDTO | None = None
+    schema_version: Literal[1] = 1
+
+
+class SceneAllowanceDTO(BaseModel):
+    """The mover's reachable squares and their cost in feet, from
+    player-visible facts only."""
+
+    model_config = {"extra": "forbid"}
+
+    token_id: str
+    speed_ft: int
+    dash_ft: int
+    costs: dict[str, int]
+    warnings: dict[str, str]
+    schema_version: Literal[1] = 1
+
+
+class SceneViewResponse(BaseModel):
+    """GET .../scene (issue #211): the player view of the active scene. The
+    snapshot never holds what the party doesn't know; opening it changes
+    nothing."""
+
+    model_config = {"extra": "forbid"}
+
+    map_id: str
+    label: str
+    revision: int
+    viewer: str
+    view_hash: str
+    snapshot: dict[str, Any]
+    allowance: SceneAllowanceDTO | None = None
     schema_version: Literal[1] = 1
 
 

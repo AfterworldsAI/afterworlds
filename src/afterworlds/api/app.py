@@ -45,6 +45,7 @@ from afterworlds.api.routes.health import router as health_router
 from afterworlds.api.routes.personas import router as personas_router
 from afterworlds.api.routes.rpg_actions import router as rpg_actions_router
 from afterworlds.api.routes.rpg_setup import router as rpg_setup_router
+from afterworlds.api.routes.scene import router as scene_router
 from afterworlds.api.routes.setup import router as setup_router
 from afterworlds.api.routes.stories import router as stories_router
 from afterworlds.api.routes.stories import story_router
@@ -383,6 +384,7 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
     app.include_router(turns_router, dependencies=story_guard)
     app.include_router(rpg_actions_router, dependencies=story_guard)
     app.include_router(visible_state_router, dependencies=story_guard)
+    app.include_router(scene_router, dependencies=story_guard)
     app.include_router(setup_router, dependencies=story_guard)
     app.include_router(rpg_setup_router, dependencies=story_guard)
     app.include_router(personas_router)

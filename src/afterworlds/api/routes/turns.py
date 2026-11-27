@@ -34,6 +34,7 @@ from afterworlds.api.deps import (
 )
 from afterworlds.api.dto import (
     BeginStoryResponse,
+    MovePathDTO,
     ProviderRefusalSummaryDTO,
     TranscriptResponse,
     TranscriptTurnDTO,
@@ -42,6 +43,7 @@ from afterworlds.api.dto import (
 )
 from afterworlds.api.errors import API_ERROR_RESPONSES, ApiErrorCode, ApiErrorResponse
 from afterworlds.api.rpg_actions import RpgActions, raise_for_action_sequence_error
+from afterworlds.api.scene import drawn_route, precheck_route
 from afterworlds.api.story_bootstrap import (
     branching_configuration_problems,
     derive_writing_turn_request,
@@ -112,10 +114,15 @@ def _submit_turn_sync(
     story_id: UUID,
     sojourner_id: UUID,
     user_input: str,
+    move_path: MovePathDTO | None = None,
 ) -> TurnSubmissionResponse:
+    drawn = drawn_route(move_path)
+
     def orchestrate(
         session: Session, story: Story, node_id: UUID, access_path: RuntimeAccessPath
     ) -> OrchestrationResult:
+        if drawn is not None:
+            precheck_route(orchestrator, story, drawn)
         # PR #126 review round 5 (owner decision): the server, never the
         # client, derives Writing turn provenance -- TurnSubmissionRequest
         # has no work_product_kind/canon_eligibility fields (extra="forbid"
@@ -133,6 +140,7 @@ def _submit_turn_sync(
             sojourner_id,
             access_path,
             writing_turn_request=writing_turn_request,
+            drawn_route=drawn,
         )
 
     return _run_turn_sync(
@@ -431,7 +439,11 @@ def _settlement_sink(request: Request) -> SettlementSink:
     return SettlementSink(ops, content if content is not ops else None)
 
 
-@router.post("/{story_id}/turns", response_model=TurnSubmissionResponse)
+@router.post(
+    "/{story_id}/turns",
+    response_model=TurnSubmissionResponse,
+    responses=API_ERROR_RESPONSES,
+)
 async def submit_turn(
     story_id: UUID,
     body: TurnSubmissionRequest,
@@ -453,6 +465,7 @@ async def submit_turn(
         story_id,
         sojourner_id,
         body.user_input,
+        body.move_path,
     )
     return response
 

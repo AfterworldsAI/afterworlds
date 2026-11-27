@@ -658,6 +658,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stories/{story_id}/scene": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Scene */
+        get: operations["get_scene_api_stories__story_id__scene_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stories/{story_id}/setup": {
         parameters: {
             query?: never;
@@ -1311,7 +1328,7 @@ export interface components {
          * ApiErrorCode
          * @enum {string}
          */
-        ApiErrorCode: "not_found" | "validation_failed" | "entitlement_blocked" | "byok_credentials_required" | "turn_in_flight" | "setup_required" | "setup_state_conflict" | "mode_unavailable" | "internal_error" | "pending_roll_not_found" | "pending_roll_not_player_visible" | "pending_roll_already_consumed" | "pending_roll_revision_mismatch" | "pending_roll_term_mismatch" | "pending_roll_invalid_value" | "pending_roll_invalid_aggregate" | "action_sequence_not_found" | "action_sequence_already_completed" | "action_sequence_state_conflict" | "action_adjustment_not_allowed" | "action_adjustment_ineligible" | "mechanical_decision_invalid" | "mechanical_decision_revision_mismatch" | "sequence_not_ready_for_narration" | "credential_store_read_only" | "credential_store_unavailable" | "credential_settings_unavailable" | "credential_not_configured" | "credential_validation_superseded" | "credential_validation_unavailable" | "authentication_required" | "authentication_failed" | "staff_authority_required" | "request_origin_rejected" | "byok_local_only" | "deployment_route_unavailable" | "identity_unavailable" | "account_operation_in_progress" | "operation_conflict" | "operation_stale" | "operation_precondition_failed" | "operation_outcome_unknown" | "operation_unavailable" | "operation_unsupported";
+        ApiErrorCode: "not_found" | "validation_failed" | "entitlement_blocked" | "byok_credentials_required" | "turn_in_flight" | "setup_required" | "setup_state_conflict" | "mode_unavailable" | "internal_error" | "pending_roll_not_found" | "pending_roll_not_player_visible" | "pending_roll_already_consumed" | "pending_roll_revision_mismatch" | "pending_roll_term_mismatch" | "pending_roll_invalid_value" | "pending_roll_invalid_aggregate" | "action_sequence_not_found" | "action_sequence_already_completed" | "action_sequence_state_conflict" | "action_adjustment_not_allowed" | "action_adjustment_ineligible" | "mechanical_decision_invalid" | "mechanical_decision_revision_mismatch" | "sequence_not_ready_for_narration" | "credential_store_read_only" | "credential_store_unavailable" | "credential_settings_unavailable" | "credential_not_configured" | "credential_validation_superseded" | "credential_validation_unavailable" | "authentication_required" | "authentication_failed" | "staff_authority_required" | "request_origin_rejected" | "byok_local_only" | "deployment_route_unavailable" | "identity_unavailable" | "account_operation_in_progress" | "operation_conflict" | "operation_stale" | "operation_precondition_failed" | "operation_outcome_unknown" | "operation_unavailable" | "operation_unsupported" | "route_refused" | "route_stale";
         /**
          * BeginStoryResponse
          * @description ``POST .../begin`` (ADR-016b). ``started``: the opening was delivered
@@ -2271,6 +2288,34 @@ export interface components {
             option_id: string;
         };
         /**
+         * MovePathDTO
+         * @description A route the Sojourner drew on the scene view (issue #211): the squares
+         *     from the mover's square to the end, by label (``"B5"``), and the
+         *     ``view_hash`` of the view it was drawn on.
+         */
+        MovePathDTO: {
+            /** Squares */
+            squares: string[];
+            /**
+             * Dash
+             * @default false
+             */
+            dash: boolean;
+            /**
+             * Disengage
+             * @default false
+             */
+            disengage: boolean;
+            /** View Hash */
+            view_hash?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
          * OpenRouterModelRequest
          * @description ``None`` clears the model (OpenRouter is then not runnable).
          */
@@ -3097,6 +3142,62 @@ export interface components {
          */
         RuntimeAccessPath: "hosted" | "byok";
         /**
+         * SceneAllowanceDTO
+         * @description The mover's reachable squares and their cost in feet, from
+         *     player-visible facts only.
+         */
+        SceneAllowanceDTO: {
+            /** Token Id */
+            token_id: string;
+            /** Speed Ft */
+            speed_ft: number;
+            /** Dash Ft */
+            dash_ft: number;
+            /** Costs */
+            costs: {
+                [key: string]: number;
+            };
+            /** Warnings */
+            warnings: {
+                [key: string]: string;
+            };
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * SceneViewResponse
+         * @description GET .../scene (issue #211): the player view of the active scene. The
+         *     snapshot never holds what the party doesn't know; opening it changes
+         *     nothing.
+         */
+        SceneViewResponse: {
+            /** Map Id */
+            map_id: string;
+            /** Label */
+            label: string;
+            /** Revision */
+            revision: number;
+            /** Viewer */
+            viewer: string;
+            /** View Hash */
+            view_hash: string;
+            /** Snapshot */
+            snapshot: {
+                [key: string]: unknown;
+            };
+            allowance?: components["schemas"]["SceneAllowanceDTO"] | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
          * SequenceProgressView
          * @description ``step_index`` is 1-based and counts the player's own interactions
          *     only; ``known_step_count`` is ``None`` when later steps depend on
@@ -3412,6 +3513,7 @@ export interface components {
         TurnSubmissionRequest: {
             /** User Input */
             user_input: string;
+            move_path?: components["schemas"]["MovePathDTO"] | null;
             /**
              * Schema Version
              * @default 1
@@ -5739,13 +5841,49 @@ export interface operations {
                     "application/json": components["schemas"]["TurnSubmissionResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
         };
@@ -6192,6 +6330,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scene_api_stories__story_id__scene_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SceneViewResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
         };
