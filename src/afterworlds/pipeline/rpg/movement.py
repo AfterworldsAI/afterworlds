@@ -24,8 +24,8 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field, replace
-from typing import Any
 from heapq import heappop, heappush
+from typing import Any
 
 from afterworlds.mapper import coords
 from afterworlds.mapper.geometry import chebyshev, edge_between, edge_fact, is_door
