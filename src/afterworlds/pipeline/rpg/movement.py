@@ -44,6 +44,7 @@ from afterworlds.mapper.models import (
     Token,
     token_squares,
 )
+from afterworlds.mapper.updates import footprint_free
 from afterworlds.mapper.views import Allowance, party_sight
 from afterworlds.models.enums import RollPurpose
 from afterworlds.pipeline.rpg.dice import DiceService, RollRequest, request
@@ -133,6 +134,7 @@ SOLID = "solid square"
 LOCKED = "door locked"
 SECOND_DOOR = "second door needs an action"
 OCCUPIED_END = "square occupied at the end"
+NO_ROOM = "no room to end there"
 OVER_BUDGET = "over the movement budget"
 OFF_MAP = "off the map"
 STALE = "the scene changed since you looked"
@@ -425,14 +427,35 @@ def walk(
         doors_opened += 1
         return None, door.feature_id
 
+    def cover(square: Square) -> set[Square]:
+        """The squares the mover's whole footprint takes at *square*."""
+        assert mover is not None  # noqa: S101 — checked above
+        return set(token_squares(mover.model_copy(update={"square": square})))
+
     def unseen_at(square: Square) -> list[Token]:
+        here = cover(square)
         return [
             t
             for t in truth.tokens
             if t.token_id != profile.token_id
-            and square in token_squares(t)
+            and here.intersection(token_squares(t))
             and known.token(t.token_id) is None
         ]
+
+    def stop_for(creature: Token) -> Walk:
+        """An unseen creature ends the move before it, on the last square
+        passed where the mover fits: passing an ally is fine, ending on one
+        is not, and the record refuses it."""
+        assert mover is not None  # noqa: S101 — checked above
+        kept = list(steps)
+        while kept and footprint_free(truth, mover, kept[-1].square) is not None:
+            kept.pop()
+        return Walk(
+            steps=tuple(kept),
+            stopped_by=f"creature:{creature.token_id}",
+            stopped_at=kept[-1].square if kept else route[0],
+            warnings=tuple(warnings),
+        )
 
     def hidden_pit_at(square: Square) -> Pit | None:
         pit = truth.pit_at(square)
@@ -448,12 +471,7 @@ def walk(
         if truth is not known:
             unseen = unseen_at(b)
             if unseen:
-                return Walk(
-                    steps=tuple(steps),
-                    stopped_by=f"creature:{unseen[0].token_id}",
-                    stopped_at=a,
-                    warnings=tuple(warnings),
-                )
+                return stop_for(unseen[0])
             hidden_pit = hidden_pit_at(b)
             if hidden_pit is not None:
                 cost = rules.square_ft
@@ -497,14 +515,9 @@ def walk(
                 return refuse(TOO_FAR_TO_JUMP, a)
             landing = route[j]
             if truth is not known and unseen_at(landing):
-                # Something unseen holds the landing: the mover stops at the
-                # take-off square, as before any unseen creature.
-                return Walk(
-                    steps=tuple(steps),
-                    stopped_by=f"creature:{unseen_at(landing)[0].token_id}",
-                    stopped_at=a,
-                    warnings=tuple(warnings),
-                )
+                # Something unseen holds the landing: the mover stops before
+                # the take-off, as before any unseen creature.
+                return stop_for(unseen_at(landing)[0])
             cost = (
                 jump_ft + _enter_cost(known, profile, rules, landing, route[j - 1])[0]
             )
@@ -572,8 +585,14 @@ def walk(
 
     end = route[-1]
     if len(route) > 1:
+        # The whole footprint has to fit where the move ends, as the record
+        # checks: judged on what is known, so a refusal reveals nothing.
+        here = cover(end)
+        if any(not known.on_map(sq) or known.char(sq) in "# " for sq in here):
+            steps.pop()
+            return refuse(NO_ROOM, end)
         for t in known.tokens:
-            if t.token_id != profile.token_id and end in token_squares(t):
+            if t.token_id != profile.token_id and here.intersection(token_squares(t)):
                 steps.pop()
                 return refuse(OCCUPIED_END, end)
     return Walk(steps=tuple(steps), warnings=tuple(warnings))

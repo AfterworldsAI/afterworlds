@@ -720,3 +720,77 @@ def test_a_hidden_pit_or_creature_at_the_landing_ends_the_jump() -> None:
     out = _resolve(lurking, MoveIntent(route=RUN_OVER_B8))
     assert out.status == "stopped" and out.final_square == (1, 6)
     assert out.stopped_by == "creature:lurk2"
+
+
+def _placed(truth: Snapshot, *tokens: Token) -> Snapshot:
+    from afterworlds.mapper.models import PlaceToken
+
+    return _with(truth, *(PlaceToken(base_revision=0, token=t) for t in tokens))
+
+
+ALLY = Token(token_id="ally", glyph="A", ref="c:a", side="party", square=(2, 4))
+
+
+def test_an_interrupted_move_never_ends_on_an_ally() -> None:
+    """Passing through an ally is fine; ending there is not, also when an
+    unseen creature cuts the move short (Codex round 2)."""
+    lurker = Token(token_id="lurk2", glyph="L", ref="c:l", side="hostile", hidden=True)
+    truth = _placed(
+        _truth(with_hidden=False), ALLY, lurker.model_copy(update={"square": (3, 4)})
+    )
+    out = _resolve(truth, MoveIntent(route=((1, 4), (2, 4), (3, 4), (4, 4))))
+    assert out.status == "stopped" and out.stopped_by == "creature:lurk2"
+    assert out.final_square == (1, 4)
+    assert not [u for u in out.updates if isinstance(u, MoveToken)]
+    # The same at a jump's take-off: the ally holds B7, so the mover stops
+    # at B6 when something unseen holds the landing at B9.
+    jumping = _placed(
+        _truth(with_hidden=False),
+        ALLY.model_copy(update={"square": (1, 6)}),
+        lurker.model_copy(update={"square": (1, 8)}),
+    )
+    out = _resolve(jumping, MoveIntent(route=RUN_OVER_B8))
+    assert out.status == "stopped" and out.final_square == (1, 5)
+
+
+def _big_hero(truth: Snapshot, square: Square) -> Snapshot:
+    return truth.model_copy(
+        update={
+            "tokens": tuple(
+                (
+                    t.model_copy(update={"footprint": 2, "square": square})
+                    if t.token_id == "hero"
+                    else t
+                )
+                for t in truth.tokens
+            )
+        }
+    )
+
+
+def test_a_large_token_needs_room_for_its_whole_footprint_at_the_end() -> None:
+    """Every square of a 2x2 token must fit where the move ends (Codex
+    round 2); the record checks the whole footprint too."""
+    big = MoverProfile(token_id="hero", walk_ft=40, strength=19, size="large")
+    edge = _big_hero(_truth(with_hidden=False), (3, 7))
+    to_edge = ((3, 7), (3, 8), (3, 9))
+    player = views.player_snapshot(edge)
+    assert preview(player, big, rules(), MoveIntent(route=to_edge)).refused == (
+        movement.NO_ROOM
+    )
+    assert _resolve(edge, MoveIntent(route=to_edge), profile=big).refused == (
+        movement.NO_ROOM
+    )
+    crowded = _placed(
+        _big_hero(_truth(with_hidden=False), (3, 4)),
+        ALLY.model_copy(update={"square": (6, 5)}),
+    )
+    beside = ((3, 4), (4, 4), (5, 4))
+    out = _resolve(crowded, MoveIntent(route=beside), profile=big)
+    assert out.refused == movement.OCCUPIED_END
+    fine = _resolve(
+        _big_hero(_truth(with_hidden=False), (3, 1)),
+        MoveIntent(route=((3, 1), (4, 1), (5, 1))),
+        profile=big,
+    )
+    assert fine.status == "completed" and fine.final_square == (5, 1)
