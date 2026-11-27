@@ -47,6 +47,13 @@ export type RollAdjustmentRequest =
 export type DecisionSubmission =
   components["schemas"]["MechanicalDecisionSubmission"];
 
+// Issue #211 (mapper M1): the player view of the active scene and a route
+// drawn on it. The view holds only what the party knows; the server decides
+// every move.
+export type SceneView = components["schemas"]["SceneViewResponse"];
+export type SceneAllowance = components["schemas"]["SceneAllowanceDTO"];
+export type MovePath = components["schemas"]["MovePathDTO"];
+
 // CRD Issue 20: authoritative account view and BYOK settings.
 export type AccountStatus = components["schemas"]["AccountStatusResponse"];
 export type ByokProviderName = components["schemas"]["ByokProvider"];
@@ -202,11 +209,24 @@ export const api = {
       method: "POST",
     }),
 
-  submitTurn: (storyId: string, userInput: string) =>
+  submitTurn: (storyId: string, userInput: string, movePath?: MovePath) =>
     request<TurnSubmissionResponse>(`/api/stories/${storyId}/turns`, {
       method: "POST",
-      body: JSON.stringify({ user_input: userInput, schema_version: 1 }),
+      body: JSON.stringify({
+        user_input: userInput,
+        schema_version: 1,
+        ...(movePath ? { move_path: movePath } : {}),
+      }),
     }),
+
+  // Issue #211: read-only. A story with no active scene answers null.
+  getScene: (storyId: string) =>
+    request<SceneView>(`/api/stories/${storyId}/scene`).catch(
+      (err: unknown) => {
+        if (err instanceof ApiRequestError && err.status === 404) return null;
+        throw err;
+      },
+    ),
 
   getVisibleState: (storyId: string) =>
     request<components["schemas"]["VisibleStateResponse"]>(

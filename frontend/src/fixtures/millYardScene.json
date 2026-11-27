@@ -1,0 +1,281 @@
+{
+  "allowance": {
+    "costs": {
+      "A1": 20,
+      "A10": 25,
+      "A2": 15,
+      "A3": 10,
+      "A4": 5,
+      "A5": 5,
+      "A6": 5,
+      "A7": 10,
+      "A8": 15,
+      "A9": 20,
+      "B1": 20,
+      "B10": 25,
+      "B2": 15,
+      "B3": 10,
+      "B4": 5,
+      "B6": 5,
+      "B7": 10,
+      "B9": 20,
+      "C1": 20,
+      "C10": 25,
+      "C2": 15,
+      "C3": 10,
+      "C4": 5,
+      "C5": 5,
+      "C6": 5,
+      "C7": 10,
+      "C8": 15,
+      "C9": 20,
+      "D1": 20,
+      "D10": 25,
+      "D2": 15,
+      "D3": 10,
+      "D4": 10,
+      "D5": 10,
+      "D6": 10,
+      "D7": 10,
+      "D8": 15,
+      "D9": 20,
+      "E1": 20,
+      "E10": 25,
+      "E2": 15,
+      "E3": 15,
+      "E4": 15,
+      "E5": 15,
+      "E6": 15,
+      "E7": 15,
+      "E8": 15,
+      "E9": 20,
+      "F1": 20,
+      "F10": 25,
+      "F2": 20,
+      "F3": 20,
+      "F4": 20,
+      "F5": 20,
+      "F6": 20,
+      "F8": 20,
+      "F9": 20,
+      "G1": 25,
+      "G10": 25,
+      "G2": 25,
+      "G3": 25,
+      "G4": 25,
+      "G5": 25,
+      "G6": 25,
+      "G7": 30,
+      "G9": 25,
+      "H1": 30,
+      "H10": 30,
+      "H2": 30,
+      "H3": 30,
+      "H4": 30,
+      "H5": 30,
+      "H6": 30,
+      "H7": 30,
+      "H8": 30,
+      "H9": 30
+    },
+    "dash_ft": 30,
+    "speed_ft": 30,
+    "token_id": "hero",
+    "warnings": {}
+  },
+  "label": "The mill yard",
+  "map_id": "00000000-0000-0000-0000-000000000211",
+  "revision": 4,
+  "schema_version": 1,
+  "snapshot": {
+    "areas": [
+      {
+        "area_id": "yard",
+        "bounds": [
+          0,
+          0,
+          8,
+          10
+        ],
+        "description": "",
+        "indoors": false,
+        "label": "the yard",
+        "level": "gridded",
+        "setting": "worked"
+      },
+      {
+        "area_id": "mill",
+        "bounds": [
+          8,
+          0,
+          4,
+          10
+        ],
+        "description": "a dusty mill room",
+        "indoors": true,
+        "label": "the mill",
+        "level": "coarse",
+        "setting": "worked"
+      }
+    ],
+    "coarse": {
+      "placements": [],
+      "relations": [
+        {
+          "distance_text": "",
+          "object": "mill",
+          "relation": "joined_by",
+          "side": null,
+          "subject": "yard",
+          "via": "mill-door"
+        }
+      ],
+      "zones": [
+        {
+          "area_id": "yard",
+          "label": "west yard",
+          "size_hint": "",
+          "zone_id": "yard-west"
+        }
+      ]
+    },
+    "explored": [
+      "111111110000",
+      "111111110000",
+      "111111110000",
+      "111111110000",
+      "111111110000",
+      "111111110000",
+      "111111110000",
+      "111111110000",
+      "111111110000",
+      "111111110000"
+    ],
+    "features": [
+      {
+        "blocks_sight": "full",
+        "blocks_step": false,
+        "cover_geometry": "none",
+        "edge": {
+          "col": 8,
+          "orient": "v",
+          "row": 4
+        },
+        "emits_light": false,
+        "feature_id": "mill-door",
+        "fits": "medium",
+        "hidden": false,
+        "kind": "door",
+        "label": "mill door",
+        "squares": [],
+        "state": "closed"
+      },
+      {
+        "blocks_sight": "partial",
+        "blocks_step": true,
+        "cover_geometry": "half",
+        "edge": null,
+        "emits_light": false,
+        "feature_id": "barrels",
+        "fits": null,
+        "hidden": false,
+        "kind": "other",
+        "label": "barrels",
+        "squares": [
+          [
+            5,
+            6
+          ]
+        ],
+        "state": null
+      }
+    ],
+    "height": 10,
+    "hwalls": [
+      "            ",
+      "            ",
+      "            ",
+      "            ",
+      "            ",
+      "            ",
+      "            ",
+      "            ",
+      "            ",
+      "            ",
+      "            "
+    ],
+    "levels": [],
+    "pits": [
+      {
+        "depth_ft": 10,
+        "disguise": ".",
+        "hidden": false,
+        "pit_id": "open-pit",
+        "squares": [
+          [
+            1,
+            7
+          ]
+        ],
+        "trap_id": null
+      }
+    ],
+    "terrain": [
+      "........    ",
+      "........    ",
+      "........    ",
+      "........    ",
+      "........    ",
+      "........    ",
+      "........    ",
+      "._......    ",
+      "........    ",
+      "........    "
+    ],
+    "tokens": [
+      {
+        "carries_light": false,
+        "footprint": 1,
+        "glyph": "K",
+        "hidden": false,
+        "label": "Kael",
+        "ref": "character:hero",
+        "side": "party",
+        "square": [
+          1,
+          4
+        ],
+        "token_id": "hero"
+      },
+      {
+        "carries_light": false,
+        "footprint": 1,
+        "glyph": "G",
+        "hidden": false,
+        "label": "goblin warrior",
+        "ref": "creature:goblin",
+        "side": "hostile",
+        "square": [
+          6,
+          7
+        ],
+        "token_id": "goblin"
+      }
+    ],
+    "vwalls": [
+      "             ",
+      "             ",
+      "             ",
+      "             ",
+      "        |    ",
+      "             ",
+      "             ",
+      "  |          ",
+      "  |          ",
+      "  |          "
+    ],
+    "width": 12
+  },
+  "view_hash": "ed132c984bf0009757a04dc070e02fa0c763f14773ae354d7c814ec9db973793",
+  "viewer": "hero"
+}

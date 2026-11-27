@@ -8,6 +8,8 @@
 const LAST_STORY_KEY = "afterworlds:last-story-id";
 const draftKey = (storyId: string) => `afterworlds:draft:${storyId}`;
 const SIDEBAR_COLLAPSED_KEY = "afterworlds:sidebar-collapsed";
+// Issue #211: a view preference only. Opening the map changes no Turn.
+const MAP_AUTO_OPEN_KEY = "afterworlds:map-auto-open";
 
 export const localStorageState = {
   getLastStoryId: (): string | null => localStorage.getItem(LAST_STORY_KEY),
@@ -38,4 +40,9 @@ export const localStorageState = {
     localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true",
   setSidebarCollapsed: (collapsed: boolean): void =>
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed)),
+
+  getMapAutoOpen: (): boolean =>
+    localStorage.getItem(MAP_AUTO_OPEN_KEY) === "true",
+  setMapAutoOpen: (autoOpen: boolean): void =>
+    localStorage.setItem(MAP_AUTO_OPEN_KEY, String(autoOpen)),
 };

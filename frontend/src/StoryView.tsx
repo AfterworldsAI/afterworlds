@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { api, ApiRequestError } from "./api/client";
 import type {
+  MovePath,
   PendingInteraction,
   RollSubmission,
   StoryDetail,
@@ -10,6 +11,7 @@ import type {
   VisibleState,
 } from "./api/client";
 import DispositionBanner from "./DispositionBanner";
+import MapView from "./MapView";
 import RpgPendingInteraction from "./RpgPendingInteraction";
 import RpgSetupPanel from "./RpgSetupPanel";
 import SetupForm from "./SetupForm";
@@ -165,7 +167,10 @@ export default function StoryView({
   // Resolves true only when the turn was confirmed persisted (delivered or
   // OOC-handled), so a caller holding separate input (the pasted RPG sheet)
   // keeps it for a retry on every other outcome.
-  async function submitTurn(userInput: string): Promise<boolean> {
+  async function submitTurn(
+    userInput: string,
+    movePath?: MovePath,
+  ): Promise<boolean> {
     if (inFlight || !userInput.trim()) return false;
     setInFlight(true);
     setTurnError(null);
@@ -175,7 +180,7 @@ export default function StoryView({
       // Only the mutation itself is in this try/catch (round 10
       // remediation, PR #126 P2): a failure here means the turn was never
       // persisted, so the draft stays and turnError is the right signal.
-      response = await api.submitTurn(storyId, userInput);
+      response = await api.submitTurn(storyId, userInput, movePath);
       onTurnSettled?.();
       setLastResponse(response);
       // The mutation response already carries server-refreshed visible state
@@ -575,6 +580,16 @@ export default function StoryView({
               Retry
             </button>
           </p>
+        )}
+        {story.mode === "rpg" && story.status !== "setup" && (
+          // Issue #211: the map is display only. A drawn route goes with the
+          // Turn; the words in the draft, if any, go with it.
+          <MapView
+            storyId={storyId}
+            refreshKey={setupRefresh}
+            disabled={inFlight}
+            onSendMove={(path) => submitTurn(draft.trim() || "I move.", path)}
+          />
         )}
         <form
           onSubmit={(e) => {

@@ -1,0 +1,179 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { SceneView } from "./api/client";
+import scene from "./fixtures/millYardScene.json";
+import MapView from "./MapView";
+
+const view = scene as unknown as SceneView;
+
+const mocks = vi.hoisted(() => ({ getScene: vi.fn() }));
+
+vi.mock("./api/client", async () => {
+  const actual =
+    await vi.importActual<typeof import("./api/client")>("./api/client");
+  return { ...actual, api: { getScene: mocks.getScene } };
+});
+
+function tapSquare(container: HTMLElement, square: string) {
+  const el = container.querySelector(`[data-square="${square}"]`);
+  if (!el) throw new Error(`no square ${square}`);
+  fireEvent.click(el);
+}
+
+describe("MapView (issue #211)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    mocks.getScene.mockReset();
+    mocks.getScene.mockResolvedValue(view);
+  });
+
+  it("shows nothing for a story with no active scene", async () => {
+    mocks.getScene.mockResolvedValue(null);
+    const { container } = render(
+      <MapView
+        storyId="s"
+        refreshKey={0}
+        disabled={false}
+        onSendMove={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(mocks.getScene).toHaveBeenCalled());
+    expect(container.querySelector("section")).toBeNull();
+  });
+
+  it("opening and closing the map only reads the view", async () => {
+    const onSendMove = vi.fn();
+    render(
+      <MapView
+        storyId="s"
+        refreshKey={0}
+        disabled={false}
+        onSendMove={onSendMove}
+      />,
+    );
+    const show = await screen.findByRole("button", { name: "Show map" });
+    expect(screen.queryByRole("img")).toBeNull();
+    fireEvent.click(show);
+    expect(screen.getByRole("img", { name: /mill yard/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Hide map" }));
+    expect(screen.queryByRole("img")).toBeNull();
+    expect(mocks.getScene).toHaveBeenCalledTimes(1);
+    expect(onSendMove).not.toHaveBeenCalled();
+  });
+
+  it("auto-open is a saved view preference that only opens the map", async () => {
+    const first = render(
+      <MapView
+        storyId="s"
+        refreshKey={0}
+        disabled={false}
+        onSendMove={vi.fn()}
+      />,
+    );
+    fireEvent.click(
+      await screen.findByRole("checkbox", {
+        name: /open the map automatically/i,
+      }),
+    );
+    first.unmount();
+    render(
+      <MapView
+        storyId="s"
+        refreshKey={0}
+        disabled={false}
+        onSendMove={vi.fn()}
+      />,
+    );
+    expect(await screen.findByRole("img")).toBeInTheDocument();
+    expect(mocks.getScene).toHaveBeenCalledTimes(2);
+  });
+
+  it("shades reachable squares and hides nothing it wasn't sent", async () => {
+    localStorage.setItem("afterworlds:map-auto-open", "true");
+    const { container } = render(
+      <MapView
+        storyId="s"
+        refreshKey={0}
+        disabled={false}
+        onSendMove={vi.fn()}
+      />,
+    );
+    await screen.findByRole("img");
+    expect(container.querySelector('[data-reach="E5"]')).not.toBeNull();
+    expect(container.innerHTML).not.toMatch(/hidden-pit|lurker|secret/);
+  });
+
+  it("a far tap draws the route and Send move posts it with the view hash", async () => {
+    localStorage.setItem("afterworlds:map-auto-open", "true");
+    const onSendMove = vi.fn().mockResolvedValue(true);
+    const { container } = render(
+      <MapView
+        storyId="s"
+        refreshKey={0}
+        disabled={false}
+        onSendMove={onSendMove}
+      />,
+    );
+    await screen.findByRole("img");
+    tapSquare(container, "H5");
+    expect(screen.getByText(/Route to H5 \(30 ft\)/)).toBeInTheDocument();
+    expect(screen.getByTestId("route")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Disengage" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send move" }));
+    await waitFor(() => expect(onSendMove).toHaveBeenCalledTimes(1));
+    expect(onSendMove).toHaveBeenCalledWith({
+      squares: ["B5", "C5", "D5", "E5", "F5", "G5", "H5"],
+      dash: false,
+      disengage: true,
+      view_hash: view.view_hash,
+      schema_version: 1,
+    });
+    await waitFor(() => expect(screen.queryByTestId("route")).toBeNull());
+  });
+
+  it("a route past the mover's speed waits for a tapped Dash", async () => {
+    localStorage.setItem("afterworlds:map-auto-open", "true");
+    // The whole yard is within 30 ft of Kael, so this view lowers the speed
+    // to put H5 past it (display logic only; the server prices every move).
+    mocks.getScene.mockResolvedValue({
+      ...view,
+      allowance: { ...view.allowance!, speed_ft: 20 },
+    });
+    const far = ["H5"];
+    const onSendMove = vi.fn().mockResolvedValue(true);
+    const { container } = render(
+      <MapView
+        storyId="s"
+        refreshKey={0}
+        disabled={false}
+        onSendMove={onSendMove}
+      />,
+    );
+    await screen.findByRole("img");
+    tapSquare(container, far[0] ?? "H5");
+    expect(screen.getByText("This route needs a Dash.")).toBeInTheDocument();
+    const send = screen.getByRole("button", { name: "Send move" });
+    expect(send).toBeDisabled();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Dash" }));
+    expect(send).toBeEnabled();
+  });
+
+  it("keeps the route when the server doesn't take the move", async () => {
+    localStorage.setItem("afterworlds:map-auto-open", "true");
+    const onSendMove = vi.fn().mockResolvedValue(false);
+    const { container } = render(
+      <MapView
+        storyId="s"
+        refreshKey={0}
+        disabled={false}
+        onSendMove={onSendMove}
+      />,
+    );
+    await screen.findByRole("img");
+    tapSquare(container, "D3");
+    fireEvent.click(screen.getByRole("button", { name: "Send move" }));
+    await waitFor(() => expect(onSendMove).toHaveBeenCalled());
+    expect(screen.getByTestId("route")).toBeInTheDocument();
+  });
+});
