@@ -24,6 +24,7 @@ from afterworlds.mapper.models import (
     Snapshot,
 )
 from afterworlds.mapper.updates import apply_all
+from afterworlds.models.character_sheet import RpgCharacterSheetBase
 from afterworlds.models.context import AssembledContext
 from afterworlds.models.enums import (
     DiceHandling,
@@ -39,6 +40,7 @@ from afterworlds.models.node import (
 )
 from afterworlds.models.session import RpgSessionState
 from afterworlds.models.story import Arc, Chapter, Story
+from afterworlds.persistence.crud.character_sheet import create_rpg_base_sheet
 from afterworlds.persistence.crud.node import create_node
 from afterworlds.persistence.crud.story import create_arc, create_chapter, create_story
 from afterworlds.pipeline.orchestrator import (
@@ -54,6 +56,7 @@ from afterworlds.pipeline.provider._routing import (
     TurnProviderBinding,
 )
 from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
+from afterworlds.pipeline.rpg.models import AdjudicationPassResult
 from afterworlds.pipeline.rpg.movement import MoverProfile
 from afterworlds.pipeline.rpg.spatial_turn import (
     DrawnRoute,
@@ -62,6 +65,8 @@ from afterworlds.pipeline.rpg.spatial_turn import (
     mover_from_token_ref,
 )
 from afterworlds.pipeline.writer.models import WriterResult
+from afterworlds.services.dnd5e_state import store as character_store
+from afterworlds.services.dnd5e_state.turn import TurnCharacter
 from tests.pipeline.orchestrator.conftest import (
     FakeContextBuilder,
     FakeContradictionService,
@@ -74,6 +79,7 @@ from tests.pipeline.orchestrator.conftest import (
     make_intent,
 )
 from tests.pipeline.rpg.movement_support import rules
+from tests.rpg_characters import srd_character
 
 NOW = datetime(2026, 11, 27, tzinfo=UTC)
 SOJOURNER = uuid4()
@@ -151,6 +157,7 @@ def _binding() -> object:
 
 
 def _session_state(story_id: UUID) -> RpgSessionState:
+    """An in-play session for *story_id* (its character is set by callers)."""
     return RpgSessionState(
         story_id=story_id,
         character_sheet_id=uuid4(),
@@ -159,8 +166,46 @@ def _session_state(story_id: UUID) -> RpgSessionState:
     )
 
 
-def _mover(story_id: UUID, truth: object) -> Mover:
-    return Mover(profile=HERO, rules=rules(), roller=("character", "hero"))
+class _NoRolls:
+    """Adjudication with nothing to roll: the Turn's only roll is the fall."""
+
+    def is_adjudicable(self, sheet: object) -> bool:
+        return True
+
+    def adjudicate(self, *args: object, **kwargs: object) -> AdjudicationPassResult:
+        return AdjudicationPassResult(proposals=(), writer_views=())
+
+
+def _seed_character(
+    session_factory: Any, story_id: UUID
+) -> tuple[RpgSessionState, TurnCharacter]:
+    """The story's in-play character, persisted with its typed state and
+    bound to the accepted SRD authority (a fall's damage reads it)."""
+    template = srd_character()
+    with session_factory() as s:
+        create_rpg_base_sheet(
+            s,
+            RpgCharacterSheetBase(
+                sheet_id=template.sheet_id,
+                story_id=story_id,
+                character_name="Ilse",
+                created_at=NOW,
+                updated_at=NOW,
+            ),
+        )
+        stored = character_store.create_character_state(
+            s,
+            template.sheet_id,
+            template.stored.state,
+            template.stored.binding,
+            now="t",
+        )
+        s.commit()
+    sheet = TurnCharacter(stored, (), (), template.index)
+    state = _session_state(story_id).model_copy(
+        update={"character_sheet_id": sheet.sheet_id}
+    )
+    return state, sheet
 
 
 @dataclass
@@ -171,6 +216,7 @@ class _Rig:
     story_id: UUID
     node_id: UUID
     session_factory: Any
+    sheet: TurnCharacter
 
     def turn(self, text: str, drawn: DrawnRoute | None = None) -> OrchestrationResult:
         return self.orch.orchestrate_turn(
@@ -212,8 +258,28 @@ def _seed_story(session_factory: Any) -> tuple[UUID, UUID]:
         return story.story_id, node.node_id
 
 
-def _make_rig(session_factory: Any, snapshot: Snapshot | None = None) -> _Rig:
+def _make_rig(
+    session_factory: Any,
+    snapshot: Snapshot | None = None,
+    *,
+    adjudicated: bool = True,
+) -> _Rig:
     story_id, node_id = _seed_story(session_factory)
+    state, sheet = _seed_character(session_factory, story_id)
+
+    def _mover(story_id: UUID, truth: object) -> Mover:
+        return Mover(
+            profile=HERO, rules=rules(), roller=("character", str(sheet.sheet_id))
+        )
+
+    wired: dict[str, Any] = (
+        {
+            "rpg_adjudication_service": _NoRolls(),
+            "rpg_session_sheet_resolver": lambda _sid: (state, sheet),
+        }
+        if adjudicated
+        else {}
+    )
     with session_factory() as s:
         store.begin_scene(
             s,
@@ -243,11 +309,12 @@ def _make_rig(session_factory: Any, snapshot: Snapshot | None = None) -> _Rig:
         safety_policy=CapabilityProfileAwareSafetyPolicy(),
         provider_resolver=_binding(),  # type: ignore[arg-type]
         mode_resolver=fixed_mode_resolver(StoryMode.RPG),
-        rpg_session_resolver=_session_state,
+        rpg_session_resolver=lambda _sid: state,
         rpg_dice_service=SystemRandomDiceService(7),
         spatial_turn_service=spatial,
+        **wired,
     )
-    return _Rig(orch, spatial, seen, story_id, node_id, session_factory)
+    return _Rig(orch, spatial, seen, story_id, node_id, session_factory, sheet)
 
 
 @pytest.fixture()
@@ -507,3 +574,76 @@ def test_mover_from_token_ref_finds_the_characters_token() -> None:
     assert mover.profile.walk_ft == 25
     assert mover.roller == ("character", "sheet-1")
     assert mover_from_token_ref("character", lambda _sid: None)(uuid4(), truth) is None
+
+
+# -- a fall is Sojourn's to record (ADR-015 Fork B1) -----------------------
+
+
+def _audit_rows(rig: _Rig) -> list[Any]:
+    from afterworlds.persistence.orm.rpg import RpgRollAuditORM
+
+    with rig.session_factory() as s:
+        return list(
+            s.query(RpgRollAuditORM).filter_by(story_id=str(rig.story_id)).all()
+        )
+
+
+def test_a_fall_is_audited_and_lands_on_the_sheet_with_the_turn(rig: _Rig) -> None:
+    """The straight route falls into the hidden pit: the Turn writes the
+    fall's roll to the audit and its damage and Prone to the character, all
+    with the delivered Turn. The mapper record holds only where it ended."""
+    before = rig.sheet.stored.state.hit_points
+    assert before is not None
+    result = rig.turn("I walk over to the mill door.")
+    assert result.disposition is PipelineDisposition.DELIVERED
+    [row] = _audit_rows(rig)
+    assert row.turn_id == str(result.turn_id)
+    assert row.check_label.startswith("Falling ")
+    assert row.source == "ai"
+    [fall] = [c for c in _facts(rig.seen.writer)["consequences"] if c["total"]]
+    assert row.total == fall["total"]
+    targets = [e["target"] for e in json.loads(row.sheet_effects_json)]
+    assert targets[0] == "current_hp" and targets[-1] == "prone"
+    with rig.session_factory() as s:
+        stored = character_store.get_character(s, rig.sheet.sheet_id)
+    assert stored is not None and stored.revision == rig.sheet.stored.revision + 1
+    after = stored.state.hit_points
+    assert after is not None
+    assert after.current == max(0, before.current - row.total)
+    assert any(
+        c.condition.value == "prone" and c.source is not None
+        for c in stored.state.conditions or ()
+    )
+    [views] = [c for name, c in rig.seen.writer if name == "rpg_adjudication"]
+    assert json.loads(views)["views"][0]["check_label"] == row.check_label
+
+
+def test_a_move_without_a_fall_audits_nothing(rig: _Rig) -> None:
+    result = rig.turn("I go.", DrawnRoute(squares=BY_E3))
+    assert result.disposition is PipelineDisposition.DELIVERED
+    assert _audit_rows(rig) == []
+    with rig.session_factory() as s:
+        stored = character_store.get_character(s, rig.sheet.sheet_id)
+    assert stored is not None and stored.revision == rig.sheet.stored.revision
+
+
+def test_a_fall_with_no_adjudication_wired_fails_closed(session_factory: Any) -> None:
+    """A fall never goes unrecorded: with no adjudication path the Turn
+    fails typed and nothing is written, record included."""
+    r = _make_rig(session_factory, adjudicated=False)
+    try:
+        before = r.revisions()
+        result = r.turn("I walk over to the mill door.")
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "a fall needs an in-play character" in (
+            result.pipeline_error_summary or ""
+        )
+        assert r.revisions() == before
+        assert _audit_rows(r) == []
+        # A move with no fall still needs no adjudication.
+        assert (
+            r.turn("I go.", DrawnRoute(squares=BY_E3)).disposition
+            is PipelineDisposition.DELIVERED
+        )
+    finally:
+        r.orch.close()

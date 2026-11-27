@@ -908,6 +908,18 @@ class Consequence:
 
 
 @dataclass(frozen=True)
+class FallRoll:
+    """A fall's roll, for Sojourn's Turn to record on the dice rails' audit
+    and the mover's sheet (ADR-015). The mapper never writes either."""
+
+    depth_ft: int
+    expression: str  # "" when the fall is too short to roll
+    raw_rolls: tuple[int, ...]
+    total: int
+    prone: bool
+
+
+@dataclass(frozen=True)
 class MoveOutcome:
     """What adjudication settled, for the record, the Writer and the ledger."""
 
@@ -928,6 +940,7 @@ class MoveOutcome:
     warnings: tuple[tuple[str, str], ...] = ()
     squeezing: bool = False
     citations: tuple[tuple[str, str], ...] = field(default=())
+    fall: FallRoll | None = None
 
     def writer_facts(self) -> dict[str, object]:
         """The Writer's spatial facts: distance travelled, any interruption
@@ -1022,13 +1035,15 @@ def resolve(
         citations.append(CITATIONS["difficult_terrain_cost"])
     if any(s.jump_ft for s in w.steps):
         citations.append(CITATIONS["long_jump"])
+    fall: FallRoll | None = None
     if w.pit_id is not None:
         pit = truth.pit_at(travelled[-1])
         assert pit is not None
         updates.append(
             SetHidden(base_revision=revision, thing_id=pit.pit_id, hidden=False)
         )
-        consequences.extend(_fall(pit.depth_ft, rules, dice, roller))
+        landed, fall = _fall(pit.depth_ft, rules, dice, roller)
+        consequences.extend(landed)
         citations.extend([CITATIONS["fall_damage"], CITATIONS["prone_on_landing"]])
     if w.stopped_by is not None and w.stopped_by.startswith("creature:"):
         thing = w.stopped_by.split(":", 1)[1]
@@ -1055,14 +1070,22 @@ def resolve(
         warnings=w.warnings,
         squeezing=squeezing,
         citations=tuple(dict.fromkeys(citations)),
+        fall=fall,
     )
 
 
 def _fall(
     depth_ft: int, rules: MovementRules, dice: DiceService, roller: tuple[str, str]
-) -> list[Consequence]:
+) -> tuple[list[Consequence], FallRoll]:
     count = min(rules.fall_max_dice, depth_ft // rules.fall_dice_per_ft)
     out: list[Consequence] = []
+    rolled = FallRoll(
+        depth_ft=depth_ft,
+        expression="",
+        raw_rolls=(),
+        total=0,
+        prone=rules.fall_leaves_prone,
+    )
     if count:
         result = request(
             dice,
@@ -1083,6 +1106,12 @@ def _fall(
                 citation=CITATIONS["fall_damage"],
             )
         )
+        rolled = replace(
+            rolled,
+            expression=f"{count}{rules.fall_die}",
+            raw_rolls=tuple(result.raw_rolls),
+            total=result.chosen,
+        )
     if rules.fall_leaves_prone:
         out.append(
             Consequence(
@@ -1091,7 +1120,7 @@ def _fall(
                 citation=CITATIONS["prone_on_landing"],
             )
         )
-    return out
+    return out, rolled
 
 
 def explored_after(truth: Snapshot, revision: int) -> MarkExplored | None:

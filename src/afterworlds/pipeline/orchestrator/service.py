@@ -1311,6 +1311,8 @@ class OrchestratorService:
         rpg_play_status: RpgPlayStatus | None = None
         # ADR-015c: the session state this turn resolved, for setup turns.
         rpg_session_state: RpgSessionState | None = None
+        # Issue #211: whether the move's fall reached the record path below.
+        fall_recorded = False
 
         if story_mode == StoryMode.RPG and self._rpg_adjudication_service is not None:
             if (
@@ -1433,6 +1435,28 @@ class OrchestratorService:
                     )
                 # All except branches return; adj_result is set at this point.
                 assert adj_result is not None  # noqa: S101 — mypy narrowing
+                if movement is not None and movement.fall is not None:
+                    # Issue #211: the fall's damage and Prone are Sojourn's,
+                    # audited and applied with the Turn like any roll.
+                    assert _scene is not None  # noqa: S101 — set with movement
+                    fell = _with_fall(
+                        adj_result,
+                        movement,
+                        _scene.mover.roller if _scene.mover is not None else None,
+                        sheet,
+                        gm_cheating=session_state.gm_cheating,
+                    )
+                    if isinstance(fell, str):
+                        return self._pipeline_error(
+                            intent_result,
+                            latency,
+                            turn_start,
+                            fell,
+                            input_safety_result=input_safety,
+                            planner_result=planner_result,
+                        )
+                    adj_result = fell
+                    fall_recorded = True
                 if adj_result.writer_views:
                     ctx.pass_forward_ledger.add(
                         "rpg_adjudication", _serialize_adj_views(adj_result)
@@ -1485,6 +1509,18 @@ class OrchestratorService:
                     rpg_session_state = _pre_ss2
                 except Exception:  # noqa: BLE001
                     rpg_play_status = None
+        if movement is not None and movement.fall is not None and not fall_recorded:
+            # A fall never goes unrecorded: its damage and Prone need an
+            # in-play character and the adjudication path to audit them.
+            return self._pipeline_error(
+                intent_result,
+                latency,
+                turn_start,
+                "a fall needs an in-play character with RPG adjudication wired"
+                " to record its damage",
+                input_safety_result=input_safety,
+                planner_result=planner_result,
+            )
         # -------------------------------------------------------------------------
 
         # Open outer transaction now: Writer is about to persist a Turn.
@@ -5278,6 +5314,52 @@ def _rpg_resolution_failure(exc: Exception) -> str:
         )
         return f"[{kind}] RPG session/sheet resolution failed: {exc}"
     return f"RPG session/sheet resolution failed: {exc}"
+
+
+def _with_fall(
+    adj_result: AdjudicationPassResult,
+    movement: MoveOutcome,
+    roller: tuple[str, str] | None,
+    sheet: TurnCharacter,
+    *,
+    gm_cheating: bool,
+) -> AdjudicationPassResult | str:
+    """*adj_result* with the move's fall as one more resolved record and
+    Writer view (issue #211, ADR-015 Fork B1), or why the Turn refuses it.
+
+    The fall lands on the mover, so the mover must be this Turn's character;
+    its damage is judged on the Hit Points the Turn read, so no other record
+    of the Turn may set them; and a paused or contested Turn audits from its
+    event ledger, which a fall doesn't join."""
+    from afterworlds.pipeline.rpg.capability import AdjudicationRefusal
+    from afterworlds.pipeline.rpg.falls import HIT_POINT_TARGETS, fall_record
+
+    assert movement.fall is not None  # noqa: S101 — caller checks
+    if roller != ("character", str(sheet.sheet_id)):
+        return "a fall landed on a mover that is not this Turn's character"
+    if adj_result.sequence is not None or adj_result.completed_sequence is not None:
+        return (
+            "a fall in a Turn that starts or completes an action sequence is not"
+            " recorded yet"
+        )
+    if any(
+        e.target in HIT_POINT_TARGETS
+        and e.subject_kind in (None, "character")
+        and e.subject_id in (None, sheet.sheet_id)
+        for r in adj_result.proposals
+        for e in r.sheet_effects
+    ):
+        return "a fall in a Turn whose other rolls change the mover's Hit Points"
+    try:
+        record, view = fall_record(movement.fall, sheet, gm_cheating=gm_cheating)
+    except AdjudicationRefusal as exc:
+        return f"the fall's damage could not be adjudicated: {exc}"
+    return adj_result.model_copy(
+        update={
+            "proposals": (*adj_result.proposals, record),
+            "writer_views": (*adj_result.writer_views, view),
+        }
+    )
 
 
 def _serialize_adj_views(adj_result: AdjudicationPassResult) -> str:
