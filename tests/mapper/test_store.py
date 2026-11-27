@@ -182,3 +182,80 @@ def test_migration_0047_matches_the_orm(tmp_path: Path) -> None:
     engine = sa.create_engine(f"sqlite:///{db.as_posix()}")
     assert "spatial_maps" not in sa.inspect(engine).get_table_names()
     engine.dispose()
+
+
+def test_story_disposal_removes_the_spatial_record(tmp_path: Path) -> None:
+    """Deleting a Story removes its scenes and their revisions, including a
+    revision that points at one of its Turns (CRD Issue 22 disposal)."""
+    from afterworlds.api.db_bootstrap import upgrade_to_head
+    from afterworlds.models.enums import IntentType
+    from afterworlds.models.node import (
+        BranchingNodeMetadata,
+        Node,
+        NodeMetadata,
+        StateDelta,
+    )
+    from afterworlds.models.story import Arc, Chapter
+    from afterworlds.operations.disposal import (
+        dispose_story_content,
+        remaining_story_content,
+    )
+    from afterworlds.persistence.crud.node import create_node
+    from afterworlds.persistence.crud.story import create_arc, create_chapter
+
+    url = f"sqlite:///{(tmp_path / 'c.db').as_posix()}"
+    upgrade_to_head(url)
+    engine = create_engine(url)
+    with create_session_factory(engine)() as s:
+        story_id = _story(s)
+        arc = Arc(story_id=story_id, title="Arc", order=0)
+        create_arc(s, arc)
+        chapter = Chapter(arc_id=arc.arc_id, title="Chapter", order=0)
+        create_chapter(s, chapter)
+        node = Node(
+            chapter_id=chapter.chapter_id,
+            content="",
+            state_delta=StateDelta(),
+            branching_logic=[],
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            metadata=NodeMetadata(timestamp=NOW),
+            mode_metadata=BranchingNodeMetadata(),
+        )
+        create_node(s, node)
+        turn_id = str(uuid4())
+        s.execute(
+            sa.text(
+                "INSERT INTO turns (turn_id, node_id, user_input, assistant_output,"
+                " timestamp, intent_classification) VALUES (:t, :n, 'go', 'went',"
+                " '2026-11-27T00:00:00+00:00', 'in_character_action')"
+            ),
+            {"t": turn_id, "n": str(node.node_id)},
+        )
+        record = store.begin_scene(
+            s,
+            story_id=story_id,
+            place_key=fixture.PLACE_KEY,
+            label=fixture.LABEL,
+            snapshot=fixture.build(),
+            seed=fixture.SEED,
+            now=NOW,
+        )
+        store.stage_revision(
+            s,
+            map_id=record.map_id,
+            updates=[
+                MoveToken(base_revision=0, token_id="hero", route=((1, 4), (2, 4)))
+            ],
+            base_revision=0,
+            now=NOW,
+            turn_id=UUID(turn_id),
+        )
+        s.commit()
+
+        dispose_story_content(s, [str(story_id)], [turn_id])
+        s.commit()
+        assert remaining_story_content(s, [str(story_id)], [turn_id]) == {}
+        for table in ("spatial_maps", "spatial_map_revisions"):
+            count = s.scalar(sa.text(f"SELECT count(*) FROM {table}"))  # noqa: S608
+            assert count == 0, table
+    engine.dispose()
