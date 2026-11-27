@@ -17,6 +17,13 @@ import pytest
 
 from afterworlds.entitlement.enums import RuntimeAccessPath
 from afterworlds.mapper import coords, fixture, store
+from afterworlds.mapper.models import (
+    MarkExplored,
+    RefineArea,
+    SetFeatureState,
+    Snapshot,
+)
+from afterworlds.mapper.updates import apply_all
 from afterworlds.models.context import AssembledContext
 from afterworlds.models.enums import (
     DiceHandling,
@@ -205,7 +212,7 @@ def _seed_story(session_factory: Any) -> tuple[UUID, UUID]:
         return story.story_id, node.node_id
 
 
-def _make_rig(session_factory: Any) -> _Rig:
+def _make_rig(session_factory: Any, snapshot: Snapshot | None = None) -> _Rig:
     story_id, node_id = _seed_story(session_factory)
     with session_factory() as s:
         store.begin_scene(
@@ -213,7 +220,7 @@ def _make_rig(session_factory: Any) -> _Rig:
             story_id=story_id,
             place_key=fixture.PLACE_KEY,
             label=fixture.LABEL,
-            snapshot=fixture.build(),
+            snapshot=snapshot if snapshot is not None else fixture.build(),
             seed=fixture.SEED,
             now=NOW,
         )
@@ -436,6 +443,53 @@ def test_the_pit_and_the_explored_squares_are_recorded(rig: _Rig) -> None:
     assert ops[:2] == ["move_token", "set_hidden"]
     pit = next(p for p in latest.snapshot.pits if p.pit_id == fixture.HIDDEN_PIT)
     assert pit.hidden is False
+
+
+def test_a_pit_jump_is_saved_square_by_square(rig: _Rig) -> None:
+    """The Turn stages a Long Jump over the visible pit at B8."""
+    route = ("B5", "B6", "B7", "B8", "B9")
+    result = rig.turn("I go.", DrawnRoute(squares=route))
+    assert result.disposition is PipelineDisposition.DELIVERED
+    latest = rig.revisions()[-1]
+    assert latest.turn_id == result.turn_id
+    [move] = [u for u in latest.updates if u.op == "move_token"]
+    assert tuple(coords.label(sq) for sq in move.route) == route
+    hero = latest.snapshot.token(fixture.HERO)
+    assert hero is not None and coords.label(hero.square) == "B9"
+
+
+def test_crossing_a_closed_door_opens_it_and_saves_the_move(
+    session_factory: Any,
+) -> None:
+    closed = apply_all(
+        fixture.build(),
+        [
+            SetFeatureState(
+                base_revision=0, feature_id=fixture.MILL_DOOR, state="closed"
+            ),
+            RefineArea(base_revision=0, area="mill"),
+            MarkExplored(
+                base_revision=0,
+                squares=tuple((c, r) for c in range(8, 12) for r in range(10)),
+            ),
+        ],
+        current_revision=0,
+        seed=fixture.SEED,
+    )
+    r = _make_rig(session_factory, closed)
+    try:
+        result = r.turn("I go.", DrawnRoute(squares=(*BY_E3, "I5"), dash=True))
+        assert result.disposition is PipelineDisposition.DELIVERED
+        latest = r.revisions()[-1]
+        assert latest.turn_id == result.turn_id
+        ops = [u.op for u in latest.updates]
+        assert ops.index("set_feature_state") < ops.index("move_token")
+        door = latest.snapshot.feature(fixture.MILL_DOOR)
+        assert door is not None and door.state == "open"
+        hero = latest.snapshot.token(fixture.HERO)
+        assert hero is not None and coords.label(hero.square) == "I5"
+    finally:
+        r.orch.close()
 
 
 def test_mover_from_token_ref_finds_the_characters_token() -> None:

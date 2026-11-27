@@ -35,6 +35,7 @@ from afterworlds.mapper.models import (
     Feature,
     MarkExplored,
     MoveToken,
+    Pit,
     SetFeatureState,
     SetHidden,
     Snapshot,
@@ -317,6 +318,9 @@ class Step:
     climb_ft: int = 0
     door_opened: str | None = None
     uses_dash: bool = False
+    #: Squares passed over on the way to *square* (a jumped pit), so the
+    #: saved move stays a chain of adjacent squares; they cost nothing more.
+    through: tuple[Square, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -396,41 +400,53 @@ def walk(
             steps=tuple(steps), refused=reason, refused_at=at, warnings=tuple(warnings)
         )
 
+    def cross(a: Square, b: Square) -> tuple[str | None, str | None]:
+        """``(refusal, closed door opened)`` for one step from *a* to *b*:
+        the geometry the record itself checks, judged on what is known."""
+        nonlocal doors_opened
+        if chebyshev(a, b) != 1:
+            return NOT_A_STEP, None
+        if not known.on_map(b):
+            return OFF_MAP, None
+        if known.char(b) in "# " or _feature_on(known, b) is not None:
+            return SOLID, None
+        if a[0] != b[0] and a[1] != b[1]:
+            return (CORNER if _corner_cut(known, a, b) else None), None
+        fact = edge_fact(known, edge_between(a, b))
+        door = fact.door if fact.door is not None and not fact.door.hidden else None
+        if door is None:
+            return (WALL if fact.wall else None), None
+        if door.state == "locked":
+            return LOCKED, None
+        if door.state != "closed":
+            return None, None
+        if doors_opened:
+            return SECOND_DOOR, None
+        doors_opened += 1
+        return None, door.feature_id
+
+    def unseen_at(square: Square) -> list[Token]:
+        return [
+            t
+            for t in truth.tokens
+            if t.token_id != profile.token_id
+            and square in token_squares(t)
+            and known.token(t.token_id) is None
+        ]
+
+    def hidden_pit_at(square: Square) -> Pit | None:
+        pit = truth.pit_at(square)
+        return pit if pit is not None and known.pit_at(square) is None else None
+
     while i + 1 < len(route):
         a, b = route[i], route[i + 1]
-        if chebyshev(a, b) != 1:
-            return refuse(NOT_A_STEP, b)
-        if not known.on_map(b):
-            return refuse(OFF_MAP, b)
-        if known.char(b) in "# " or _feature_on(known, b) is not None:
-            return refuse(SOLID, b)
-        door_opened: str | None = None
-        if a[0] != b[0] and a[1] != b[1]:
-            if _corner_cut(known, a, b):
-                return refuse(CORNER, b)
-        else:
-            fact = edge_fact(known, edge_between(a, b))
-            door = fact.door if fact.door is not None and not fact.door.hidden else None
-            if door is not None:
-                if door.state == "locked":
-                    return refuse(LOCKED, b)
-                if door.state == "closed":
-                    if doors_opened:
-                        return refuse(SECOND_DOOR, b)
-                    doors_opened += 1
-                    door_opened = door.feature_id
-            elif fact.wall:
-                return refuse(WALL, b)
+        refusal, door_opened = cross(a, b)
+        if refusal is not None:
+            return refuse(refusal, b)
 
         # Hidden facts end the move; they never refuse it.
         if truth is not known:
-            unseen = [
-                t
-                for t in truth.tokens
-                if t.token_id != profile.token_id
-                and b in token_squares(t)
-                and known.token(t.token_id) is None
-            ]
+            unseen = unseen_at(b)
             if unseen:
                 return Walk(
                     steps=tuple(steps),
@@ -438,8 +454,8 @@ def walk(
                     stopped_at=a,
                     warnings=tuple(warnings),
                 )
-            hidden_pit = truth.pit_at(b)
-            if hidden_pit is not None and known.pit_at(b) is None:
+            hidden_pit = hidden_pit_at(b)
+            if hidden_pit is not None:
                 cost = rules.square_ft
                 total += cost
                 steps.append(
@@ -466,12 +482,29 @@ def walk(
                 j += 1
             if j >= len(route):
                 return refuse(TOO_FAR_TO_JUMP, a)
+            # Every step of the jump crosses the same geometry as a walk, so
+            # a wall or a door between the pit squares or at the landing
+            # counts too (the record refuses any it would not save).
+            for k in range(i + 1, j):
+                refusal, opened = cross(route[k], route[k + 1])
+                if refusal is not None:
+                    return refuse(refusal, route[k + 1])
+                door_opened = door_opened or opened
             jump_ft = (j - i - 1) * rules.square_ft
             running = travelled * rules.square_ft >= rules.jump_run_up_ft
             reach = profile.strength if running else profile.strength // 2
             if jump_ft > reach:
                 return refuse(TOO_FAR_TO_JUMP, a)
             landing = route[j]
+            if truth is not known and unseen_at(landing):
+                # Something unseen holds the landing: the mover stops at the
+                # take-off square, as before any unseen creature.
+                return Walk(
+                    steps=tuple(steps),
+                    stopped_by=f"creature:{unseen_at(landing)[0].token_id}",
+                    stopped_at=a,
+                    warnings=tuple(warnings),
+                )
             cost = (
                 jump_ft + _enter_cost(known, profile, rules, landing, route[j - 1])[0]
             )
@@ -484,9 +517,20 @@ def walk(
                     cost_ft=cost,
                     cumulative_ft=total,
                     jump_ft=jump_ft,
+                    door_opened=door_opened,
                     uses_dash=total > profile.walk_ft,
+                    through=tuple(route[i + 1 : j]),
                 )
             )
+            landed_in = hidden_pit_at(landing) if truth is not known else None
+            if landed_in is not None:
+                return Walk(
+                    steps=tuple(steps),
+                    stopped_by=f"pit:{landed_in.pit_id}",
+                    stopped_at=landing,
+                    pit_id=landed_in.pit_id,
+                    warnings=tuple(warnings),
+                )
             travelled += j - i
             i = j
             continue
@@ -917,7 +961,9 @@ def resolve(
         if mover is not None and mover.square is not None
         else intent.route[0]
     )
-    travelled = (start, *(s.square for s in w.steps))
+    # Every square passed over, jumped ones included: the record only saves a
+    # move made of adjacent steps.
+    travelled = (start, *(sq for s in w.steps for sq in (*s.through, s.square)))
     if w.refused is not None:
         return MoveOutcome(
             token_id=profile.token_id,
@@ -936,12 +982,8 @@ def resolve(
         )
     consequences: list[Consequence] = []
     updates: list[SpatialUpdate] = []
-    if len(travelled) > 1:
-        updates.append(
-            MoveToken(
-                base_revision=revision, token_id=profile.token_id, route=travelled
-            )
-        )
+    # A door the route opens is opened first: the record refuses a step
+    # through a closed door, and updates apply in order.
     for s in w.steps:
         if s.door_opened is not None:
             updates.append(
@@ -950,6 +992,12 @@ def resolve(
                 )
             )
             consequences.append(Consequence(kind="door_opened", detail=s.door_opened))
+    if len(travelled) > 1:
+        updates.append(
+            MoveToken(
+                base_revision=revision, token_id=profile.token_id, route=travelled
+            )
+        )
     citations = [CITATIONS["entering_a_square"]]
     if any(s.difficult for s in w.steps):
         citations.append(CITATIONS["difficult_terrain_cost"])

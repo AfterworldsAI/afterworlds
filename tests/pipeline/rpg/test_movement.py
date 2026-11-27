@@ -45,22 +45,36 @@ def _truth(**kw: bool) -> Snapshot:
 
 
 def _resolve(
-    truth: Snapshot, intent: MoveIntent, seed: int = 5
+    truth: Snapshot, intent: MoveIntent, seed: int = 5, profile: MoverProfile = HERO
 ) -> movement.MoveOutcome:
-    return resolve(
+    out = resolve(
         truth,
         views.player_snapshot(truth),
-        HERO,
+        profile,
         rules(),
         intent,
         dice=SystemRandomDiceService(seed),
-        roller=("character", "hero"),
+        roller=("character", profile.token_id),
         revision=4,
     )
+    if out.status != "refused" and profile.token_id == "hero":
+        # Every move these tests resolve must also save: the Turn stages the
+        # same updates through the record's validator.
+        _staged(truth, out)
+    return out
 
 
 def _with(truth: Snapshot, *updates: object) -> Snapshot:
     return apply_all(truth, list(updates), current_revision=0, seed=1)  # type: ignore[arg-type]
+
+
+def _staged(truth: Snapshot, out: movement.MoveOutcome) -> Snapshot:
+    """Apply the outcome's updates as the Turn stages them; the record's own
+    validator refuses anything it would not save."""
+    after = apply_all(truth, out.updates, current_revision=4, seed=1)
+    hero = after.token("hero")
+    assert hero is not None and hero.square == out.final_square
+    return after
 
 
 # -- acceptance 5 and 6 ----------------------------------------------------
@@ -87,6 +101,8 @@ def test_hidden_pit_ends_the_move_and_the_fall_uses_the_dice_rails() -> None:
     facts = out.writer_facts()
     assert facts["final_position"] == "E5" and facts["interruption_point"] == "E5"
     assert facts["stopped_by"] == "a hidden pit"
+    after = _staged(_truth(), out)
+    assert not next(p for p in after.pits if p.pit_id == "hidden-pit").hidden
 
 
 def test_the_other_route_reaches_the_door() -> None:
@@ -200,6 +216,7 @@ def test_the_hidden_creature_stops_a_move_it_could_not_refuse() -> None:
     assert out.status == "stopped" and out.final_square == (0, 8)
     assert SetHidden(base_revision=4, thing_id="lurker", hidden=False) in out.updates
     assert out.writer_facts()["stopped_by"] == "an unseen creature"
+    _staged(truth, out)
 
 
 # -- the rules -------------------------------------------------------------
@@ -288,10 +305,15 @@ def test_doors_open_as_the_route_passes_and_locked_ones_refuse() -> None:
     route = (*BY_E3, (8, 4))
     out = _resolve(truth, MoveIntent(route=route, dash=True))
     assert out.status == "completed"
-    assert (
-        SetFeatureState(base_revision=4, feature_id="mill-door", state="open")
-        in out.updates
+    opened = SetFeatureState(base_revision=4, feature_id="mill-door", state="open")
+    # The door opens before the move that crosses it, or the record refuses
+    # the step through a closed door.
+    assert out.updates.index(opened) < next(
+        n for n, u in enumerate(out.updates) if isinstance(u, MoveToken)
     )
+    after = _staged(truth, out)
+    door = after.feature("mill-door")
+    assert door is not None and door.state == "open"
     locked = _with(
         truth, SetFeatureState(base_revision=0, feature_id="mill-door", state="locked")
     )
@@ -368,6 +390,11 @@ def test_visible_pit_is_long_jumped_with_a_run_up() -> None:
     out = _resolve(truth, MoveIntent(route=running))
     assert out.final_square == (1, 8) and out.distance_ft == 20
     assert ("glossary.long_jump", "jump_distance") in out.citations
+    # The record keeps every square passed over, B8 included, so each step of
+    # the saved move is adjacent; the cost is still the jump's.
+    assert out.travelled == running
+    assert MoveToken(base_revision=4, token_id="hero", route=running) in out.updates
+    _staged(truth, out)
     standing = ((1, 6), (1, 7), (1, 8))
     moved = _with(
         truth,
@@ -471,6 +498,10 @@ def test_house_rule_squeezing_an_ogre_crosses_a_5ft_door_at_double_cost() -> Non
     assert p.refused is None and p.cost_ft == 5 + 10
     w = walk(player, player, ogre, rules(), MoveIntent(route=((1, 4), (1, 3), (2, 2))))
     assert w.steps[-1].squeezing
+    out = _resolve(
+        _doorway("medium"), MoveIntent(route=((1, 4), (1, 3), (2, 2))), profile=ogre
+    )
+    assert out.squeezing and out.final_square == (2, 2)
 
 
 def test_house_rule_squeezing_the_ogre_is_refused_at_a_small_gap() -> None:
@@ -582,3 +613,110 @@ def test_deep_falls_cap_at_twenty_dice() -> None:
     assert [
         c.kind for c in _resolve(shallow, MoveIntent(route=STRAIGHT)).consequences
     ] == ["prone"]
+
+
+def test_jumps_and_climbs_save_with_every_square_passed() -> None:
+    """A wider pit and a climb both stage as adjacent steps on the record."""
+    truth = _truth(with_hidden=False)
+    wide = truth.model_copy(
+        update={
+            "pits": tuple(
+                (
+                    p.model_copy(update={"squares": ((1, 7), (1, 8))})
+                    if p.pit_id == "open-pit"
+                    else p
+                )
+                for p in truth.pits
+            )
+        }
+    )
+    route = ((1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9))
+    out = _resolve(wide, MoveIntent(route=route, dash=True))
+    assert out.status == "completed" and out.final_square == (1, 9)
+    assert out.travelled == route
+    assert [s for s in out.updates if isinstance(s, MoveToken)] == [
+        MoveToken(base_revision=4, token_id="hero", route=route)
+    ]
+    levels = (Level(level_id="ledge", squares=((3, 4),), height_ft=14),)
+    tall = truth.model_copy(update={"levels": levels})
+    climb = ((1, 4), (2, 4), (3, 4))
+    out = _resolve(tall, MoveIntent(route=climb, dash=True))
+    assert out.status == "completed" and out.final_square == (3, 4)
+
+
+def _with_hwall(truth: Snapshot, col: int, row: int) -> Snapshot:
+    rows = list(truth.hwalls)
+    rows[row] = rows[row][:col] + "-" + rows[row][col + 1 :]
+    return truth.model_copy(update={"hwalls": tuple(rows)})
+
+
+RUN_OVER_B8: tuple[Square, ...] = ((1, 4), (1, 5), (1, 6), (1, 7), (1, 8))
+
+
+def test_a_jump_checks_every_line_it_crosses() -> None:
+    """Sibling of the saved-route fix: the walk used to skip the lines after
+    the first pit square, so a jump could pass a door or a wall that the
+    record then refused."""
+    from afterworlds.mapper.models import AddFeature
+
+    truth = _truth(with_hidden=False)
+
+    def door(state: str, row: int) -> Snapshot:
+        return _with(
+            truth,
+            AddFeature(
+                base_revision=0,
+                feature=Feature(
+                    feature_id="pit-door",
+                    kind="door",
+                    edge=Edge(orient="h", col=1, row=row),
+                    state=state,  # type: ignore[arg-type]
+                ),
+            ),
+        )
+
+    # A closed door on the far side of the pit opens as the jump lands.
+    out = _resolve(door("closed", 8), MoveIntent(route=RUN_OVER_B8))
+    assert out.status == "completed" and out.final_square == (1, 8)
+    opened = SetFeatureState(base_revision=4, feature_id="pit-door", state="open")
+    assert out.updates[0] == opened
+    # A locked one, or a wall, stops the jump before it starts.
+    assert _resolve(door("locked", 8), MoveIntent(route=RUN_OVER_B8)).refused == (
+        movement.LOCKED
+    )
+    walled = _resolve(_with_hwall(truth, 1, 8), MoveIntent(route=RUN_OVER_B8))
+    assert walled.refused == movement.WALL
+
+
+def test_a_hidden_pit_or_creature_at_the_landing_ends_the_jump() -> None:
+    from afterworlds.mapper.models import PlaceToken
+
+    truth = _truth(with_hidden=False)
+    landing_pit = truth.pits[0].model_copy(
+        update={"pit_id": "landing-pit", "squares": ((1, 8),), "hidden": True}
+    )
+    trapped = truth.model_copy(update={"pits": (*truth.pits, landing_pit)})
+    out = _resolve(trapped, MoveIntent(route=RUN_OVER_B8))
+    assert out.status == "stopped" and out.final_square == (1, 8)
+    assert out.stopped_by == "pit:landing-pit"
+    assert [c.kind for c in out.consequences][-1] == "prone"
+    assert SetHidden(base_revision=4, thing_id="landing-pit", hidden=False) in (
+        out.updates
+    )
+    lurking = _with(
+        truth,
+        PlaceToken(
+            base_revision=0,
+            token=Token(
+                token_id="lurk2",
+                glyph="L",
+                ref="c:l",
+                side="hostile",
+                square=(1, 8),
+                hidden=True,
+            ),
+        ),
+    )
+    out = _resolve(lurking, MoveIntent(route=RUN_OVER_B8))
+    assert out.status == "stopped" and out.final_square == (1, 6)
+    assert out.stopped_by == "creature:lurk2"
