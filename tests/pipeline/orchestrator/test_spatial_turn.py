@@ -87,6 +87,8 @@ class _LedgerAtCall:
 
     planner: list[tuple[str, str]] = field(default_factory=list)
     writer: list[tuple[str, str]] = field(default_factory=list)
+    plans: int = 0
+    writes: int = 0
 
 
 class _Planner(FakePlannerService):
@@ -95,6 +97,7 @@ class _Planner(FakePlannerService):
     def plan(
         self, built_context: AssembledContext, *, provider: Any = None
     ) -> PlannerResult:
+        self.seen.plans += 1
         self.seen.planner = [
             (e.pass_name, e.content) for e in built_context.pass_forward_ledger.entries
         ]
@@ -105,6 +108,7 @@ class _Writer(FakeWriterService):
     seen: _LedgerAtCall
 
     def write(self, built_context: AssembledContext, *a: Any, **k: Any) -> WriterResult:
+        self.seen.writes += 1
         self.seen.writer = [
             (e.pass_name, e.content) for e in built_context.pass_forward_ledger.entries
         ]
@@ -309,6 +313,24 @@ def test_the_two_routes_have_different_consequences(session_factory: Any) -> Non
         finals.append(_facts(r.seen.writer)["final_position"])
         r.orch.close()
     assert finals == ["E5", "H5"]
+
+
+# -- acceptance 9: no model call per square --------------------------------
+
+
+@pytest.mark.parametrize("way", ["drawn", "words"])
+def test_a_seven_square_move_costs_no_model_call_per_square(
+    rig: _Rig, way: str
+) -> None:
+    """The route is walked in code: one Planner and one Writer pass for the
+    whole Turn, and the provider adapter (which raises on any call) is never
+    reached by movement resolution."""
+    squares, words = ROUTES["by_e3"]
+    drawn = DrawnRoute(squares=squares) if way == "drawn" else None
+    result = rig.turn("I go." if drawn else words, drawn)
+    assert result.disposition is PipelineDisposition.DELIVERED
+    assert _facts(rig.seen.writer)["distance_travelled_ft"] == 30
+    assert (rig.seen.plans, rig.seen.writes) == (1, 1)
 
 
 # -- acceptance 7: who sees what -------------------------------------------
