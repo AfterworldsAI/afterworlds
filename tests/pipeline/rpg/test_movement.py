@@ -106,6 +106,57 @@ def test_hidden_pit_ends_the_move_and_the_fall_uses_the_dice_rails() -> None:
     assert not next(p for p in after.pits if p.pit_id == "hidden-pit").hidden
 
 
+def test_a_mover_in_a_pit_climbs_its_depth_to_get_out() -> None:
+    """Codex, PR 212's last review: after a fall the mover is at the bottom of
+    the 10-ft pit at E5, so the step out to F5 climbs 10 ft
+    (glossary.climbing); while Prone it can only crawl, so it can't."""
+    fell = _resolve(_truth(), MoveIntent(route=STRAIGHT))
+    after = _staged(_truth(), fell)
+    player = views.player_snapshot(after)
+    out_of_it = MoveIntent(route=((4, 4), (5, 4)))
+    prone = MoverProfile(token_id="hero", walk_ft=30, strength=14, crawling=True)
+    p = preview(player, prone, rules(), out_of_it)
+    assert (p.refused, p.refused_at) == (movement.ONLY_CRAWLING, "F5")
+    # Standing, with no run-up: 10 ft is beyond half the High Jump, a climb.
+    assert preview(player, HERO, rules(), out_of_it).cost_ft == 5 + 10 * 2
+    climber = MoverProfile(token_id="hero", walk_ft=30, strength=14, climb_ft=30)
+    assert preview(player, climber, rules(), out_of_it).cost_ft == 5 + 10
+    assert allowance(player, HERO, rules()).costs["F5"] == 5 + 10 * 2
+    assert "F5" not in allowance(player, prone, rules()).costs
+    # Resolution prices the climb the same way.
+    out = _resolve(after, out_of_it)
+    assert out.status == "completed" and out.movement_spent_ft == 5 + 10 * 2
+
+
+def test_a_mover_in_a_pit_walks_its_floor_and_cannot_jump_from_it() -> None:
+    """The pit's own squares are its floor, at the same depth, so a step
+    along it is a plain step; a jump over another pit can't start there."""
+    base = _truth(with_hidden=False)
+    pits = (
+        Pit(pit_id="trench", squares=((3, 4), (4, 4)), depth_ft=10),
+        Pit(pit_id="ditch", squares=((5, 4),), depth_ft=10),
+    )
+    moved = base.model_copy(
+        update={
+            "pits": (*base.pits, *pits),
+            "tokens": tuple(
+                t.model_copy(update={"square": (3, 4)}) if t.token_id == "hero" else t
+                for t in base.tokens
+            ),
+        }
+    )
+    player = views.player_snapshot(moved)
+    along = preview(player, HERO, rules(), MoveIntent(route=((3, 4), (4, 4))))
+    assert along.refused is None and along.cost_ft == 5
+    over = MoveIntent(route=((3, 4), (4, 4), (5, 4), (6, 4)))
+    p = preview(player, HERO, rules(), over)
+    assert (p.refused, p.refused_at) == (movement.PIT_JUMP, "F5")
+    # The allowance walks the same floor, and still never into an open pit.
+    reach = allowance(player, HERO, rules())
+    assert reach.costs["E5"] == 5 and reach.routes["E5"] == ("D5", "E5")
+    assert "F5" not in reach.costs
+
+
 def test_the_other_route_reaches_the_door() -> None:
     out = _resolve(_truth(), MoveIntent(route=BY_E3))
     assert out.status == "completed"
