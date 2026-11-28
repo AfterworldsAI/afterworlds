@@ -8,12 +8,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from afterworlds.mapper import fixture, views
+from afterworlds.mapper import coords, fixture, views
 from afterworlds.mapper.models import (
     Edge,
     Feature,
     Level,
     MoveToken,
+    Pit,
     SetFeatureState,
     SetHidden,
     Snapshot,
@@ -610,9 +611,11 @@ def test_deep_falls_cap_at_twenty_dice() -> None:
             )
         }
     )
-    assert [
-        c.kind for c in _resolve(shallow, MoveIntent(route=STRAIGHT)).consequences
-    ] == ["prone"]
+    # Prone applies on any damage from the fall; a 5-ft fall deals none
+    # (Codex round 3), so it neither rolls nor lands Prone.
+    short = _resolve(shallow, MoveIntent(route=STRAIGHT))
+    assert short.consequences == ()
+    assert short.fall is not None and short.fall.total == 0 and not short.fall.prone
 
 
 def test_jumps_and_climbs_save_with_every_square_passed() -> None:
@@ -794,3 +797,21 @@ def test_a_large_token_needs_room_for_its_whole_footprint_at_the_end() -> None:
         profile=big,
     )
     assert fine.status == "completed" and fine.final_square == (5, 1)
+
+
+def test_a_large_token_cannot_pass_through_rock_where_a_pit_may_stop_it() -> None:
+    """A 2x2 footprint is checked at every step, not only the end (Codex
+    round 3): otherwise a hidden pit could stop it overlapping rock, which
+    the record refuses and the Turn would roll back."""
+    big = MoverProfile(token_id="hero", walk_ft=40, strength=19, size="large")
+    # Column 8 is the unexplored mill: rock as far as the mover knows.
+    beside_mill = ((5, 1), (6, 1), (7, 1), (6, 2))
+    truth = _big_hero(_truth(with_hidden=False), (5, 1))
+    pit = Pit(pit_id="under", squares=((7, 1),), depth_ft=10, hidden=True)
+    hidden = truth.model_copy(update={"pits": (*truth.pits, pit)})
+    player = views.player_snapshot(hidden)
+    p = preview(player, big, rules(), MoveIntent(route=beside_mill))
+    assert (p.refused, p.refused_at) == (movement.NO_ROOM, coords.label((7, 1)))
+    assert _resolve(hidden, MoveIntent(route=beside_mill), profile=big).refused == (
+        movement.NO_ROOM
+    )

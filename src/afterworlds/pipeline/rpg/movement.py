@@ -432,6 +432,17 @@ def walk(
         assert mover is not None  # noqa: S101 — checked above
         return set(token_squares(mover.model_copy(update={"square": square})))
 
+    def room(a: Square, b: Square) -> bool:
+        """Whether the mover's whole footprint fits at *b*, judged on what is
+        known; a squeeze through an opening narrower than the mover is the
+        house rule's to price, so it passes here (the end still needs room)."""
+        here = cover(b)
+        if len(here) == 1:
+            return True  # the step itself was checked square by square
+        if all(known.on_map(sq) and known.char(sq) not in "# " for sq in here):
+            return True
+        return _enter_cost(known, profile, rules, b, a)[2] is not False
+
     def unseen_at(square: Square) -> list[Token]:
         here = cover(square)
         return [
@@ -466,6 +477,10 @@ def walk(
         refusal, door_opened = cross(a, b)
         if refusal is not None:
             return refuse(refusal, b)
+        if known.pit_at(b) is None and not room(a, b):
+            # A footprint can't pass through rock, so wherever the move is
+            # cut short the record can hold the mover there.
+            return refuse(NO_ROOM, b)
 
         # Hidden facts end the move; they never refuse it.
         if truth is not known:
@@ -514,6 +529,8 @@ def walk(
             if jump_ft > reach:
                 return refuse(TOO_FAR_TO_JUMP, a)
             landing = route[j]
+            if not room(route[j - 1], landing):
+                return refuse(NO_ROOM, landing)
             if truth is not known and unseen_at(landing):
                 # Something unseen holds the landing: the mover stops before
                 # the take-off, as before any unseen creature.
@@ -1084,7 +1101,7 @@ def _fall(
         expression="",
         raw_rolls=(),
         total=0,
-        prone=rules.fall_leaves_prone,
+        prone=rules.fall_leaves_prone and count > 0,
     )
     if count:
         result = request(
@@ -1112,11 +1129,13 @@ def _fall(
             raw_rolls=tuple(result.raw_rolls),
             total=result.chosen,
         )
-    if rules.fall_leaves_prone:
+    if rules.fall_leaves_prone and count:
+        # Prone only if the fall deals damage (``prone_on_landing`` applies
+        # on any damage); Sojourn's record says whether it did.
         out.append(
             Consequence(
                 kind="prone",
-                detail="lands Prone",
+                detail="lands Prone unless it avoids all the damage",
                 citation=CITATIONS["prone_on_landing"],
             )
         )

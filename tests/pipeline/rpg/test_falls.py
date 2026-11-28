@@ -9,10 +9,15 @@ from __future__ import annotations
 import dataclasses
 import json
 
+import pytest
+
 from afterworlds.ingestion.mechanical.representation import ConditionKind
 from afterworlds.models.dnd5e_state import ConditionInstance, HitPoints
 from afterworlds.models.enums import ConditionVisibility, RollVisibility
 from afterworlds.pipeline.orchestrator.service import _with_fall
+from afterworlds.pipeline.rpg import falls
+from afterworlds.pipeline.rpg.capability import AdjudicationRefusal
+from afterworlds.pipeline.rpg.damage import DamageTaken
 from afterworlds.pipeline.rpg.falls import fall_record
 from afterworlds.pipeline.rpg.models import AdjudicationPassResult
 from afterworlds.pipeline.rpg.movement import FallRoll, MoveOutcome
@@ -95,21 +100,53 @@ def test_the_fall_takes_hit_points_and_leaves_the_mover_prone() -> None:
 
 
 def test_a_mover_already_prone_gets_no_second_prone() -> None:
-    hero = _after(_hero(), FallRoll(5, "", (), 0, prone=True))
+    prone = ConditionInstance(
+        instance_id="p1",
+        condition=ConditionKind.PRONE,
+        visibility=ConditionVisibility.VISIBLE,
+    )
+    hero = _hero(conditions=(prone,))
     record, _ = fall_record(TEN_FT, hero, gm_cheating=False)
     assert [e.target for e in record.sheet_effects] == ["current_hp"]
     assert json.loads(record.modifiers_json)["prone"] == "already_prone"
     assert len(_prone(with_effects(hero, list(record.sheet_effects)))) == 1
 
 
-def test_a_short_fall_rolls_nothing_but_still_lands_prone() -> None:
-    short = FallRoll(depth_ft=5, expression="", raw_rolls=(), total=0, prone=True)
+def test_a_short_fall_deals_no_damage_and_leaves_no_prone() -> None:
+    """Prone applies on any damage from the fall (``prone_on_landing``), so
+    a fall too short to roll changes nothing (Codex round 3)."""
+    short = FallRoll(depth_ft=5, expression="", raw_rolls=(), total=0, prone=False)
     hero = _hero()
     record, view = fall_record(short, hero, gm_cheating=False)
     assert (record.expression, record.raw_rolls, record.total) == ("", (), 0)
-    assert [e.target for e in record.sheet_effects] == ["prone"]
+    assert record.sheet_effects == ()
     assert json.loads(record.modifiers_json)["damage"] is None
-    assert view.player_facing_summary == "Fell 5 ft, landed Prone."
+    assert view.player_facing_summary == "Fell 5 ft."
+
+
+def test_a_fall_that_deals_no_damage_leaves_no_prone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Rolled damage the mover avoids entirely (immunity, say) is no damage
+    taken: it doesn't land Prone."""
+    avoided = DamageTaken(4, 0, ("immunity",), "absorbed", ())
+    monkeypatch.setattr(falls, "take_damage", lambda *a, **k: avoided)
+    record, view = fall_record(TEN_FT, _hero(), gm_cheating=False)
+    assert record.sheet_effects == ()
+    assert json.loads(record.modifiers_json)["prone"] == "no_damage"
+    assert "Prone" not in view.player_facing_summary
+
+
+def test_a_package_that_lands_prone_otherwise_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(falls, "_prone_needs_damage", lambda _m: False)
+    with pytest.raises(AdjudicationRefusal, match="prone_on_landing"):
+        fall_record(TEN_FT, _hero(), gm_cheating=False)
+
+
+def test_the_accepted_package_lands_prone_on_any_damage() -> None:
+    assert falls._prone_needs_damage(_hero())
 
 
 def test_a_fall_to_zero_hit_points_leaves_the_mover_dying_and_prone() -> None:
