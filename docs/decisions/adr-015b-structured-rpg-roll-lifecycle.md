@@ -124,6 +124,16 @@
 > - **Known Unknown now reachable in production, not resolved:** an abandoned sequence holds shared
 >   rule changes and adoption (*Pending-roll rewind/cancel policy*).
 
+> **Status note (2026-11-28, interrupted-actions amendment for the mapper's M2 — proposed):** Group 18
+> (15b-38 to 15b-49) below proposes how an action paused at a trigger point is executed: an
+> Opportunity Attack or a readied action interrupting a move, in either direction, with the rest of
+> the move reassessed rather than replayed. It is #211's M2 dependency on this ADR. Two of its
+> decisions are Owner questions rather than engineering: 15b-47 (a held action does not block
+> ordinary input) and 15b-48 (who owns encounter state). The committed-movement roster in 15b-46 is
+> an interpretation of SRD 5.2.1 that needs explicit acceptance. Nothing in Group 18 executes until
+> the Owner accepts it and it is recorded here. Groups 1 to 17 are unchanged; where Group 18 narrows
+> one of them, it says so.
+
 ---
 
 ## Central Invariant
@@ -825,6 +835,259 @@ profiles, which are certified per subject). Gate 3 is untouched.
 
 ---
 
+### Group 18 — Interrupted actions (proposed amendment, 2026-11-28)
+
+**Why this Group exists.** #211's M2 needs an action paused at a trigger point: a goblin breaking past
+a fighter is stopped right before it leaves his reach while he decides on an Opportunity Attack; a
+companion's readied action shuts a door in its face when it reaches the doorway; a Barbarian's
+Instinctive Pounce takes a hit and carries on. The sequence lifecycle above already pauses for a
+mechanical decision, delivers the Turn that reached the pause, keeps the ledger through a blocked
+narration and resumes through `orchestrate_rpg_resume`. Four things are missing, and Group 18 adds
+only those:
+
+1. a decision whose subject is not the actor (today a sequence and its ready bundle name one
+   `character_id`, the story's character);
+2. a typed record of an unfinished move that resume reassesses rather than replays;
+3. executable Reactions: Opportunity Attacks and readied responses, with a validated trigger and the
+   Reaction spent;
+4. somewhere for encounter state to live: whose combatant turn it is, movement and Reactions spent,
+   Readied actions.
+
+**Rules authority.** The SRD 5.2.1 Rules Package (`srd-5-2-1-corpus-8781d4e0-a3b-15b-c9.json`,
+release `5.2.1-corpus.8781d4e0-a3b`). Prose quotations are from
+`docs/sources/community/dnd-5e-srd-markdown/`. The records this Group executes:
+
+| Rule | Record › component | Handling |
+|---|---|---|
+| Opportunity Attack: "when a creature that you can see leaves your reach using its action, its Bonus Action, its Reaction, or one of its speeds"; it "occurs right before the creature leaves your reach" | `glossary.opportunity_attacks` › `opportunity_attack` (Reaction cost, one attack roll); `play.combat` › `opportunity_attacks` | mixed; trigger prose-bound |
+| Being moved without your action, Bonus Action or Reaction provokes none | `play.combat` › `opportunity_attacks` | prose-bound |
+| Disengage prevents it | `glossary.disengage` › `no_opportunity_attacks` (`reaction_provocation`) | structured |
+| Teleporting never provokes | `glossary.teleportation` › `teleportation` | prose-bound |
+| Reach is 5 ft unless a rule says otherwise | `glossary.reach` › `default_reach` | prose-bound |
+| One Reaction until the start of your next turn | `glossary.reaction` › `reaction`; `glossary.ready` › `readied_reaction` (`effect_duration` until the subject's start of turn) | prose-bound / mixed |
+| Ready: a perceivable trigger and a response; react right after the trigger finishes, or ignore it | `glossary.ready` › `trigger_and_response` (prose-bound, `contextual_applicability`), `trigger_resolution` (`triggered_resolution`, optional, `immediately_after_trigger`) | prose-bound / structured |
+| Readied spell: Concentration, slot expended | `glossary.ready` › `readied_spell`, `readied_spell_dissipates` | mixed |
+| Breaking up a move | `play.combat` › `breaking_up_move` | prose-bound |
+| Initiative | `play.combat` › `initiative_roll` (typed), `initiative_order`, `ties`, `rounds_and_turns` | mixed / prose-bound |
+
+**Decision (15b-38): scope.** Group 18 executes an action interrupted at a trigger point inside the
+existing action-resolution lifecycle. The executable Reactions are exactly two:
+
+- an **Opportunity Attack**, through the accepted 15c attack operations (a character's weapon attack
+  or a creature's roster entry);
+- the response of a **Ready**: an action the 15c operations already execute, a typed spatial update
+  (a door closed), or a move up to the reactor's Speed.
+
+Every other Reaction keeps refusing as today (`economy.py`), including spell Reactions and feature
+Reactions. A readied spell refuses (`glossary.ready` › `readied_spell`), since general spell execution
+is excluded (`capability.py`). A general reaction framework stays out of scope. Reactions and Ready
+execute only in an encounter with recorded Initiative (15b-48); outside one, nothing is a trigger, so
+a move outside combat is never paused for a Reaction.
+
+**Decision (15b-39): actor and subject.** The sequence's `character_id` keeps its meaning: the story's
+character whose session the sequence belongs to, for sheet effects and audit identity. Two references
+are added, each a `SubjectReference` (character, creature or cast member, checked against the story):
+
+- each step records its **actor**, who acts in it (the goblin moving, the fighter attacking);
+- each stored decision snapshot (15b-35) records its **subject**, whose choice it is.
+
+A decision is offered to the Sojourner only when its subject is a character they control. Any other
+subject's choice is the GameMaster's (15b-44) and is never offered as a pending interaction. 15b-19
+stands: at most one pending interaction per sequence.
+
+**Decision (15b-40): the interruption point.** When adjudication finds a trigger on a route, the
+move is resolved up to the trigger point and no further. For an Opportunity Attack that is the last
+square inside the reactor's reach, since the attack occurs right before the mover leaves it. For a
+Ready it is the step at which the trigger finishes (`trigger_resolution`). Then:
+
+- The spatial update staged with that Turn records the mover on the square it reached and the
+  `sequence_id` that holds the pause (the mapper revision's existing `sequence_id`).
+- If the pause waits on the Sojourner, the Turn is delivered with the pending decision, exactly as a
+  decision-first sequence is today (Phase 2 note, *Knockout*). The Writer narrates up to the pause and
+  no further.
+- The staged revision commits with that delivered Turn under the delivery-gated transaction; a
+  blocked Turn rolls it back with everything else.
+
+The mapper only answers geometric queries: where a route leaves a distance Sojourn supplies, what a
+creature can geometrically see, which square a step enters. It holds no notion of a Reaction.
+
+**Decision (15b-41): a move continuation.** An unfinished move is recorded in the sequence as a typed
+continuation, normalized rather than hidden in one opaque blob (the 15b-18 rule for sequence state):
+
+- the mover (`SubjectReference`) and the movement kind (ordinary or committed; forced movement is
+  never a continuation, 15b-45);
+- the declared route intent, as squares, and the destination;
+- the route actually travelled so far, step by step, with the movement spent on each step;
+- the trigger that paused it and the revision staged at the pause;
+- for committed movement, the granting roster entry (15b-46) and its terms;
+- the intended action at the end of the move, if one was declared (the Pounce's attack, the Gore).
+
+The continuation records intent, not authority. On resume, adjudication reassesses it against the
+state as it now stands: the mover's Hit Points, conditions and Speed; the current revision's
+geometry (a door shut since the pause is shut); and any Ready that the rest of the route meets. It
+never replays the stored route. If the mover dropped to 0 Hit Points, the move ends where it is. The
+travelled steps are appended to the ledger as they are accepted, so a blocked resume Turn loses
+nothing already committed (15b-34).
+
+**Decision (15b-42): validating an Opportunity Attack.** The trigger is code-checked before anyone
+is offered the attack. All of these must hold:
+
+- the reactor's Reaction is unspent (15b-48);
+- the reactor can see the mover at the trigger point, judged by adjudication from the mapper's
+  geometric sight, light and the reactor's conditions;
+- the mover leaves the reactor's reach, with reach taken from the reactor's attack (default 5 ft);
+- the mover moves using its own action, Bonus Action, Reaction or speed, so forced movement and
+  teleportation never qualify;
+- the mover did not Disengage, and the movement's granting feature does not exempt it (Forceful Blow,
+  Trampling Charge, Charging Horn, Engulf).
+
+When every check holds, the reactor's choice is a decision (15b-39): the Sojourner's for their own
+character, every time, since Sojourn never takes a Reaction for them (Owner, 2026-11-25); the
+GameMaster's for anyone else. Taking it spends the Reaction until the start of the reactor's next
+turn, recorded with the existing `TurnBoundEnd(boundary="start", of=reactor)`. Declining spends
+nothing.
+
+**Decision (15b-43): a Ready, held and fired.** Readying records in encounter state (15b-48) the
+reactor, the trigger, the response and the turn it was readied in. Taking the Ready action spends that
+turn's action under the 15c economy. Waiting for something is a Ready, with no Delay rule (Owner,
+2026-11-26).
+
+- **Trigger kinds.** A trigger that is a spatial fact on a route (a creature enters a named square or
+  area, leaves a square, comes into the reactor's sight) is checked by code against every route query
+  that could meet it. Any other perceivable circumstance is judged by the GameMaster at a step
+  boundary and recorded with that basis, since the record itself leaves trigger applicability to
+  context (`trigger_and_response`, `contextual_applicability`).
+- **Firing.** The response comes right after the trigger finishes. The Sojourner chooses to react or
+  ignore the trigger for their own character's Ready; the GameMaster chooses for anyone else's.
+- **Spend and expiry.** Reacting spends the Reaction until the start of the reactor's next turn. An
+  unfired Ready ends at the start of the reactor's next turn.
+- **Staging.** A response's spatial effect, such as the closed door, is a typed update staged with the
+  Turn in which it fires.
+
+**Decision (15b-44): GameMaster-controlled reactors in the same sequence.** An Opportunity Attack or
+readied response by a creature or cast member is resolved in the same adjudication, with no question
+to the Sojourner. Its decision is recorded as a decision event with the GameMaster as chooser, and its
+attack roll goes through the dice rails as a backend roll in the same sequence. If nothing material
+changes for the mover (15b-45), an ordinary move continues to the end of its route in the same Turn.
+
+**Decision (15b-45): "keep going?", and the movement kinds.** For an ordinary move by the Sojourner's
+character, after a material change at an interruption, if continuing is still possible, the move stops
+there and the Turn is delivered with a pending decision for that character: keep going along the
+remaining route, or stop. This is Afterworlds interaction policy (Owner, 2026-11-26, qualified
+2026-11-27), not an SRD rule. A material change is any of:
+
+- the mover took damage, or gained or lost a condition;
+- the remaining route's legality or cost changed (a door shut, a creature now in the way);
+- something the mover didn't know became known to it (a hidden creature or pit revealed).
+
+A miss, or a reaction declined, is not material, and the move goes on in the same Turn. If continuing
+is impossible (Speed 0, no route left), the move ends without a question. A GameMaster-controlled
+mover's continuation is the GameMaster's choice, made in the same adjudication. The three kinds:
+
+| Kind | What it is | At an interruption |
+|---|---|---|
+| Ordinary | Moving with a Speed, Dash included, and a Ready's move up to Speed | Stops and asks after a material change, as above |
+| Committed | Movement a roster entry bundles into one effect (15b-46) | Never asks; continues as 15b-46 says |
+| Forced | Being pushed, pulled or hurled (Shove, Forceful Blow's push) | Not a route: a typed update the effect sets; never a continuation and never a trigger for an Opportunity Attack |
+
+**Decision (15b-46): committed movement.** Committed movement is identified only by a code-owned
+roster, reviewed like the 15c creature roster, each entry citing its record. Movement no entry names is
+ordinary. Proposed entries:
+
+| Entry | Record › component | Exempt from Opportunity Attacks |
+|---|---|---|
+| Forceful Blow's move toward the target | `classes.barbarian.brutal_strike` › `forceful_blow` | yes ("without provoking Opportunity Attacks") |
+| Instinctive Pounce | `classes.barbarian.instinctive_pounce` › `instinctive_pounce` | no |
+| Trampling Charge (Centaur Trooper) | `monsters.centaur.centaur_trooper` › `bonus_actions` | yes |
+| Charging Horn (Unicorn) | `monsters.unicorn.unicorn` › `legendary_actions` | yes |
+| Engulf (Gelatinous Cube) | `monsters.gelatinous_cube.gelatinous_cube` › `actions` | yes |
+
+At each trigger, a committed move keeps its declared route and continues automatically, as far as the
+mover's capabilities, the entry's terms and the current scene permit. It stops where continuing
+becomes impossible (a door shut by a Ready), with the unused movement unspent. Three questions stay
+separate:
+
+1. **Does the entry grant the movement on terms?** Its terms are checked before anyone is offered an
+   Opportunity Attack (15b-42).
+2. **Does an effect need movement already completed?** It reads the route actually travelled from the
+   continuation, never the declared route. The rhinoceros's Gore deals its extra 2d8 and Prone only
+   "if the target is a Large or smaller creature and the rhinoceros moved 20+ feet straight toward it
+   immediately before the hit" (`animals.rhinoceros` › `actions`); after a swerve the Gore is still a
+   legal attack, without the bonus. A running jump's run-up is likewise the squares actually
+   travelled.
+3. **What changed, and when?** Changes apply in order: a door closed earlier in Initiative is closed
+   from the first step; a readied response applies at its trigger.
+
+**Decision (15b-47): a held action (Owner question).** When refinement fails twice and the coarse
+facts leave materially different outcomes (two routes, one leaving a reach), the action is held: no
+spatial update, no roll, no Reaction offered, spent or erased, and the narration ends the beat there
+(#211, "When refinement fails twice"). The held intent is recorded as a continuation with no committed
+steps. Proposed:
+
+- A sequence whose only unresolved item is a held action does **not** block ordinary in-character
+  input. This narrows 15b-31 for that one state; it is not a pending interaction, and the
+  Sojourner has nothing to answer.
+- Every later in-world Turn's preparation retries the refinement first. Once the geometry is
+  established, the held action resolves in that Turn before anything the new input asks.
+- If the Sojourner's new input replaces the held intent ("I go back instead"), the held action is
+  withdrawn with an appended event. Nothing was committed, so nothing is rewound. This is not the
+  cancellation policy 15b-33 defers, which covers sequences with committed mechanics.
+
+The alternative, keeping 15b-31 as written, blocks the Sojourner until refinement succeeds, with
+nothing for them to answer.
+
+**Decision (15b-48): encounter state (Owner question: its owner is CRD Issue 15 and 15c).** Proposed:
+extend 15c's `TurnCoordination` (contract G1), which already holds the active turn, the turn instance
+counter and once-per-turn uses, into the story's encounter state:
+
+- **Initiative order**, recorded when combat starts from the dice rails' Initiative rolls
+  (`play.combat` › `initiative_roll`), ties settled as `play.combat` › `ties` says and recorded;
+- **whose combatant turn it is**: `begin_turn` and `end_turn` stay explicit GameMaster edges, as 15c
+  specifies, but a `begin_turn` for anyone other than the next combatant in the recorded order
+  refuses;
+- **movement spent** in the active turn, so a move is priced against what is left, not the mover's
+  whole movement (M1's stand-in);
+- **Reactions spent**, each with its `TurnBoundEnd`;
+- **Readied actions** (15b-43), each ending at the start of its reactor's next turn;
+- **encounter end**, which clears all of it.
+
+Encounter state changes only in the delivered Turn's transaction, as `TurnCoordination` does today, and
+every change is an appended event, so it is reconstructable (CLAUDE.md invariant 11). It holds no Hit
+Points, conditions or effects, which stay on the sheet and creature state. The alternative, a separate
+encounter record beside `TurnCoordination`, would duplicate the turn pointer.
+
+**Decision (15b-49): answers in words.** 15b-31 stands: a pending decision is answered through the
+pending-interaction control, not in plain words ("I swing at it"). Plain-word answers are deferred;
+the Owner may ask for them later.
+
+**Transaction shape (Groups 10 and 15, unchanged).** Decisions, rolls and accepted move steps during
+an interruption are intermediate operations: one event each, no provider call, no settlement. Only the
+Turn that reaches a pause and the resume Turn are provider-backed. A blocked resume Turn rolls back its
+own staged revision, audit rows and sheet effects; the revision staged at the pause, the sequence and
+the ledger survive, and a retry reuses the recorded mechanics (15b-33).
+
+**Parity.** Given the same inputs and dice seeds, play with the map view open and closed produces
+identical revisions, ledger events and outcomes. Opening the view reads the player view only.
+
+**Acceptance this Group serves (#211).** 13, the goblin and mill door in both directions; 14,
+ordinary and committed moves (the Pounce through a hit, the Pounce stopped by a readied door-close,
+the swerved Gore); 15, a held action that resolves once the geometry is established.
+
+**Rationale.**
+
+- Every new piece reuses an existing shape: the decision snapshot (15b-35), the ledger (15b-34),
+  `SubjectReference` and `TurnBoundEnd` (15c), the mapper revision's `sequence_id` (M1). Nothing new
+  is invented where a shape already exists.
+- Validating the trigger in code keeps the Reaction economy a trust-relevant rail (CLAUDE.md invariant
+  10) rather than a model judgment, while the record's own prose-bound applicability stays the
+  GameMaster's where the source leaves it to context.
+- A continuation that is reassessed, not replayed, is the only way a readied door-close or a dropped
+  mover can change the rest of a move.
+- The mapper stays a helper: it answers geometry and stores what a delivered Turn staged. Sojourn
+  adjudicates every rule (Owner, 2026-11-27: "The mapper is a helper only, it does not adjudicate").
+
+---
+
 ## Inherited ADR-015 Decisions (not reopened)
 
 Per the governing spec, Issue 15b does not reopen:
@@ -1460,6 +1723,7 @@ Exact names follow repository conventions; validation precedes atomic consumptio
 | 18 | Intermediate mechanical interactions are not retrieval-memory content. |
 | 19 | Owns app construction, route conventions, current-node resolution, story lock, access-path helper, settlement wiring, error envelope, and generated contracts. |
 | 19b | Downstream consumer of the completed public API contract; its implementation remains outside this issue. |
+| #211 (mapper) | Group 18 (proposed): the mapper answers geometric queries and stores the revision a delivered Turn staged, including the `sequence_id` of a paused action; Sojourn adjudicates every trigger, Reaction and continuation. |
 
 ---
 
@@ -1476,5 +1740,11 @@ Exact names follow repository conventions; validation precedes atomic consumptio
   not from the representation union. The initiating effort's action is accounted under SRD 5.2.1 and
   the 15c economy. One product policy is surfaced, not decided: never accepting a GameMaster-declared
   costless contest in an active turn.
+
+- **Encounter-state ownership** (Group 18, proposed; new open entry in `known_unknowns.md`): 15b-48
+  proposes extending 15c's `TurnCoordination` as the owner, which is the CRD Issue 15 and 15c owner's
+  decision. Not resolved until the Owner accepts it.
+- **Pending-roll rewind/cancel policy** (Group 18, touched): withdrawing a held action with no
+  committed mechanics (15b-47) is proposed as outside that policy; the policy itself stays deferred.
 
 No other listed Known Unknown is touched or resolved by this document.
