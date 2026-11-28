@@ -125,14 +125,15 @@
 >   rule changes and adoption (*Pending-roll rewind/cancel policy*).
 
 > **Status note (2026-11-28, interrupted-actions amendment for the mapper's M2 — proposed):** Group 18
-> (15b-38 to 15b-49) below proposes how an action paused at a trigger point is executed: an
+> (15b-38 to 15b-50) below proposes how an action paused at a trigger point is executed: an
 > Opportunity Attack or a readied action interrupting a move, in either direction, with the rest of
 > the move reassessed rather than replayed. It is #211's M2 dependency on this ADR. Two of its
 > decisions are Owner questions rather than engineering: 15b-47 (a held action does not block
 > ordinary input) and 15b-48 (who owns encounter state). The committed-movement roster in 15b-46 is
 > an interpretation of SRD 5.2.1 that needs explicit acceptance. Nothing in Group 18 executes until
 > the Owner accepts it and it is recorded here. Groups 1 to 17 are unchanged; where Group 18 narrows
-> one of them, it says so.
+> one of them, it says so. 15b-50 amends Group 15's final delivery transaction for Group 18 sequences
+> only: each delivered Turn that reaches a pause commits the effects and audit rows accepted so far.
 
 ---
 
@@ -873,8 +874,11 @@ release `5.2.1-corpus.8781d4e0-a3b`). Prose quotations are from
 **Decision (15b-38): scope.** Group 18 executes an action interrupted at a trigger point inside the
 existing action-resolution lifecycle. The executable Reactions are exactly two:
 
-- an **Opportunity Attack**, through the accepted 15c attack operations (a character's weapon attack
-  or a creature's roster entry);
+- an **Opportunity Attack**: "one melee attack with a weapon or an Unarmed Strike against the
+  provoking creature" (`rules-glossary.md`, *Opportunity Attacks*), through the accepted 15c attack
+  operations. For a character that is a melee weapon attack or an Unarmed Strike; for a creature, a
+  roster entry that is a melee attack. A ranged attack, a spell or a save effect is never an
+  Opportunity Attack, even where the roster admits it as an ordinary attack (a goblin's Shortbow);
 - the response of a **Ready**: an action the 15c operations already execute, a typed spatial update
   (a door closed), or a move up to the reactor's Speed.
 
@@ -935,7 +939,8 @@ is offered the attack. All of these must hold:
 - the reactor's Reaction is unspent (15b-48);
 - the reactor can see the mover at the trigger point, judged by adjudication from the mapper's
   geometric sight, light and the reactor's conditions;
-- the mover leaves the reactor's reach, with reach taken from the reactor's attack (default 5 ft);
+- the reactor has an eligible melee attack (15b-38), and the mover leaves the reach of that attack
+  (default 5 ft, `glossary.reach`); a reactor with only ranged attacks has no Opportunity Attack;
 - the mover moves using its own action, Bonus Action, Reaction or speed, so forced movement and
   teleportation never qualify;
 - the mover did not Disengage, and the movement's granting feature does not exempt it (Forceful Blow,
@@ -1060,11 +1065,38 @@ encounter record beside `TurnCoordination`, would duplicate the turn pointer.
 pending-interaction control, not in plain words ("I swing at it"). Plain-word answers are deferred;
 the Owner may ask for them later.
 
-**Transaction shape (Groups 10 and 15, unchanged).** Decisions, rolls and accepted move steps during
-an interruption are intermediate operations: one event each, no provider call, no settlement. Only the
-Turn that reaches a pause and the resume Turn are provider-backed. A blocked resume Turn rolls back its
-own staged revision, audit rows and sheet effects; the revision staged at the pause, the sequence and
-the ledger survive, and a retry reuses the recorded mechanics (15b-33).
+**Transaction shape (Group 10 unchanged).** Decisions, rolls and accepted move steps during an
+interruption are intermediate operations: one event each, no provider call, no settlement. Only the
+Turns that reach a pause and the final resume Turn are provider-backed, each on the ordinary
+access-path and settlement flow.
+
+**Decision (15b-50): delivery checkpoints (amends Group 15's final delivery transaction for Group 18
+sequences).** Group 15 applies a sequence's effects and projects its audit rows once, when narration
+completes it. An interrupted action can deliver several Turns before it completes: a goblin's
+Opportunity Attack hits the Sojourner's fighter, and the Turn delivered with "Keep going?" has already
+narrated the damage. Those effects must be authoritative from that Turn, not deferred to a completion
+that may be several Turns away. So, for a sequence that carries a move continuation or a Reaction
+(15b-41 to 15b-44):
+
+- **Each delivered Turn that reaches a pause is a checkpoint.** Its delivery transaction applies the
+  effects of every event accepted since the previous checkpoint: Hit Points and conditions on sheets
+  and creature state; movement and Reactions spent in encounter state (15b-48); the staged spatial
+  revision. It derives `rpg_roll_audit` rows for those events only, and advances the sequence's
+  `delivered_through` mark (the ledger position of the last event it applied). All of it commits with
+  the delivered Turn.
+- **Final delivery** does the same for the events after the last checkpoint, then completes the
+  sequence, as Group 15 says.
+- **Exactly once.** An event's effects and audit row are applied only by the transaction that moves
+  `delivered_through` past it, checked by compare-and-set on the sequence revision. A retry, a reload
+  or a second resume finds them applied and applies nothing again.
+- **Blocked or failed narration** rolls back only that Turn's checkpoint: its effects, audit rows,
+  staged revision and mark advance. The events and every earlier checkpoint survive, and a retry
+  reuses the recorded mechanics (15b-33, 15b-34).
+- **What the Writer sees.** Each checkpoint's Writer narrates the events up to that checkpoint and no
+  further.
+
+A sequence with no continuation and no Reaction has no checkpoint before its final delivery, so every
+sequence Groups 1 to 17 describe behaves exactly as today.
 
 **Parity.** Given the same inputs and dice seeds, play with the map view open and closed produces
 identical revisions, ledger events and outcomes. Opening the view reads the player view only.
@@ -1513,6 +1545,10 @@ Two transaction boundaries apply, and Phase 2 must not conflate them:
    Turn, the derived `rpg_roll_audit` rows, and the sheet mutations — exactly as ADR-015 Decision 1 already
    specifies. It does **not** remove the previously committed `ready_for_narration` sequence or its event
    ledger; those were committed by the intermediate transaction, not the final one, and survive.
+3. **Delivery checkpoint** (Group 18, proposed, 15b-50): for a sequence that carries a move
+   continuation or a Reaction, each delivered Turn that reaches a pause applies and projects the events
+   accepted since the previous checkpoint, with the same rollback as item 2. Its final delivery then
+   applies only the events after the last checkpoint. Other sequences are unchanged.
 
 ### Narration Readiness and Recovery
 
