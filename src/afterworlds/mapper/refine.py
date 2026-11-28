@@ -89,6 +89,10 @@ def _refine(snap: Snapshot, u: RefineArea, seed: int) -> Snapshot:
             if not area.contains(s):
                 raise RefinementFailed(f"pit {pit.pit_id} doesn't fit {area.label}")
             rows[s[1]][s[0]] = "_"
+    # Raised levels too: a refinement changes only its own area.
+    for level in u.levels:
+        if any(not area.contains(s) for s in level.squares):
+            raise RefinementFailed(f"level {level.level_id} doesn't fit {area.label}")
     # 3. Seeded fill of what nothing specified.
     fill = _fill(area, setting, seed)
     for (c, r), ch in fill.items():
@@ -100,6 +104,11 @@ def _refine(snap: Snapshot, u: RefineArea, seed: int) -> Snapshot:
     hwalls = [list(r) for r in snap.hwalls]
     vwalls = [list(r) for r in snap.vwalls]
     walls = list(u.walls)
+    for e in walls:
+        # A wall the update names sits inside the area or on its boundary, so
+        # committed geography elsewhere keeps its routes.
+        if not _touches(area, e):
+            raise RefinementFailed(f"a wall isn't in {area.label}")
     if area.indoors:
         walls.extend(_boundary(area))
     for e in walls:

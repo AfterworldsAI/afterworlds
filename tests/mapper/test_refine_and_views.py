@@ -13,6 +13,7 @@ from afterworlds.mapper.models import (
     CoarsePlacement,
     Edge,
     Feature,
+    Level,
     MoveToken,
     Pit,
     PlaceCoarse,
@@ -143,6 +144,13 @@ def test_specified_terrain_pits_and_doors_are_kept() -> None:
         ({"terrain": ("xxxxxx",) * 5}, "is not terrain"),
         (
             {"pits": (Pit(pit_id="p", squares=((9, 7),), depth_ft=10),)},
+            "doesn't fit",
+        ),
+        # Codex, PR 212's last review: a refinement changes only its own area,
+        # so a wall or a raised level elsewhere is refused.
+        ({"walls": (Edge(orient="v", col=9, row=7),)}, "isn't in the hall"),
+        (
+            {"levels": (Level(level_id="l", squares=((9, 7),), height_ft=5),)},
             "doesn't fit",
         ),
         (
