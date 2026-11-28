@@ -141,53 +141,42 @@ export function stepAllowed(snap: MapSnapshot, a: Square, b: Square): boolean {
   );
 }
 
-function costOf(allowance: SceneAllowance, sq: Square): number | undefined {
-  return allowance.costs[label(sq)];
+/** Whether two routes visit the same squares in the same order. */
+export function samePath(a: Square[], b: Square[] | null): boolean {
+  return (
+    b !== null &&
+    a.length === b.length &&
+    a.every((sq, i) => {
+      const other = b[i];
+      return other !== undefined && sameSquare(sq, other);
+    })
+  );
 }
 
-/** The cheapest route from the mover's square to *target* by the server's
- * allowance, traced back from the target; `null` when it isn't reachable. */
+/** The route the server priced from the mover's square to *target*, or
+ * `null` when it isn't reachable. Cost, Dash and the one free door depend on
+ * the way taken, so a route rebuilt from per-square costs can differ from
+ * the priced one; the far tap uses the server's route as it is. */
 export function traceRoute(
-  snap: MapSnapshot,
   allowance: SceneAllowance,
   start: Square,
   target: Square,
 ): Square[] | null {
-  if (costOf(allowance, target) === undefined) return null;
-  const path: Square[] = [target];
-  let here = target;
-  for (let guard = 0; guard < 256 && !sameSquare(here, start); guard++) {
-    const cost = costOf(allowance, here) ?? Infinity;
-    // Grid diagonals cost the same as straight steps, so many routes tie;
-    // among the cheapest, take the step that stays nearest the straight
-    // line back to the start.
-    let best: Square | null = null;
-    let bestCost = cost;
-    let bestOff = Infinity;
-    for (let dr = -1; dr <= 1; dr++) {
-      for (let dc = -1; dc <= 1; dc++) {
-        if (dc === 0 && dr === 0) continue;
-        const next: Square = [here[0] + dc, here[1] + dr];
-        const c = sameSquare(next, start) ? 0 : costOf(allowance, next);
-        if (c === undefined || c > bestCost || c >= cost) continue;
-        if (!stepAllowed(snap, next, here)) continue;
-        const off = (next[0] - start[0]) ** 2 + (next[1] - start[1]) ** 2;
-        if (c === bestCost && off >= bestOff) continue;
-        best = next;
-        bestCost = c;
-        bestOff = off;
-      }
-    }
-    if (best === null) return null;
-    path.unshift(best);
-    here = best;
+  const labels = allowance.routes[label(target)];
+  if (labels === undefined) return null;
+  const route: Square[] = [];
+  for (const text of labels) {
+    const sq = parseLabel(text);
+    if (sq === null) return null;
+    route.push(sq);
   }
-  return sameSquare(here, start) ? path : null;
+  const first = route[0];
+  return first !== undefined && sameSquare(first, start) ? route : null;
 }
 
 /** The route after a tap on *target*: a tap on the route cuts it back
  * there, a tap beside its end adds one square, and a far tap fills the
- * cheapest route to the target (path drawing doc). */
+ * server's route to the target (path drawing doc). */
 export function extendRoute(
   snap: MapSnapshot,
   allowance: SceneAllowance,
@@ -200,7 +189,7 @@ export function extendRoute(
   const at = route.findIndex((s) => sameSquare(s, target));
   if (at >= 0) return route.slice(0, at + 1);
   if (stepAllowed(snap, last, target)) return [...route, target];
-  const traced = traceRoute(snap, allowance, first, target);
+  const traced = traceRoute(allowance, first, target);
   if (traced === null) return route;
   const through = traced.findIndex((s) => sameSquare(s, last));
   return through >= 0 ? [...route, ...traced.slice(through + 1)] : traced;

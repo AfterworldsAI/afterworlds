@@ -150,14 +150,19 @@ def player_snapshot(
 @dataclass(frozen=True)
 class Allowance:
     """The movement allowance Sojourn puts in the view for the Sojourner's own
-    token (path drawing doc): reachable squares with their cost in feet, and
-    warnings keyed by square label. Computed from player-visible facts."""
+    token (path drawing doc): reachable squares with their cost in feet, the
+    route each cost was priced on, and warnings keyed by square label.
+    Computed from player-visible facts."""
 
     token_id: str
     speed_ft: int
     dash_ft: int
     costs: dict[str, int] = field(default_factory=dict)
     warnings: dict[str, str] = field(default_factory=dict)
+    #: The route, start square first, that each square's cost was priced on.
+    #: Cost and Dash depend on the way taken, so the browser fills a far tap
+    #: from this and never rebuilds a route from costs.
+    routes: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
     def as_json(self) -> dict[str, object]:
         return {
@@ -166,6 +171,7 @@ class Allowance:
             "dash_ft": self.dash_ft,
             "costs": dict(sorted(self.costs.items())),
             "warnings": dict(sorted(self.warnings.items())),
+            "routes": {k: list(v) for k, v in sorted(self.routes.items())},
         }
 
 

@@ -3143,8 +3143,8 @@ export interface components {
         RuntimeAccessPath: "hosted" | "byok";
         /**
          * SceneAllowanceDTO
-         * @description The mover's reachable squares and their cost in feet, from
-         *     player-visible facts only.
+         * @description The mover's reachable squares, their cost in feet and the route each
+         *     was priced on, from player-visible facts only.
          */
         SceneAllowanceDTO: {
             /** Token Id */
@@ -3160,6 +3160,10 @@ export interface components {
             /** Warnings */
             warnings: {
                 [key: string]: string;
+            };
+            /** Routes */
+            routes: {
+                [key: string]: string[];
             };
             /**
              * Schema Version

@@ -188,6 +188,38 @@ describe("MapView (issue #211)", () => {
     expect(shade?.getAttribute("fill")).toBe("#9fd4a6");
   });
 
+  it("gives the server's figures only for the route it priced", async () => {
+    // Codex round 9: cost and Dash depend on the way taken, so a hand-drawn
+    // route that isn't the priced one is left for the server to price.
+    localStorage.setItem("afterworlds:map-auto-open", "true");
+    mocks.getScene.mockResolvedValue({
+      ...view,
+      allowance: { ...view.allowance!, warnings: { H5: "uses your Dash" } },
+    });
+    const { container } = render(
+      <MapView
+        storyId="s"
+        refreshKey={0}
+        disabled={false}
+        onSendMove={vi.fn().mockResolvedValue(true)}
+      />,
+    );
+    await screen.findByRole("img");
+    for (const sq of ["B5", "C4", "D4", "E4", "F4", "G4", "H5"]) {
+      tapSquare(container, sq);
+    }
+    expect(
+      screen.getByText(/Route to H5\. Sojourn prices this route/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("This route needs a Dash.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Send move" })).toBeEnabled();
+    // The priced route to H5 gets its cost and its Dash requirement.
+    fireEvent.click(screen.getByRole("button", { name: "Clear route" }));
+    tapSquare(container, "H5");
+    expect(screen.getByText(/Route to H5 \(30 ft\)\./)).toBeInTheDocument();
+    expect(screen.getByText("This route needs a Dash.")).toBeInTheDocument();
+  });
+
   it("keeps the route when the server doesn't take the move", async () => {
     localStorage.setItem("afterworlds:map-auto-open", "true");
     const onSendMove = vi.fn().mockResolvedValue(false);

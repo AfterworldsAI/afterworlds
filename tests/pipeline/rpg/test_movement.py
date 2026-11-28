@@ -698,6 +698,63 @@ def test_the_allowance_prefers_a_dearer_way_that_keeps_the_dash() -> None:
     assert p.refused is None and p.cost_ft == 20 and not p.uses_dash
 
 
+def _two_gates() -> Snapshot:
+    """A corridor along row 5 with closed gates at B5|C5 and E5|F5; a nook
+    at B4-D4 lets a mover go round the first gate."""
+    from afterworlds.mapper.models import AddFeature, Edge, SetTerrain
+
+    rock = (
+        *((c, 2) for c in range(8)),
+        *((c, 5) for c in range(8)),
+        (4, 3),
+        (5, 3),
+    )
+
+    def gate(name: str, col: int) -> AddFeature:
+        edge = Edge(orient="v", col=col, row=4)
+        door = Feature(
+            feature_id=name, kind="door", label=name, edge=edge, state="closed"
+        )
+        return AddFeature(base_revision=0, feature=door)
+
+    return _with(
+        _truth(with_hidden=False),
+        SetTerrain(base_revision=0, squares=rock, char="#"),
+        gate("west gate", 2),
+        gate("east gate", 5),
+    )
+
+
+def test_the_allowance_keeps_a_way_that_saves_the_free_door() -> None:
+    """Codex round 9: the cheaper way to D5 opens the west gate, so it can't
+    open the east one; the dearer way round the nook still can."""
+    player = views.player_snapshot(_two_gates())
+    straight = ((1, 4), (2, 4), (3, 4), (4, 4), (5, 4))
+    p = preview(player, HERO, rules(), MoveIntent(route=straight))
+    assert p.refused == movement.SECOND_DOOR
+    around = ((1, 4), (1, 3), (2, 3), (3, 4), (4, 4), (5, 4))
+    p = preview(player, HERO, rules(), MoveIntent(route=around))
+    assert p.refused is None and p.cost_ft == 25
+    reach = allowance(player, HERO, rules())
+    assert reach.costs["F5"] == 25
+    assert reach.routes["F5"] == ("B5", "B4", "C4", "D5", "E5", "F5")
+    spoken = route_from_words("I move to F5", player, HERO, rules())
+    assert spoken is not None and spoken.route == around
+
+
+def test_the_allowance_sends_the_route_it_priced() -> None:
+    """Codex round 9: the browser can't rebuild a route from costs, so the
+    allowance carries the route it priced for every square."""
+    water = ((1, 5), (2, 6), (3, 6), (4, 5), (4, 4))
+    player = views.player_snapshot(_lake(water=water))
+    swimmer = MoverProfile(token_id="hero", walk_ft=5, strength=14, swim_ft=60)
+    reach = allowance(player, swimmer, rules())
+    assert set(reach.routes) == set(reach.costs)
+    route = tuple(coords.parse(s) for s in reach.routes["E5"])
+    p = preview(player, swimmer, rules(), MoveIntent(route=route))
+    assert p.refused is None and p.cost_ft == 20 and not p.uses_dash
+
+
 def test_dash_adds_the_speed_the_mover_chooses() -> None:
     """Dash may use a special speed instead (glossary.dash › special_speed);
     the largest is the mover's best choice."""

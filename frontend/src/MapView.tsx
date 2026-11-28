@@ -22,7 +22,9 @@ import {
   label,
   moverSquare,
   parseLabel,
+  samePath,
   sameSquare,
+  traceRoute,
 } from "./mapModel";
 import type { MapSnapshot, Square } from "./mapModel";
 
@@ -277,15 +279,24 @@ export default function MapView({
   const snap = asSnapshot(view.snapshot);
   const allowance = view.allowance ?? null;
   const start = moverSquare(snap, allowance);
-  const end = route.length > 1 ? route[route.length - 1] : null;
-  const endCost = end && allowance ? allowance.costs[label(end)] : undefined;
+  const end = route.length > 1 ? (route[route.length - 1] ?? null) : null;
+  // The allowance prices one route to each square. Cost and Dash depend on
+  // the way taken, so its figures describe the drawn route only when it is
+  // that route; any other route is priced by the server at Send.
+  const priced =
+    end && allowance && start
+      ? samePath(route, traceRoute(allowance, start, end))
+      : false;
+  const endCost =
+    priced && end && allowance ? allowance.costs[label(end)] : undefined;
   // The server says which squares need Dash: a Swim or Climb Speed can carry
   // a route past the walking Speed without it (glossary.speed › switching).
   const needsDash =
-    end && endCost !== undefined && allowance !== null
+    priced && end && allowance !== null
       ? usesDash(allowance, label(end))
       : false;
-  const warning = end && allowance ? allowance.warnings[label(end)] : undefined;
+  const warning =
+    priced && end && allowance ? allowance.warnings[label(end)] : undefined;
 
   function tap(sq: Square) {
     if (disabled || !allowance || !start) return;
@@ -450,7 +461,7 @@ export default function MapView({
                 {end
                   ? `Route to ${label(end)}${
                       endCost !== undefined ? ` (${endCost} ft)` : ""
-                    }.`
+                    }.${priced ? "" : " Sojourn prices this route when you send it."}`
                   : "Tap your square or a destination to draw a move."}
                 {warning ? ` ${warning}` : ""}
               </p>

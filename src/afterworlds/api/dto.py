@@ -120,8 +120,8 @@ class TurnSubmissionRequest(BaseModel):
 
 
 class SceneAllowanceDTO(BaseModel):
-    """The mover's reachable squares and their cost in feet, from
-    player-visible facts only."""
+    """The mover's reachable squares, their cost in feet and the route each
+    was priced on, from player-visible facts only."""
 
     model_config = {"extra": "forbid"}
 
@@ -130,6 +130,7 @@ class SceneAllowanceDTO(BaseModel):
     dash_ft: int
     costs: dict[str, int]
     warnings: dict[str, str]
+    routes: dict[str, list[str]]
     schema_version: Literal[1] = 1
 
 

@@ -33,8 +33,8 @@ describe("mapModel (issue #211)", () => {
     expect(moverSquare(snap, null)).toBeNull();
   });
 
-  it("a far tap fills the cheapest route by the server's costs", () => {
-    const route = traceRoute(snap, allowance, B5, [7, 4])!;
+  it("a far tap fills the route the server priced", () => {
+    const route = traceRoute(allowance, B5, [7, 4])!;
     expect(route.map(label)).toEqual([
       "B5",
       "C5",
@@ -44,7 +44,22 @@ describe("mapModel (issue #211)", () => {
       "G5",
       "H5",
     ]);
-    expect(traceRoute(snap, allowance, B5, [20, 20])).toBeNull();
+    expect(traceRoute(allowance, B5, [20, 20])).toBeNull();
+  });
+
+  it("keeps the server's route even where the costs suggest another", () => {
+    // Codex round 9: a cheaper-looking way can need Dash or a second door,
+    // so the far tap never rebuilds the route from costs.
+    const detour = { ...allowance, routes: { ...allowance.routes } };
+    detour.routes["E5"] = ["B5", "B6", "C7", "D7", "E6", "E5"];
+    const route = traceRoute(detour, B5, [4, 4])!;
+    expect(route.map(label)).toEqual(["B5", "B6", "C7", "D7", "E6", "E5"]);
+    expect(extendRoute(snap, detour, [B5], [4, 4]).map(label)).toEqual(
+      route.map(label),
+    );
+    // A route that doesn't start at the mover is not used.
+    detour.routes["E5"] = ["C5", "D5", "E5"];
+    expect(traceRoute(detour, B5, [4, 4])).toBeNull();
   });
 
   it("taps add a step, cut the route back, or fill to a far square", () => {
