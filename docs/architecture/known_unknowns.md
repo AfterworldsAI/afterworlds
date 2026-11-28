@@ -233,6 +233,12 @@ events and final audit content are removed through a guarded lifecycle path (ADR
 amendment). That is disposal of a no-longer-existing Story, not cancellation, expiration, rewind,
 retry or refund; an unfenceable in-flight operation is a visible deletion-deadline failure.
 
+**ADR-015b Group 18 amendment (2026-11-28, proposed; touched, not resolved):** 15b-47 proposes that a
+held action (refinement failed with materially different outcomes, nothing committed) does not block
+ordinary input and can be withdrawn by the Sojourner's later intent with an appended event. Nothing was
+committed, so nothing is rewound; this is proposed as outside this policy, which stays deferred for
+sequences with committed mechanics.
+
 ---
 
 ### Rules Package carries no structured numeric/mechanical data (DC, dice formulas)
@@ -793,6 +799,26 @@ These are recorded dependencies, not implementation choices; no code resolves th
     content-free log rule is a host/processor launch gate.
   - *Free text in v1 entitlement payloads:* hosted/Cloud deactivation `detail` has no producer today;
     CRD Issue 23 must keep it content-free and bounded at creation (it is never shown or exported).
+
+---
+
+### Encounter-state ownership (Initiative order, combatant turns, Reactions, Readied actions)
+
+**Resolve during:** before the mapper's M2 (#211) builds interrupted actions; the decision belongs to
+the CRD Issue 15 and 15c owner. **Surfaced during:** #211 design review (2026-11-26) and the ADR-015b
+Group 18 amendment (2026-11-28).
+
+CRD Issue 15c's `TurnCoordination` (contract G1) holds the active turn, a turn instance counter and
+once-per-turn uses, changed only by explicit GameMaster `begin_turn`/`end_turn` edges. Nothing records
+Initiative order, decides whose combatant turn is next, or tracks movement spent, Reactions spent or
+Readied actions; 15c excludes "initiative order management and general encounter state"
+(`pipeline/rpg/capability.py`). M1 prices every move as the mover's whole movement as a stand-in.
+
+**What resolution requires:** the Owner accepts or replaces ADR-015b 15b-48, which proposes extending
+`TurnCoordination` into the story's encounter state (recorded Initiative order with `begin_turn`
+checked against it, movement spent, Reactions spent with their `TurnBoundEnd`, Readied actions,
+encounter end), every change an appended event in the delivered Turn's transaction. Until then no
+Reaction or Ready executes.
 
 ---
 
