@@ -375,10 +375,70 @@ def test_difficult_terrain_and_creature_spaces() -> None:
         player, HERO, rules(), MoveIntent(route=((1, 4), (1, 3), (1, 2)))
     )
     assert past_ally.cost_ft == 10
+    # A foe of the mover's size can't be passed through (play.combat ›
+    # moving_around), so the route is refused where it would enter it.
     past_foe = preview(
         player, HERO, rules(), MoveIntent(route=((1, 4), (1, 3), (2, 2), (3, 2)))
     )
-    assert past_foe.cost_ft == 20
+    assert past_foe.refused == movement.THROUGH_CREATURE
+    assert past_foe.refused_at == "C3"
+
+
+def _foe(footprint: int, square: Square) -> Snapshot:
+    from afterworlds.mapper.models import PlaceToken
+
+    return _with(
+        _truth(),
+        PlaceToken(
+            base_revision=0,
+            token=Token(
+                token_id="foe",
+                glyph="F",
+                ref="c:f",
+                side="hostile",
+                square=square,
+                footprint=footprint,
+            ),
+        ),
+    )
+
+
+THROUGH_FOE: tuple[Square, ...] = ((1, 4), (2, 3), (3, 2), (4, 1), (5, 0))
+
+
+def test_a_foe_two_sizes_larger_is_passed_through_as_difficult_terrain() -> None:
+    """Codex round 4: passing through another creature needs one of the
+    reasons in ``play.combat › moving_around``; a Huge foe is two sizes
+    larger than a Medium hero."""
+    truth = _foe(3, (2, 0))
+    p = preview(views.player_snapshot(truth), HERO, rules(), MoveIntent(THROUGH_FOE))
+    assert p.refused is None and p.cost_ft == 5 + 10 + 10 + 5
+    out = _resolve(truth, MoveIntent(route=THROUGH_FOE))
+    assert out.status == "completed" and out.final_square == (5, 0)
+
+
+def test_a_foe_one_size_larger_cannot_be_passed_through() -> None:
+    truth = _foe(2, (2, 1))
+    route = THROUGH_FOE[:4]
+    p = preview(views.player_snapshot(truth), HERO, rules(), MoveIntent(route))
+    assert (p.refused, p.refused_at) == (movement.THROUGH_CREATURE, "D3")
+    out = _resolve(truth, MoveIntent(route=route))
+    assert out.status == "refused" and out.refused == movement.THROUGH_CREATURE
+
+
+def test_a_foe_whose_size_the_map_cannot_tell_is_not_passed_through() -> None:
+    """A one-square token may be Tiny, Small or Medium, and the map holds no
+    conditions: what would let the hero pass can't be established."""
+    truth = _foe(1, (2, 3))
+    p = preview(views.player_snapshot(truth), HERO, rules(), MoveIntent(THROUGH_FOE))
+    assert (p.refused, p.refused_at) == (movement.THROUGH_CREATURE, "C4")
+
+
+def test_the_allowance_never_routes_through_a_foe() -> None:
+    player = views.player_snapshot(_foe(1, (2, 3)))
+    best = movement._reachable(player, HERO, rules(), (1, 4), 60)
+    assert (2, 3) not in best
+    assert all((2, 3) not in r for _, r, _ in best.values())
 
 
 def test_visible_pit_is_long_jumped_with_a_run_up() -> None:
@@ -412,6 +472,33 @@ def test_visible_pit_is_long_jumped_with_a_run_up() -> None:
     assert w.refused == movement.TOO_FAR_TO_JUMP and w.refused_at == (1, 6)
     ends_in_pit = walk(player, player, HERO, rules(), MoveIntent(route=running[:-1]))
     assert ends_in_pit.refused == movement.TOO_FAR_TO_JUMP
+
+
+def test_a_jump_cannot_land_in_difficult_terrain_without_its_check() -> None:
+    """Codex round 4: ``glossary.long_jump › difficult_landing`` needs a DC 10
+    Dexterity (Acrobatics) check, Prone on a failure. That check is held in
+    the capability roster, so the landing is refused, not delivered without
+    it."""
+    from afterworlds.mapper.models import SetTerrain
+
+    running = ((1, 4), (1, 5), (1, 6), (1, 7), (1, 8))
+    truth = _with(_truth(), SetTerrain(base_revision=0, squares=((1, 8),), char=","))
+    p = preview(views.player_snapshot(truth), HERO, rules(), MoveIntent(running))
+    assert (p.refused, p.refused_at) == (movement.DIFFICULT_LANDING, "B9")
+    out = _resolve(truth, MoveIntent(route=running))
+    assert out.status == "refused" and out.refused == movement.DIFFICULT_LANDING
+
+
+def test_a_jump_cannot_land_in_an_opening_too_narrow_to_squeeze() -> None:
+    from afterworlds.mapper.models import AddFeature
+
+    running = ((1, 4), (1, 5), (1, 6), (1, 7), (1, 8))
+    gap = Feature(
+        feature_id="gap", kind="other", label="gap", squares=((1, 8),), fits="tiny"
+    )
+    truth = _with(_truth(), AddFeature(base_revision=0, feature=gap))
+    p = preview(views.player_snapshot(truth), HERO, rules(), MoveIntent(running))
+    assert (p.refused, p.refused_at) == (movement.TOO_NARROW, "B9")
 
 
 def test_heights_jump_and_climb() -> None:

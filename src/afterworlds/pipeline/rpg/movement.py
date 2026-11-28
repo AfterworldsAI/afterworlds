@@ -97,6 +97,18 @@ PROSE: dict[str, tuple[str, str]] = {
         "Another creature's space is Difficult Terrain for you unless that"
         " creature is Tiny or your ally.",
     ),
+    "moving_through_creatures": (
+        "playing-the-game.md",
+        "During your move, you can pass through the space of an ally, a"
+        ' creature that has the Incapacitated condition (see "Rules Glossary"),'
+        " a Tiny creature, or a creature that is two sizes larger or smaller"
+        " than you.",
+    ),
+    "difficult_landing": (
+        "rules-glossary.md",
+        "If you land in Difficult Terrain, you must succeed on a DC 10 Dexterity"
+        " (Acrobatics) check or have the Prone condition.",
+    ),
     "difficult_spaces": (
         "rules-glossary.md",
         "- A narrow opening sized for a creature one size smaller than you",
@@ -143,8 +155,12 @@ TOO_FAR_TO_JUMP = "too far to jump"
 TOO_NARROW = "too narrow"
 NOT_A_STEP = "not a step"
 NOT_AT_START = "the route doesn't start at your character"
+THROUGH_CREATURE = "can't move through that creature"
+DIFFICULT_LANDING = "can't land a jump in difficult terrain"
 REFUSALS = frozenset(
     {
+        THROUGH_CREATURE,
+        DIFFICULT_LANDING,
         WALL,
         CORNER,
         SOLID,
@@ -481,6 +497,10 @@ def walk(
             # A footprint can't pass through rock, so wherever the move is
             # cut short the record can hold the mover there.
             return refuse(NO_ROOM, b)
+        # Ending on a creature is the end check's to refuse.
+        mid = i + 2 < len(route)
+        if known.pit_at(b) is None and mid and not _passable(known, profile, b):
+            return refuse(THROUGH_CREATURE, b)
 
         # Hidden facts end the move; they never refuse it.
         if truth is not known:
@@ -531,13 +551,22 @@ def walk(
             landing = route[j]
             if not room(route[j - 1], landing):
                 return refuse(NO_ROOM, landing)
+            enter, rough, squeeze = _enter_cost(
+                known, profile, rules, landing, route[j - 1]
+            )
+            if squeeze is None:
+                return refuse(TOO_NARROW, landing)
+            if rough:
+                # glossary.long_jump › difficult_landing: a DC 10 Dexterity
+                # (Acrobatics) check or Prone. The check is held in the
+                # capability roster with the effect it carries, so the
+                # landing is refused rather than delivered without it.
+                return refuse(DIFFICULT_LANDING, landing)
             if truth is not known and unseen_at(landing):
                 # Something unseen holds the landing: the mover stops before
                 # the take-off, as before any unseen creature.
                 return stop_for(unseen_at(landing)[0])
-            cost = (
-                jump_ft + _enter_cost(known, profile, rules, landing, route[j - 1])[0]
-            )
+            cost = jump_ft + enter
             total += cost
             if total > budget:
                 return refuse(OVER_BUDGET, landing)
@@ -615,6 +644,44 @@ def walk(
     return Walk(steps=tuple(steps), warnings=tuple(warnings))
 
 
+#: The size a token's footprint fixes: one square holds a Tiny, Small or
+#: Medium creature alike, so it fixes none (play.combat › creature_size).
+_FOOTPRINT_SIZE = {2: "large", 3: "huge", 4: "gargantuan"}
+
+
+def _others_at(snap: Snapshot, profile: MoverProfile, square: Square) -> list[Token]:
+    """The other tokens the mover's whole footprint overlaps at *square*."""
+    mover = snap.token(profile.token_id)
+    here = (
+        set(token_squares(mover.model_copy(update={"square": square})))
+        if mover is not None
+        else {square}
+    )
+    return [
+        t
+        for t in snap.tokens
+        if t.token_id != profile.token_id and here.intersection(token_squares(t))
+    ]
+
+
+def _passable(snap: Snapshot, profile: MoverProfile, square: Square) -> bool:
+    """Whether the mover may pass through every creature its footprint
+    overlaps at *square* (``play.combat › moving_around``): an ally, or a
+    creature two sizes larger or smaller. Incapacitated and Tiny creatures
+    pass too, but the map holds neither fact, so those are refused rather
+    than guessed."""
+    mover = snap.token(profile.token_id)
+    for t in _others_at(snap, profile, square):
+        if mover is not None and t.side == mover.side:
+            continue
+        size = _FOOTPRINT_SIZE.get(t.footprint)
+        if size is None or profile.size not in SIZES:
+            return False
+        if abs(SIZES.index(size) - SIZES.index(profile.size)) < 2:
+            return False
+    return True
+
+
 def _enter_cost(
     snap: Snapshot,
     profile: MoverProfile,
@@ -628,9 +695,7 @@ def _enter_cost(
     ch = snap.char(square)
     difficult = ch in ",~"
     mover = snap.token(profile.token_id)
-    for t in snap.tokens:
-        if t.token_id == profile.token_id or square not in token_squares(t):
-            continue
+    for t in _others_at(snap, profile, square):
         ally = mover is not None and t.side == mover.side
         if not ally:
             difficult = True
@@ -763,6 +828,8 @@ def _step_cost(
     roomy = replace(profile, walk_ft=10**6)
     w = walk(shifted, shifted, roomy, rules, probe)
     if w.refused == OCCUPIED_END:
+        if not _passable(shifted, roomy, nxt):
+            return None
         cost, _, squeezing = _enter_cost(shifted, roomy, rules, nxt, route[-1])
         return (cost, False) if squeezing is not None else None
     if w.refused is not None or not w.steps:
