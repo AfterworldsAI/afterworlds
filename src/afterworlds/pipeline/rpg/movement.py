@@ -1061,6 +1061,18 @@ def _search(
     spent, so the cheaper way leaves the most for any step after it."""
     State = tuple[Square, tuple[int, ...]]
     origin: State = (start, ())
+    # A mover in a pit walks its floor; any other pit square is a jump,
+    # which is planned by drawing over the pit, not searched.
+    start_pit = snap.pit_at(start)
+    floor = frozenset(start_pit.squares) if start_pit is not None else frozenset()
+
+    def closed(route: tuple[Square, ...], nxt: Square) -> bool:
+        if nxt in route:
+            return True
+        if snap.pit_at(nxt) is None:
+            return False
+        return nxt not in floor or not floor.issuperset(route)
+
     best: dict[State, tuple[int, tuple[Square, ...], bool]] = {
         origin: (0, (start,), True)
     }
@@ -1074,7 +1086,7 @@ def _search(
             continue
         for dc, dr in _NEIGHBOURS:
             nxt = (here[0] + dc, here[1] + dr)
-            if nxt in route or snap.pit_at(nxt) is not None:
+            if closed(route, nxt):
                 continue
             step = _step_cost(snap, profile, rules, route, nxt, dash=dash)
             if step is None:

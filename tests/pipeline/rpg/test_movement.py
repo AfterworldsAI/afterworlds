@@ -151,6 +151,10 @@ def test_a_mover_in_a_pit_walks_its_floor_and_cannot_jump_from_it() -> None:
     over = MoveIntent(route=((3, 4), (4, 4), (5, 4), (6, 4)))
     p = preview(player, HERO, rules(), over)
     assert (p.refused, p.refused_at) == (movement.PIT_JUMP, "F5")
+    # The allowance walks the same floor, and still never into an open pit.
+    reach = allowance(player, HERO, rules())
+    assert reach.costs["E5"] == 5 and reach.routes["E5"] == ("D5", "E5")
+    assert "F5" not in reach.costs
 
 
 def test_the_other_route_reaches_the_door() -> None:
