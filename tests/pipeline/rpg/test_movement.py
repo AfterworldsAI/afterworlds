@@ -755,6 +755,58 @@ def test_the_allowance_sends_the_route_it_priced() -> None:
     assert p.refused is None and p.cost_ft == 20 and not p.uses_dash
 
 
+def _corridor(*, open_: tuple[Square, ...] = ()) -> Snapshot:
+    """Row 5 walled in by rock along rows 4 and 6, but for *open_*."""
+    from afterworlds.mapper.models import SetTerrain
+
+    rows = (*((c, 3) for c in range(8)), *((c, 5) for c in range(8)))
+    walls = tuple(sq for sq in rows if sq not in open_)
+    return _with(
+        _truth(with_hidden=False),
+        SetTerrain(base_revision=0, squares=walls, char="#"),
+    )
+
+
+def test_the_allowance_costs_a_dashed_route_as_the_walk_does() -> None:
+    """Codex round 10: with Dash, a Swim Speed of 5 swims the whole corridor
+    (glossary.speed › switching), so the allowance's cost is the walk's own
+    total with Dash, not plain step prices topped up with Dash."""
+    from afterworlds.mapper.models import SetTerrain
+
+    water = ((2, 4), (3, 4), (4, 4), (5, 4))
+    player = views.player_snapshot(
+        _with(_corridor(), SetTerrain(base_revision=0, squares=water, char="="))
+    )
+    wader = MoverProfile(token_id="hero", walk_ft=30, strength=14, swim_ft=5)
+    to_f5 = ((1, 4), *water)
+    assert preview(player, wader, rules(), MoveIntent(route=to_f5)).refused == (
+        movement.OVER_BUDGET
+    )
+    dashed = preview(player, wader, rules(), MoveIntent(route=to_f5, dash=True))
+    assert dashed.refused is None and dashed.cost_ft == 20
+    reach = allowance(player, wader, rules())
+    assert reach.costs["F5"] == 20 and reach.warnings["F5"] == "uses your Dash"
+    assert reach.routes["F5"] == ("B5", "C5", "D5", "E5", "F5")
+
+
+def test_the_allowance_keeps_a_way_with_a_run_up() -> None:
+    """Codex round 10: a longer way in gives a run-up, so the High Jump
+    replaces a dearer climb and no Dash is needed."""
+    truth = _corridor(open_=((1, 3), (2, 3)))  # a nook at B4 and C4
+    ledge = Level(level_id="ledge", squares=((3, 4), (4, 4)), height_ft=8)
+    player = views.player_snapshot(truth.model_copy(update={"levels": (ledge,)}))
+    strong = MoverProfile(token_id="hero", walk_ft=30, strength=20)
+    direct = ((1, 4), (2, 4), (3, 4), (4, 4))
+    assert preview(player, strong, rules(), MoveIntent(route=direct)).refused == (
+        movement.OVER_BUDGET
+    )
+    around = ((1, 4), (2, 3), (2, 4), (3, 4), (4, 4))
+    p = preview(player, strong, rules(), MoveIntent(route=around))
+    assert p.refused is None and p.cost_ft == 28 and not p.uses_dash
+    reach = allowance(player, strong, rules())
+    assert reach.costs["E5"] == 28 and "E5" not in reach.warnings
+
+
 def test_dash_adds_the_speed_the_mover_chooses() -> None:
     """Dash may use a special speed instead (glossary.dash › special_speed);
     the largest is the mover's best choice."""

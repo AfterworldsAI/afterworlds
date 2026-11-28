@@ -476,6 +476,11 @@ class Walk:
     stopped_at: Square | None = None
     pit_id: str | None = None
     warnings: tuple[tuple[str, str], ...] = ()
+    #: Besides movement spent, what a further step's legality and price
+    #: depend on at the end of a full walk: doors opened, and squares moved
+    #: toward a run-up (capped where it stops mattering). The allowance's
+    #: search keys on it, so a route that keeps more of either survives.
+    carry: tuple[int, ...] = ()
 
     @property
     def cost_ft(self) -> int:
@@ -522,12 +527,15 @@ def walk(
     intent: MoveIntent,
     *,
     check_end: bool = True,
+    try_plain: bool = True,
 ) -> Walk:
     """Walk *intent* over *truth*, with *known* saying what the mover knows.
 
     The preview passes the player snapshot as both; resolution passes the
     truth and the player snapshot. Without *check_end*, the last square
-    isn't checked as a place to end (the allowance probes routes on)."""
+    isn't checked as a place to end (the allowance probes routes on).
+    Without *try_plain*, a Dash intent is priced with Dash throughout
+    rather than first without it (the allowance's Dash search)."""
     mover = truth.token(profile.token_id)
     route = intent.route
     if mover is None or mover.square is None:
@@ -536,7 +544,7 @@ def walk(
         return Walk(steps=(), refused=NOT_AT_START, refused_at=route[0])
     if profile.held is not None:
         return Walk(steps=(), refused=profile.held, refused_at=route[0])
-    if intent.dash:
+    if intent.dash and try_plain:
         # A route that fits without Dash is moved without it, so no step is
         # said to use Dash where it needn't (the cheapest speed may need it).
         plain = walk(
@@ -822,7 +830,12 @@ def walk(
         if not _can_end(known, profile, end):
             steps.pop()
             return refuse(OCCUPIED_END, end)
-    return Walk(steps=tuple(steps), warnings=tuple(warnings))
+    run_up = -(-rules.jump_run_up_ft // rules.square_ft)
+    return Walk(
+        steps=tuple(steps),
+        warnings=tuple(warnings),
+        carry=(doors_opened, min(travelled, run_up)),
+    )
 
 
 def _can_end(snap: Snapshot, profile: MoverProfile, square: Square) -> bool:
@@ -990,69 +1003,64 @@ def _reachable(
     start: Square,
 ) -> dict[Square, tuple[int, tuple[Square, ...], bool, bool]]:
     """Cheapest ``(cost, route, can_end_there, uses_dash)`` to each square
-    the mover can reach with Dash, priced as the walk prices it, single
-    steps only (jumps are planned by drawing over the pit). A square
-    reachable without Dash reports its cheapest such way, even when a
-    cheaper way needs Dash. Ties prefer fewer diagonal steps, then the
-    earlier neighbour order.
+    the mover can reach, with Dash where it must, priced as the walk prices
+    it; single steps only (jumps are planned by drawing over the pit).
 
-    What a route has used up beside movement (Dash, the one door opened
-    free) changes what it can still reach, so a way is kept unless another
-    way to the same square costs no more and has used up no more. Every
-    limit is on movement already spent, so among ways that have used up the
-    same, the cheapest leaves the most."""
-    # (square, dashed, door opened) -> (cost, route, can_end_there)
-    State = tuple[Square, bool, bool]
+    Two searches, each priced one way throughout so its costs add up the way
+    the walk's do: without Dash, then with it. A square the first reaches
+    needs no Dash, and reports that way even where Dash would be cheaper."""
+    plain = _search(snap, profile, rules, start, dash=False)
+    dashed = _search(snap, profile, rules, start, dash=True)
+    out = {sq: (*v, False) for sq, v in plain.items()}
+    for sq, v in dashed.items():
+        out.setdefault(sq, (*v, True))
+    return out
+
+
+def _search(
+    snap: Snapshot,
+    profile: MoverProfile,
+    rules: MovementRules,
+    start: Square,
+    *,
+    dash: bool,
+) -> dict[Square, tuple[int, tuple[Square, ...], bool]]:
+    """Cheapest ``(cost, route, can_end_there)`` to each square, every route
+    priced with Dash or without it throughout. Ties prefer fewer diagonal
+    steps, then the earlier neighbour order.
+
+    A way is kept per square and per what the walk carries past movement
+    (``Walk.carry``): with that the same, every limit is on movement already
+    spent, so the cheaper way leaves the most for any step after it."""
+    State = tuple[Square, tuple[int, ...]]
+    origin: State = (start, ())
     best: dict[State, tuple[int, tuple[Square, ...], bool]] = {
-        (start, False, False): (0, (start,), True)
+        origin: (0, (start,), True)
     }
-
-    def beaten(state: State, cost: int) -> bool:
-        square, dashed, door = state
-        for d in (False, True):
-            for o in (False, True):
-                other = best.get((square, d, o))
-                if (
-                    (d, o) != (dashed, door)
-                    and d <= dashed
-                    and o <= door
-                    and other is not None
-                    and other[0] <= cost
-                ):
-                    return True
-        return False
-
-    heap: list[tuple[int, int, bool, bool, tuple[Square, ...]]] = [
-        (0, 0, False, False, (start,))
+    heap: list[tuple[int, int, tuple[Square, ...], tuple[int, ...]]] = [
+        (0, 0, (start,), ())
     ]
     while heap:
-        cost, diag, dashed, door, route = heappop(heap)
+        cost, diag, route, carry = heappop(heap)
         here = route[-1]
-        state = (here, dashed, door)
-        if best[state][0] < cost or beaten(state, cost):
+        if best[(here, carry)][0] < cost:
             continue
         for dc, dr in _NEIGHBOURS:
             nxt = (here[0] + dc, here[1] + dr)
             if nxt in route or snap.pit_at(nxt) is not None:
                 continue
-            step = _step_cost(snap, profile, rules, route, nxt)
+            step = _step_cost(snap, profile, rules, route, nxt, dash=dash)
             if step is None:
                 continue
-            total = cost + step[0]
-            after = (nxt, dashed or step[2], door or step[3])
-            if beaten(after, total):
-                continue
-            prior = best.get(after)
+            total, end, after = step
+            prior = best.get((nxt, after))
             if prior is None or total < prior[0]:
-                best[after] = (total, (*route, nxt), step[1])
+                best[(nxt, after)] = (total, (*route, nxt), end)
                 nd = diag + (1 if dc and dr else 0)
-                heappush(heap, (total, nd, after[1], after[2], (*route, nxt)))
-    out: dict[Square, tuple[int, tuple[Square, ...], bool, bool]] = {}
-    for (square, dashed, _), (cost, route, end) in sorted(
-        best.items(), key=lambda kv: (kv[0][1], kv[1][0])
-    ):
-        if square not in out:
-            out[square] = (cost, route, end, dashed)
+                heappush(heap, (total, nd, (*route, nxt), after))
+    out: dict[Square, tuple[int, tuple[Square, ...], bool]] = {}
+    for (square, _), v in sorted(best.items(), key=lambda kv: kv[1][0]):
+        out.setdefault(square, v)
     return out
 
 
@@ -1062,25 +1070,23 @@ def _step_cost(
     rules: MovementRules,
     route: tuple[Square, ...],
     nxt: Square,
-) -> tuple[int, bool, bool, bool] | None:
-    """``(cost, can_end_there, uses_dash, door_opened)`` of extending *route*
-    by one step with Dash, or ``None`` if the step is refused or out of
-    reach. ``uses_dash`` and ``door_opened`` are for the whole route: a Dash
-    spent on an earlier step still counts after a switch to a faster speed,
-    and only one door opens free."""
-    probe = MoveIntent(route=(*route, nxt), dash=True)
+    *,
+    dash: bool,
+) -> tuple[int, bool, tuple[int, ...]] | None:
+    """``(cost of the whole route, can_end_there, carry)`` once *route* is
+    extended by one step, priced with or without Dash throughout; ``None``
+    if the step is refused or out of reach. The walk's own total is used,
+    never a sum of step prices from different walks."""
+    probe = MoveIntent(route=(*route, nxt), dash=dash)
     shifted = _with_mover_at(snap, profile.token_id, route[0])
-    w = walk(shifted, shifted, profile, rules, probe, check_end=False)
+    w = walk(shifted, shifted, profile, rules, probe, check_end=False, try_plain=False)
     if w.refused is not None or len(w.steps) != len(route):
         return None
-    last = w.steps[-1]
-    dashed = any(s.uses_dash for s in w.steps)
-    door = any(s.door_opened is not None for s in w.steps)
     if _can_end(shifted, profile, nxt):
-        return last.cost_ft, True, dashed, door
+        return w.cost_ft, True, w.carry
     if not _passable(shifted, profile, nxt):
         return None
-    return last.cost_ft, False, dashed, door
+    return w.cost_ft, False, w.carry
 
 
 def _with_mover_at(snap: Snapshot, token_id: str, square: Square) -> Snapshot:
