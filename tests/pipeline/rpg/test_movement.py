@@ -807,6 +807,31 @@ def test_the_allowance_keeps_a_way_with_a_run_up() -> None:
     assert reach.costs["E5"] == 28 and "E5" not in reach.warnings
 
 
+def test_a_run_up_is_on_foot_immediately_before_the_jump() -> None:
+    """Codex round 11: swimming is not on foot (glossary.high_jump), so two
+    squares of water and one of floor leave a standing High Jump of 4 ft;
+    the 8-ft rise beyond is climbed, which needs Dash."""
+    from afterworlds.mapper.models import SetTerrain
+
+    water = ((2, 4), (3, 4))
+    truth = _with(_corridor(), SetTerrain(base_revision=0, squares=water, char="="))
+    ledge = Level(level_id="ledge", squares=((5, 4),), height_ft=8)
+    player = views.player_snapshot(truth.model_copy(update={"levels": (ledge,)}))
+    swimmer = MoverProfile(token_id="hero", walk_ft=30, strength=20, swim_ft=30)
+    route = ((1, 4), (2, 4), (3, 4), (4, 4), (5, 4))
+    p = preview(player, swimmer, rules(), MoveIntent(route=route))
+    assert (p.refused, p.refused_at) == (movement.OVER_BUDGET, "F5")
+    dashed = preview(player, swimmer, rules(), MoveIntent(route=route, dash=True))
+    assert dashed.refused is None and dashed.cost_ft == 5 + 5 + 5 + 5 + 8 * 2
+    reach = allowance(player, swimmer, rules())
+    assert reach.warnings["F5"] == "uses your Dash"
+    # Two squares on foot after the water make a run-up again.
+    dry = _with(_corridor(), SetTerrain(base_revision=0, squares=((2, 4),), char="="))
+    dry_player = views.player_snapshot(dry.model_copy(update={"levels": (ledge,)}))
+    p = preview(dry_player, swimmer, rules(), MoveIntent(route=route))
+    assert p.refused is None and p.cost_ft == 5 + 5 + 5 + 5 + 8
+
+
 def test_dash_adds_the_speed_the_mover_chooses() -> None:
     """Dash may use a special speed instead (glossary.dash › special_speed);
     the largest is the mover's best choice."""

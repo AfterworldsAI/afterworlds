@@ -478,7 +478,7 @@ class Walk:
     warnings: tuple[tuple[str, str], ...] = ()
     #: Besides movement spent, what a further step's legality and price
     #: depend on at the end of a full walk: doors opened, and squares moved
-    #: toward a run-up (capped where it stops mattering). The allowance's
+    #: on foot toward a run-up (capped where it stops mattering). The allowance's
     #: search keys on it, so a route that keeps more of either survives.
     carry: tuple[int, ...] = ()
 
@@ -565,7 +565,10 @@ def walk(
     total = 0
     doors_opened = 0
     i = 0
-    travelled = 0  # squares moved since the move began, for a run-up
+    # Squares moved on foot immediately before the next step, for a run-up
+    # (glossary.high_jump, glossary.long_jump: "on foot immediately before
+    # the jump"). A swim, a climb or a jump is not on foot, so each ends it.
+    on_foot = 0
 
     def refuse(reason: str, at: Square) -> Walk:
         return Walk(
@@ -713,7 +716,7 @@ def walk(
                     return refuse(refusal, route[k + 1])
                 door_opened = door_opened or opened
             jump_ft = (j - i - 1) * rules.square_ft
-            running = travelled * rules.square_ft >= rules.jump_run_up_ft
+            running = on_foot * rules.square_ft >= rules.jump_run_up_ft
             reach = profile.strength if running else profile.strength // 2
             if jump_ft > reach:
                 return refuse(TOO_FAR_TO_JUMP, a)
@@ -761,7 +764,7 @@ def walk(
                     pit_id=landed_in.pit_id,
                     warnings=tuple(warnings),
                 )
-            travelled += j - i
+            on_foot = 0
             i = j
             continue
 
@@ -778,7 +781,7 @@ def walk(
             # Prone: crawling only, so no jump, climb or swim.
             return refuse(ONLY_CRAWLING, b)
         if abs(rise) > 1:
-            running = travelled * rules.square_ft >= rules.jump_run_up_ft
+            running = on_foot * rules.square_ft >= rules.jump_run_up_ft
             high = max(0, rules.high_jump_base_ft + profile.strength_mod)
             high = high if running else high // 2
             if rise > 0 and rise <= high:
@@ -816,7 +819,7 @@ def walk(
                 uses_dash=total > speed,
             )
         )
-        travelled += 1
+        on_foot = 0 if water or climb_ft or jumped_up else on_foot + 1
         i += 1
 
     end = route[-1]
@@ -834,7 +837,7 @@ def walk(
     return Walk(
         steps=tuple(steps),
         warnings=tuple(warnings),
-        carry=(doors_opened, min(travelled, run_up)),
+        carry=(doors_opened, min(on_foot, run_up)),
     )
 
 
