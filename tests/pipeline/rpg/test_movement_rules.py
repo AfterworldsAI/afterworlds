@@ -47,6 +47,7 @@ def test_prose_encoded_rules_have_no_structured_facts_yet() -> None:
         "long_jump",
         "high_jump",
         "prone_movement",
+        "dash_special_speed",
     ):
         record, component = CITATIONS[rule]
         assert oracle_lookup(record, component) == (), rule

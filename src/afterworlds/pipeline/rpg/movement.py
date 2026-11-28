@@ -72,6 +72,8 @@ CITATIONS: dict[str, tuple[str, str]] = {
     "prone_movement": ("glossary.prone", "restricted_movement"),
     "exhaustion_speed": ("glossary.exhaustion", "speed_reduced"),
     "dash": ("glossary.dash", "extra_movement"),
+    "dash_special_speed": ("glossary.dash", "special_speed"),
+    "speed_switching": ("glossary.speed", "switching"),
     "disengage": ("glossary.disengage", "no_opportunity_attacks"),
     "long_jump": ("glossary.long_jump", "jump_distance"),
     "difficult_landing": ("glossary.long_jump", "difficult_landing"),
@@ -84,6 +86,12 @@ CITATIONS: dict[str, tuple[str, str]] = {
 #: sentence each rule encodes. A test reads the source and fails if a sentence
 #: is gone.
 PROSE: dict[str, tuple[str, str]] = {
+    "dash_special_speed": (
+        "rules-glossary.md",
+        "If you have a special speed, such as a Fly Speed or Swim Speed, you can"
+        " use that speed instead of your Speed when you take this action. You"
+        " choose which speed to use each time you take it.",
+    ),
     "square_size": ("playing-the-game.md", "Each square represents 5 feet."),
     "entering_a_square": (
         "playing-the-game.md",
@@ -261,6 +269,12 @@ def load_rules(lookup: FactLookup) -> MovementRules:
     dash = _one(lookup, "dash", "movement_allowance")
     if _attr(dash, "basis") != "own_speed":
         raise RulesChanged("glossary.dash › extra_movement: not the mover's own Speed")
+    switch = _one(lookup, "speed_switching", "speed_switch_limit")
+    if (
+        _attr(switch, "accounting") != "subtract_distance_already_moved"
+        or _attr(switch, "when_nonpositive") != "forbids_using_the_new_speed"
+    ):
+        raise RulesChanged("glossary.speed › switching: not the distance moved")
     disengage = _one(lookup, "disengage", "reaction_provocation")
     if _attr(disengage, "reaction") != "opportunity_attack" or disengage.provokes:
         raise RulesChanged("glossary.disengage: still provokes Opportunity Attacks")
@@ -313,6 +327,26 @@ class MoverProfile:
     @property
     def strength_mod(self) -> int:
         return (self.strength - 10) // 2
+
+    @property
+    def dash_ft(self) -> int:
+        """Dash's extra movement: the mover chooses which of its speeds Dash
+        uses (``glossary.dash › special_speed``), and the largest is never
+        worse for it."""
+        return max(self.walk_ft, self.swim_ft, self.climb_ft)
+
+
+#: A profile that no budget limits, keeping which special speeds it has.
+_UNBOUNDED = 10**6
+
+
+def _roomy(profile: MoverProfile) -> MoverProfile:
+    return replace(
+        profile,
+        walk_ft=_UNBOUNDED,
+        swim_ft=_UNBOUNDED if profile.swim_ft else 0,
+        climb_ft=_UNBOUNDED if profile.climb_ft else 0,
+    )
 
 
 def profile_from_state(token_id: str, state: object) -> MoverProfile | None:
@@ -486,11 +520,14 @@ def walk(
     profile: MoverProfile,
     rules: MovementRules,
     intent: MoveIntent,
+    *,
+    check_end: bool = True,
 ) -> Walk:
     """Walk *intent* over *truth*, with *known* saying what the mover knows.
 
     The preview passes the player snapshot as both; resolution passes the
-    truth and the player snapshot."""
+    truth and the player snapshot. Without *check_end*, the last square
+    isn't checked as a place to end (the allowance probes routes on)."""
     mover = truth.token(profile.token_id)
     route = intent.route
     if mover is None or mover.square is None:
@@ -499,7 +536,22 @@ def walk(
         return Walk(steps=(), refused=NOT_AT_START, refused_at=route[0])
     if profile.held is not None:
         return Walk(steps=(), refused=profile.held, refused_at=route[0])
-    budget = profile.walk_ft * (2 if intent.dash else 1)
+    if intent.dash:
+        # A route that fits without Dash is moved without it, so no step is
+        # said to use Dash where it needn't (the cheapest speed may need it).
+        plain = walk(
+            truth,
+            known,
+            profile,
+            rules,
+            replace(intent, dash=False),
+            check_end=check_end,
+        )
+        if plain.refused != OVER_BUDGET:
+            return plain
+    # Movement spent so far counts against the speed each step uses, and
+    # Dash adds the same extra movement to each (glossary.speed › switching).
+    extra = profile.dash_ft if intent.dash else 0
     steps: list[Step] = []
     warnings: list[tuple[str, str]] = []
     total = 0
@@ -564,19 +616,27 @@ def walk(
         ]
 
     def stop_for(creature: Token) -> Walk:
-        """An unseen creature ends the move before it, on the last square
-        passed where the mover fits: passing an ally is fine, ending on one
-        is not, and the record refuses it."""
+        """An unseen creature ends the move before it."""
+        return stop_short(f"creature:{creature.token_id}")
+
+    def stop_short(stopped_by: str) -> Walk:
+        """A hidden thing ends the move before it, on the last square passed
+        where the mover fits: passing an ally is fine, ending on one is not,
+        and the record refuses it."""
         assert mover is not None  # noqa: S101 — checked above
         kept = list(steps)
         while kept and footprint_free(truth, mover, kept[-1].square) is not None:
             kept.pop()
         return Walk(
             steps=tuple(kept),
-            stopped_by=f"creature:{creature.token_id}",
+            stopped_by=stopped_by,
             stopped_at=kept[-1].square if kept else route[0],
             warnings=tuple(warnings),
         )
+
+    def fits_at(square: Square) -> bool:
+        assert mover is not None  # noqa: S101 — checked above
+        return footprint_free(truth, mover, square) is None
 
     def hidden_pit_at(square: Square) -> Pit | None:
         pit = truth.pit_at(square)
@@ -602,6 +662,11 @@ def walk(
             if unseen:
                 return stop_for(unseen[0])
             hidden_pit = hidden_pit_at(b)
+            if hidden_pit is not None and not fits_at(b):
+                # Another creature shares the space, which the record can't
+                # hold the mover in: the pit is found there, before the
+                # mover steps in, and the move ends where it last fitted.
+                return stop_short(f"pit:{hidden_pit.pit_id}")
             if hidden_pit is not None:
                 cost = rules.square_ft
                 total += cost
@@ -662,9 +727,12 @@ def walk(
                 # Something unseen holds the landing: the mover stops before
                 # the take-off, as before any unseen creature.
                 return stop_for(unseen_at(landing)[0])
+            landed_in = hidden_pit_at(landing) if truth is not known else None
+            if landed_in is not None and not fits_at(landing):
+                return stop_short(f"pit:{landed_in.pit_id}")
             cost = jump_ft + enter
             total += cost
-            if total > budget:
+            if total > profile.walk_ft + extra:
                 return refuse(OVER_BUDGET, landing)
             steps.append(
                 Step(
@@ -677,7 +745,6 @@ def walk(
                     through=tuple(route[i + 1 : j]),
                 )
             )
-            landed_in = hidden_pit_at(landing) if truth is not known else None
             if landed_in is not None:
                 return Walk(
                     steps=tuple(steps),
@@ -690,12 +757,16 @@ def walk(
             i = j
             continue
 
-        cost, difficult, squeezing = _enter_cost(known, profile, rules, b, a)
+        cost, difficult, squeezing = _enter_cost(
+            known, profile, rules, b, a, swim_speed=False
+        )
         if squeezing is None:
             return refuse(TOO_NARROW, b)
+        water = known.char(b) == "="
         climb_ft = 0
+        jumped_up = 0
         rise = known.height_at(b) - known.height_at(a)
-        if profile.crawling and (abs(rise) > 1 or known.char(b) == "="):
+        if profile.crawling and (abs(rise) > 1 or water):
             # Prone: crawling only, so no jump, climb or swim.
             return refuse(ONLY_CRAWLING, b)
         if abs(rise) > 1:
@@ -703,14 +774,26 @@ def walk(
             high = max(0, rules.high_jump_base_ft + profile.strength_mod)
             high = high if running else high // 2
             if rise > 0 and rise <= high:
-                cost += rise
+                jumped_up = rise
             else:
-                extra = 0 if profile.climb_ft else rules.climb_extra_per_ft
-                cost += abs(rise) * (1 + extra)
                 climb_ft = abs(rise)
-        total += cost
-        if total > budget:
+        # ``(cost, speed)`` for each speed the step can be moved with: its
+        # Speed pays the swimming and climbing surcharges, a Swim or Climb
+        # Speed waives its own. Movement already spent counts against
+        # whichever is used (glossary.speed › switching), so the cheapest
+        # one that still fits leaves the most for the rest of the move.
+        climbing = climb_ft * (1 + rules.climb_extra_per_ft)
+        options = [(cost + jumped_up + climbing, profile.walk_ft)]
+        if water and profile.swim_ft:
+            swim, _, _ = _enter_cost(known, profile, rules, b, a, swim_speed=True)
+            options.append((swim + jumped_up + climbing, profile.swim_ft))
+        if climb_ft and profile.climb_ft:
+            options.append((cost + climb_ft, profile.climb_ft))
+        fitting = [(c, s) for c, s in options if total + c <= s + extra]
+        if not fitting:
             return refuse(OVER_BUDGET, b)
+        cost, speed = min(fitting)
+        total += cost
         if difficult:
             warnings.append((coords.label(b), "difficult terrain"))
         steps.append(
@@ -722,25 +805,38 @@ def walk(
                 squeezing=squeezing,
                 climb_ft=climb_ft,
                 door_opened=door_opened,
-                uses_dash=total > profile.walk_ft,
+                uses_dash=total > speed,
             )
         )
         travelled += 1
         i += 1
 
     end = route[-1]
-    if len(route) > 1:
+    if len(route) > 1 and check_end:
         # The whole footprint has to fit where the move ends, as the record
         # checks: judged on what is known, so a refusal reveals nothing.
         here = cover(end)
         if any(not known.on_map(sq) or known.char(sq) in "# " for sq in here):
             steps.pop()
             return refuse(NO_ROOM, end)
-        for t in known.tokens:
-            if t.token_id != profile.token_id and here.intersection(token_squares(t)):
-                steps.pop()
-                return refuse(OCCUPIED_END, end)
+        if not _can_end(known, profile, end):
+            steps.pop()
+            return refuse(OCCUPIED_END, end)
     return Walk(steps=tuple(steps), warnings=tuple(warnings))
+
+
+def _can_end(snap: Snapshot, profile: MoverProfile, square: Square) -> bool:
+    """Whether the mover's whole footprint fits at *square* with no other
+    creature in it (``play.combat › ending_in_occupied_space``)."""
+    mover = snap.token(profile.token_id)
+    here = (
+        set(token_squares(mover.model_copy(update={"square": square})))
+        if mover is not None
+        else {square}
+    )
+    if any(not snap.on_map(sq) or snap.char(sq) in "# " for sq in here):
+        return False
+    return not _others_at(snap, profile, square)
 
 
 #: The size a token's footprint fixes: one square holds a Tiny, Small or
@@ -787,9 +883,13 @@ def _enter_cost(
     rules: MovementRules,
     square: Square,
     came_from: Square,
+    *,
+    swim_speed: bool | None = None,
 ) -> tuple[int, bool, bool | None]:
     """``(feet, difficult, squeezing)``; squeezing ``None`` means the opening
-    is closed to the mover (more than one size smaller)."""
+    is closed to the mover (more than one size smaller). *swim_speed* says
+    whether water is swum with a Swim Speed (no surcharge); by default,
+    whenever the mover has one."""
     base = rules.square_ft
     ch = snap.char(square)
     difficult = ch in ",~"
@@ -809,7 +909,8 @@ def _enter_cost(
             difficult = True
     crawl = rules.crawl_extra_per_ft if profile.crawling else 0
     if ch == "=":
-        extra = 0 if profile.swim_ft else rules.swim_extra_per_ft
+        waived = bool(profile.swim_ft) if swim_speed is None else swim_speed
+        extra = 0 if waived else rules.swim_extra_per_ft
         return base * (1 + extra + crawl), difficult, squeezing
     if difficult:
         return base * (1 + rules.difficult_extra_per_ft + crawl), True, squeezing
@@ -860,16 +961,20 @@ def allowance(
     from player-visible facts (the view's movement allowance)."""
     mover = player.token(profile.token_id)
     out = Allowance(
-        token_id=profile.token_id, speed_ft=profile.walk_ft, dash_ft=profile.walk_ft
+        token_id=profile.token_id, speed_ft=profile.walk_ft, dash_ft=profile.dash_ft
     )
     if mover is None or mover.square is None or profile.held is not None:
         return out
-    best = _reachable(player, profile, rules, mover.square, profile.walk_ft * 2)
-    ends = {s: c for s, (c, _, end) in best.items() if end and s != mover.square}
-    costs = {coords.label(s): c for s, c in ends.items()}
+    best = _reachable(player, profile, rules, mover.square)
+    ends = {
+        s: (c, dash)
+        for s, (c, _, end, dash) in best.items()
+        if end and s != mover.square
+    }
+    costs = {coords.label(s): c for s, (c, _) in ends.items()}
     warnings: dict[str, str] = {}
-    for s, c in ends.items():
-        if c > profile.walk_ft:
+    for s, (_, dash) in ends.items():
+        if dash:
             warnings[coords.label(s)] = "uses your Dash"
     return replace(out, costs=costs, warnings=warnings)
 
@@ -882,13 +987,14 @@ def _reachable(
     profile: MoverProfile,
     rules: MovementRules,
     start: Square,
-    budget: int,
-) -> dict[Square, tuple[int, tuple[Square, ...], bool]]:
-    """Cheapest ``(cost, route, can_end_there)`` to each square within
-    *budget*, single steps only (jumps are planned by drawing over the pit).
-    Ties prefer fewer diagonal steps, then the earlier neighbour order."""
-    best: dict[Square, tuple[int, tuple[Square, ...], bool]] = {
-        start: (0, (start,), True)
+) -> dict[Square, tuple[int, tuple[Square, ...], bool, bool]]:
+    """Cheapest ``(cost, route, can_end_there, uses_dash)`` to each square
+    the mover can reach with Dash, priced as the walk prices it, single
+    steps only (jumps are planned by drawing over the pit). Ties prefer
+    fewer diagonal steps, then the earlier neighbour order. A cheaper way to
+    a square never leaves less to spend, so the cheapest one is kept."""
+    best: dict[Square, tuple[int, tuple[Square, ...], bool, bool]] = {
+        start: (0, (start,), True, False)
     }
     heap: list[tuple[int, int, tuple[Square, ...]]] = [(0, 0, (start,))]
     while heap:
@@ -904,12 +1010,10 @@ def _reachable(
             if step is None:
                 continue
             total = cost + step[0]
-            if total > budget:
-                continue
             nd = diag + (1 if dc and dr else 0)
             prior = best.get(nxt)
             if prior is None or total < prior[0]:
-                best[nxt] = (total, (*route, nxt), step[1])
+                best[nxt] = (total, (*route, nxt), step[1], step[2])
                 heappush(heap, (total, nd, (*route, nxt)))
     return best
 
@@ -920,21 +1024,20 @@ def _step_cost(
     rules: MovementRules,
     route: tuple[Square, ...],
     nxt: Square,
-) -> tuple[int, bool] | None:
-    """``(cost, can_end_there)`` of extending *route* by one step, or
-    ``None`` if the step is refused."""
-    probe = MoveIntent(route=(*route, nxt))
+) -> tuple[int, bool, bool] | None:
+    """``(cost, can_end_there, uses_dash)`` of extending *route* by one step
+    with Dash, or ``None`` if the step is refused or out of reach."""
+    probe = MoveIntent(route=(*route, nxt), dash=True)
     shifted = _with_mover_at(snap, profile.token_id, route[0])
-    roomy = replace(profile, walk_ft=10**6)
-    w = walk(shifted, shifted, roomy, rules, probe)
-    if w.refused == OCCUPIED_END:
-        if not _passable(shifted, roomy, nxt):
-            return None
-        cost, _, squeezing = _enter_cost(shifted, roomy, rules, nxt, route[-1])
-        return (cost, False) if squeezing is not None else None
-    if w.refused is not None or not w.steps:
+    w = walk(shifted, shifted, profile, rules, probe, check_end=False)
+    if w.refused is not None or len(w.steps) != len(route):
         return None
-    return w.steps[-1].cost_ft, True
+    last = w.steps[-1]
+    if _can_end(shifted, profile, nxt):
+        return last.cost_ft, True, last.uses_dash
+    if not _passable(shifted, profile, nxt):
+        return None
+    return last.cost_ft, False, last.uses_dash
 
 
 def _with_mover_at(snap: Snapshot, token_id: str, square: Square) -> Snapshot:
@@ -1068,12 +1171,12 @@ def _leg(
         return ()
     line = _line(start, goal)
     shifted = _with_mover_at(player, profile.token_id, so_far[0])
-    roomy = replace(profile, walk_ft=10**6)
+    roomy = _roomy(profile)
     trial = walk(shifted, shifted, roomy, rules, MoveIntent(route=(*so_far, *line)))
     if trial.refused is None:
         return line
     moved = _with_mover_at(player, profile.token_id, start)
-    best = _reachable(moved, roomy, rules, start, 10**6)
+    best = _reachable(moved, roomy, rules, start)
     if goal in best:
         return best[goal][1][1:]
     return line  # refused at Send with a player-safe reason
@@ -1229,7 +1332,8 @@ def resolve(
         landed, fall = _fall(pit.depth_ft, rules, dice, roller)
         consequences.extend(landed)
         citations.extend([CITATIONS["fall_damage"], CITATIONS["prone_on_landing"]])
-    if w.stopped_by is not None and w.stopped_by.startswith("creature:"):
+    if w.stopped_by is not None and w.pit_id is None:
+        # Found before the mover reached it: revealed, nothing fallen into.
         thing = w.stopped_by.split(":", 1)[1]
         updates.append(SetHidden(base_revision=revision, thing_id=thing, hidden=False))
         consequences.append(Consequence(kind="blocked_by_unseen", detail=thing))

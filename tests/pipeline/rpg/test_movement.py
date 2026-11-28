@@ -436,9 +436,9 @@ def test_a_foe_whose_size_the_map_cannot_tell_is_not_passed_through() -> None:
 
 def test_the_allowance_never_routes_through_a_foe() -> None:
     player = views.player_snapshot(_foe(1, (2, 3)))
-    best = movement._reachable(player, HERO, rules(), (1, 4), 60)
+    best = movement._reachable(player, HERO, rules(), (1, 4))
     assert (2, 3) not in best
-    assert all((2, 3) not in r for _, r, _ in best.values())
+    assert all((2, 3) not in r for _, r, _, _ in best.values())
 
 
 def test_visible_pit_is_long_jumped_with_a_run_up() -> None:
@@ -599,10 +599,17 @@ def test_heights_jump_and_climb() -> None:
         preview(player, long, rules(), MoveIntent(route=route)).cost_ft
         == 18 + 5 + 10 * 2
     )
-    climber = MoverProfile(token_id="hero", walk_ft=90, strength=14, climb_ft=30)
+    climber = MoverProfile(token_id="hero", walk_ft=90, strength=14, climb_ft=40)
     assert (
         preview(player, climber, rules(), MoveIntent(route=route)).cost_ft
         == 18 + 5 + 10
+    )
+    # With 23 ft already spent, a Climb Speed of 30 has 7 ft left, too few for
+    # the 15-ft climb (glossary.speed › switching): it climbs with its Speed.
+    slow = MoverProfile(token_id="hero", walk_ft=90, strength=14, climb_ft=30)
+    assert (
+        preview(player, slow, rules(), MoveIntent(route=route)).cost_ft
+        == 18 + 5 + 10 * 2
     )
 
 
@@ -625,6 +632,55 @@ def test_deep_water_costs_swimming() -> None:
         preview(player, swimmer, rules(), MoveIntent(route=((1, 4), (2, 4)))).cost_ft
         == 5
     )
+
+
+def _lake() -> Snapshot:
+    from afterworlds.mapper.models import SetTerrain
+
+    water = tuple((c, 4) for c in range(2, 8))
+    return _with(
+        _truth(with_hidden=False),
+        SetTerrain(base_revision=0, squares=water, char="="),
+    )
+
+
+def test_each_step_counts_against_the_speed_it_uses() -> None:
+    """Codex round 6: a Swim Speed is a budget of its own, not only a waived
+    surcharge. Movement already spent counts against whichever speed a step
+    uses (glossary.speed › switching)."""
+    player = views.player_snapshot(_lake())
+    across = MoveIntent(route=STRAIGHT)  # 30 ft, every square deep water
+    # Speed 30, Swim Speed 5: the first square is swum (5 ft), the rest cost
+    # double against its Speed (15, 25, then 35 at F5), so 30 ft of water is
+    # beyond it without Dash.
+    slow = MoverProfile(token_id="hero", walk_ft=30, strength=14, swim_ft=5)
+    p = preview(player, slow, rules(), across)
+    assert (p.refused, p.refused_at) == (movement.OVER_BUDGET, "F5")
+    # Speed 30, Swim Speed 60: 30 ft of water is well within its Swim Speed.
+    fast = MoverProfile(token_id="hero", walk_ft=30, strength=14, swim_ft=60)
+    p = preview(player, fast, rules(), across)
+    assert p.refused is None and p.cost_ft == 30 and not p.uses_dash
+    # The allowance prices each square the same way: E5 is three squares of
+    # water from B5, or two of floor and one of water.
+    fast_reach, slow_reach = (allowance(player, m, rules()) for m in (fast, slow))
+    assert (fast_reach.costs["E5"], slow_reach.costs["E5"]) == (15, 20)
+    assert "E5" not in fast_reach.warnings and "E5" not in slow_reach.warnings
+
+
+def test_dash_adds_the_speed_the_mover_chooses() -> None:
+    """Dash may use a special speed instead (glossary.dash › special_speed);
+    the largest is the mover's best choice."""
+    swimmer = MoverProfile(token_id="hero", walk_ft=20, strength=14, swim_ft=60)
+    assert swimmer.dash_ft == 60
+    up = ((1, 4), (1, 3), (1, 2), (1, 1), (1, 0))
+    along = ((2, 0), (3, 0), (4, 0), (5, 0), (6, 0))
+    walked = MoveIntent(route=(*up, *along), dash=True)  # 45 ft on foot
+    player = views.player_snapshot(_truth(with_hidden=False))
+    p = preview(player, swimmer, rules(), walked)
+    assert p.refused is None and p.cost_ft == 45 and p.uses_dash
+    # Dashing with its Speed alone, 40 ft would be the most.
+    plain = replace_walk(HERO, 20)
+    assert preview(player, plain, rules(), walked).refused == movement.OVER_BUDGET
 
 
 # -- squeezing: the Owner's house rule, with its four tests ----------------
@@ -949,6 +1005,29 @@ def test_a_large_token_needs_room_for_its_whole_footprint_at_the_end() -> None:
         profile=big,
     )
     assert fine.status == "completed" and fine.final_square == (5, 1)
+
+
+def test_a_hidden_pit_under_an_ally_stops_a_large_mover_where_it_fits() -> None:
+    """Codex round 6: a 2x2 mover passing an ally reaches a hidden pit where
+    its footprint would share the ally's space, which the record can't hold.
+    The pit is found there and the move ends on the last square it fitted,
+    with nothing fallen into, so the Turn saves."""
+    big = MoverProfile(token_id="hero", walk_ft=40, strength=19, size="large")
+    truth = _placed(
+        _big_hero(_truth(with_hidden=False), (1, 0)),
+        ALLY.model_copy(update={"square": (4, 1)}),
+    )
+    pit = Pit(pit_id="under", squares=((3, 0),), depth_ft=10, hidden=True)
+    hidden = truth.model_copy(update={"pits": (*truth.pits, pit)})
+    east = MoveIntent(route=((1, 0), (2, 0), (3, 0), (4, 0), (5, 0)))
+    assert preview(views.player_snapshot(hidden), big, rules(), east).refused is None
+    out = _resolve(hidden, east, profile=big)  # stages through the record
+    assert (out.status, out.final_square) == ("stopped", (2, 0))
+    assert out.stopped_by == "pit:under" and out.fall is None
+    assert any(
+        isinstance(u, movement.SetHidden) and u.thing_id == "under" and not u.hidden
+        for u in out.updates
+    )
 
 
 def test_a_large_token_cannot_pass_through_rock_where_a_pit_may_stop_it() -> None:
