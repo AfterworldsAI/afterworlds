@@ -134,11 +134,15 @@ describe("MapView (issue #211)", () => {
 
   it("a route past the mover's speed waits for a tapped Dash", async () => {
     localStorage.setItem("afterworlds:map-auto-open", "true");
-    // The whole yard is within 30 ft of Kael, so this view lowers the speed
-    // to put H5 past it (display logic only; the server prices every move).
+    // The whole yard is within 30 ft of Kael, so this view has the server
+    // say H5 needs Dash (display logic only; the server prices every move).
     mocks.getScene.mockResolvedValue({
       ...view,
-      allowance: { ...view.allowance!, speed_ft: 20 },
+      allowance: {
+        ...view.allowance!,
+        speed_ft: 20,
+        warnings: { H5: "uses your Dash" },
+      },
     });
     const far = ["H5"];
     const onSendMove = vi.fn().mockResolvedValue(true);
@@ -157,6 +161,31 @@ describe("MapView (issue #211)", () => {
     expect(send).toBeDisabled();
     fireEvent.click(screen.getByRole("checkbox", { name: "Dash" }));
     expect(send).toBeEnabled();
+  });
+
+  it("takes the Dash requirement from the server, not the walking Speed", async () => {
+    // Codex round 7: Speed 10 with Swim Speed 60 swims 30 ft without Dash,
+    // so a cost past speed_ft alone doesn't need it.
+    localStorage.setItem("afterworlds:map-auto-open", "true");
+    mocks.getScene.mockResolvedValue({
+      ...view,
+      allowance: { ...view.allowance!, speed_ft: 10, warnings: {} },
+    });
+    const onSendMove = vi.fn().mockResolvedValue(true);
+    const { container } = render(
+      <MapView
+        storyId="s"
+        refreshKey={0}
+        disabled={false}
+        onSendMove={onSendMove}
+      />,
+    );
+    await screen.findByRole("img");
+    tapSquare(container, "H5");
+    expect(screen.queryByText("This route needs a Dash.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Send move" })).toBeEnabled();
+    const shade = container.querySelector('[data-reach="H5"]');
+    expect(shade?.getAttribute("fill")).toBe("#9fd4a6");
   });
 
   it("keeps the route when the server doesn't take the move", async () => {

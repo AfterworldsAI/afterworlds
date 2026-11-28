@@ -14,7 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import rough from "roughjs";
 
 import { api, ApiRequestError } from "./api/client";
-import type { MovePath, SceneView } from "./api/client";
+import type { MovePath, SceneAllowance, SceneView } from "./api/client";
 import { localStorageState } from "./localStorage";
 import {
   asSnapshot,
@@ -68,6 +68,13 @@ function areaSetting(snap: MapSnapshot, sq: Square): "worked" | "natural" {
       sq[1] < a.bounds[1] + a.bounds[3],
   );
   return area?.setting ?? "worked";
+}
+
+/** The server's warning on a square whose cheapest route needs Dash. */
+const USES_DASH = "uses your Dash";
+
+function usesDash(allowance: SceneAllowance, square: string): boolean {
+  return allowance.warnings[square] === USES_DASH;
 }
 
 function x(col: number): number {
@@ -272,8 +279,12 @@ export default function MapView({
   const start = moverSquare(snap, allowance);
   const end = route.length > 1 ? route[route.length - 1] : null;
   const endCost = end && allowance ? allowance.costs[label(end)] : undefined;
+  // The server says which squares need Dash: a Swim or Climb Speed can carry
+  // a route past the walking Speed without it (glossary.speed › switching).
   const needsDash =
-    endCost !== undefined && allowance !== null && endCost > allowance.speed_ft;
+    end && endCost !== undefined && allowance !== null
+      ? usesDash(allowance, label(end))
+      : false;
   const warning = end && allowance ? allowance.warnings[label(end)] : undefined;
 
   function tap(sq: Square) {
@@ -359,7 +370,7 @@ export default function MapView({
               />
             ))}
             {allowance &&
-              Object.entries(allowance.costs).map(([sq, cost]) => {
+              Object.keys(allowance.costs).map((sq) => {
                 const at = parseLabel(sq);
                 if (at === null) return null;
                 const [col, row] = at;
@@ -371,7 +382,7 @@ export default function MapView({
                     y={y(row)}
                     width={CELL}
                     height={CELL}
-                    fill={cost <= allowance.speed_ft ? "#9fd4a6" : "#e8dc9a"}
+                    fill={usesDash(allowance, sq) ? "#e8dc9a" : "#9fd4a6"}
                     opacity={0.35}
                   />
                 );
