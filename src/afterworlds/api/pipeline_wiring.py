@@ -160,9 +160,6 @@ from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
 from afterworlds.pipeline.rpg.movement import (
     MovementRules,
     MoverProfile,
-    load_rules,
-    lookup_from_index,
-    profile_from_state,
 )
 from afterworlds.pipeline.rpg.scene import render as render_scene
 from afterworlds.pipeline.rpg.sequence import ActionResolutionService
@@ -170,6 +167,7 @@ from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
 from afterworlds.pipeline.rpg.spatial_turn import (
     SpatialTurnService,
     mover_from_token_ref,
+    price_character,
 )
 from afterworlds.pipeline.safety.config import SafetyConfig
 from afterworlds.pipeline.safety.service import SafetyService
@@ -306,11 +304,10 @@ def _make_spatial_turn_service(
             stored = get_character(session, state.character_sheet_id)
             if stored is None:
                 return None
-            profile = profile_from_state(str(stored.sheet_id), stored.state)
-            if profile is None:
-                return None
             index = authority_index(session, stored.binding, now=_utc_now())
-            return profile, load_rules(lookup_from_index(index))
+            return price_character(
+                TurnCharacter(stored=stored, readiness=(), index=index)
+            )
         finally:
             session.rollback()
             session.close()

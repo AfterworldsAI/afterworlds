@@ -46,6 +46,7 @@ def test_prose_encoded_rules_have_no_structured_facts_yet() -> None:
         "moving_around_creatures",
         "long_jump",
         "high_jump",
+        "prone_movement",
     ):
         record, component = CITATIONS[rule]
         assert oracle_lookup(record, component) == (), rule
@@ -57,6 +58,7 @@ def test_structured_facts_load_as_encoded() -> None:
         difficult_extra_per_ft=1,
         climb_extra_per_ft=1,
         swim_extra_per_ft=1,
+        crawl_extra_per_ft=1,
         dash_adds_own_speed=True,
         disengage_avoids_opportunity_attacks=True,
         fall_die="d6",

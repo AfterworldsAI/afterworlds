@@ -29,7 +29,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -41,6 +41,7 @@ from afterworlds.mapper.updates import apply_all
 from afterworlds.mapper.views import player_snapshot, player_view, text_view
 from afterworlds.pipeline.rpg.dice import DiceService
 from afterworlds.pipeline.rpg.movement import (
+    EFFECT_HELD,
     NOT_AT_START,
     NOT_YOURS,
     STALE,
@@ -51,10 +52,15 @@ from afterworlds.pipeline.rpg.movement import (
     Preview,
     allowance,
     explored_after,
+    load_rules,
+    lookup_from_index,
     preview,
+    profile_from_state,
     resolve,
     route_from_words,
+    under_conditions,
 )
+from afterworlds.services.dnd5e_state.turn import TurnCharacter
 
 #: Words that ask to move. A place named without one of these (``"I shoot
 #: the goblin by the barrels"``) is not a move.
@@ -345,6 +351,36 @@ class SpatialTurnService:
         )
 
 
+#: Reviewed effects that never change Speed (the Sap and Vex masteries).
+_NOT_SPEED = frozenset({"equipment.weapons.sap", "equipment.weapons.vex"})
+
+
+def price_character(
+    character: TurnCharacter,
+) -> tuple[MoverProfile, MovementRules] | None:
+    """The Sojourner's movement profile and rules from its recorded state and
+    exact authority: its Speeds and Strength, limited by its conditions
+    (Speed 0, Exhaustion, Prone's crawling). ``None`` when the move can't be
+    priced."""
+    if character.index is None:
+        return None
+    profile = profile_from_state(str(character.sheet_id), character.stored.state)
+    if profile is None:
+        return None
+    limited = under_conditions(profile, character)
+    if limited is None:
+        return None
+    if any(
+        e.source.record_key not in _NOT_SPEED
+        for e in character.stored.state.active_effects or ()
+    ):
+        # A spell, feature or item in effect may change Speed (Longstrider,
+        # Haste, the Slow mastery), and none is executed here or stated as a
+        # typed fact: held, as checks hold an unexecuted effect.
+        limited = replace(limited, held=EFFECT_HELD)
+    return limited, load_rules(lookup_from_index(character.index))
+
+
 def mover_from_token_ref(
     ref_prefix: str,
     profile_for: Callable[[UUID], tuple[MoverProfile, MovementRules] | None],
@@ -360,14 +396,7 @@ def mover_from_token_ref(
         for t in truth.tokens:
             if t.side == "party" and t.ref == f"{ref_prefix}:{profile.token_id}":
                 return Mover(
-                    profile=MoverProfile(
-                        token_id=t.token_id,
-                        walk_ft=profile.walk_ft,
-                        strength=profile.strength,
-                        size=profile.size,
-                        swim_ft=profile.swim_ft,
-                        climb_ft=profile.climb_ft,
-                    ),
+                    profile=replace(profile, token_id=t.token_id),
                     rules=rules,
                     roller=(ref_prefix, profile.token_id),
                 )
@@ -385,4 +414,5 @@ __all__ = [
     "SpatialTurnService",
     "mover_from_token_ref",
     "outcome_text",
+    "price_character",
 ]

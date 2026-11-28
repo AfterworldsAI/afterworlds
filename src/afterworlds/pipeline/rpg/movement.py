@@ -68,6 +68,9 @@ CITATIONS: dict[str, tuple[str, str]] = {
     "difficult_spaces": ("glossary.difficult_terrain", "difficult_spaces"),
     "climbing_cost": ("glossary.climbing", "extra_cost"),
     "swimming_cost": ("glossary.swimming", "extra_cost"),
+    "crawling_cost": ("glossary.crawling", "extra_cost"),
+    "prone_movement": ("glossary.prone", "restricted_movement"),
+    "exhaustion_speed": ("glossary.exhaustion", "speed_reduced"),
     "dash": ("glossary.dash", "extra_movement"),
     "disengage": ("glossary.disengage", "no_opportunity_attacks"),
     "long_jump": ("glossary.long_jump", "jump_distance"),
@@ -108,6 +111,12 @@ PROSE: dict[str, tuple[str, str]] = {
         "rules-glossary.md",
         "If you land in Difficult Terrain, you must succeed on a DC 10 Dexterity"
         " (Acrobatics) check or have the Prone condition.",
+    ),
+    "prone_movement": (
+        "rules-glossary.md",
+        "_Restricted Movement._ Your only movement options are to crawl or to"
+        " spend an amount of movement equal to half your Speed (round down) to"
+        " right yourself and thereby end the condition.",
     ),
     "difficult_spaces": (
         "rules-glossary.md",
@@ -157,8 +166,12 @@ NOT_A_STEP = "not a step"
 NOT_AT_START = "the route doesn't start at your character"
 THROUGH_CREATURE = "can't move through that creature"
 DIFFICULT_LANDING = "can't land a jump in difficult terrain"
+ONLY_CRAWLING = "while Prone you can only crawl"
+EFFECT_HELD = "an effect on you changes how you move"
 REFUSALS = frozenset(
     {
+        EFFECT_HELD,
+        ONLY_CRAWLING,
         THROUGH_CREATURE,
         DIFFICULT_LANDING,
         WALL,
@@ -190,6 +203,7 @@ class MovementRules:
     difficult_extra_per_ft: int
     climb_extra_per_ft: int
     swim_extra_per_ft: int
+    crawl_extra_per_ft: int
     dash_adds_own_speed: bool
     disengage_avoids_opportunity_attacks: bool
     fall_die: str
@@ -262,6 +276,7 @@ def load_rules(lookup: FactLookup) -> MovementRules:
         difficult_extra_per_ft=_surcharge(lookup, "difficult_terrain_cost"),
         climb_extra_per_ft=_surcharge(lookup, "climbing_cost"),
         swim_extra_per_ft=_surcharge(lookup, "swimming_cost"),
+        crawl_extra_per_ft=_surcharge(lookup, "crawling_cost"),
         dash_adds_own_speed=True,
         disengage_avoids_opportunity_attacks=True,
         fall_die=f"d{str(_attr(dice, 'die')).lstrip('d')}",
@@ -288,6 +303,12 @@ class MoverProfile:
     size: str = "medium"
     swim_ft: int = 0
     climb_ft: int = 0
+    #: Prone: crawling is the only movement (``glossary.prone ›
+    #: restricted_movement``); righting itself is Sojourn's, not priced here.
+    crawling: bool = False
+    #: A player-safe reason the move can't be priced (an active effect this
+    #: doesn't execute may change Speed); every route is refused with it.
+    held: str | None = None
 
     @property
     def strength_mod(self) -> int:
@@ -310,6 +331,77 @@ def profile_from_state(token_id: str, state: object) -> MoverProfile | None:
         size=str(getattr(size, "value", size)) if size is not None else "medium",
         swim_ft=feet.get("swim", 0),
         climb_ft=feet.get("climb", 0),
+    )
+
+
+def under_conditions(profile: MoverProfile, subject: object) -> MoverProfile | None:
+    """*profile* under the conditions *subject* (a Turn subject) has,
+    recorded or implied, read through its exact authority: a typed
+    ``speed_modification`` sets Speed (``glossary.grappled › speed_0`` and
+    four more), Exhaustion's ``scaling`` reduces every Speed by its level
+    (the change propagates, ``glossary.speed``), and Prone leaves only
+    crawling. ``None`` when the conditions can't be read; :class:`RulesChanged`
+    when a condition states a speed rule this doesn't encode."""
+    from afterworlds.ingestion.mechanical.representation import (
+        ConditionKind,
+        ScalingDirection,
+        ScalingEffect,
+        ScalingFact,
+        SpeedChange,
+        SpeedModificationFact,
+    )
+    from afterworlds.pipeline.rpg.capability import AdjudicationRefusal
+    from afterworlds.pipeline.rpg.conditions import effective
+
+    index = getattr(subject, "index", None)
+    if index is None:
+        return None
+    try:
+        found = effective(subject, index)  # type: ignore[arg-type]
+    except AdjudicationRefusal:
+        return None
+    stopped, reduced, crawling = False, 0, False
+    for eff in found:
+        record = index.record(f"glossary.{eff.condition.value}")
+        if record is None:
+            return None
+        if eff.condition is ConditionKind.PRONE:
+            crawling = True
+        for component in record.components:
+            for ef in component.facts:
+                fact = ef.fact
+                where = f"{record.semantic_key} › {component.semantic_key}"
+                if isinstance(fact, SpeedModificationFact):
+                    if not (
+                        component.applies_when is None
+                        and ef.qualifier is None
+                        and fact.change is SpeedChange.SET_TO
+                        and fact.feet == 0
+                        and fact.mode is None
+                        and not fact.can_increase
+                    ):
+                        raise RulesChanged(f"{where}: not Speed 0 that can't increase")
+                    stopped = True
+                elif (
+                    isinstance(fact, ScalingFact) and fact.effect is ScalingEffect.SPEED
+                ):
+                    level = eff.instance.level if eff.instance is not None else None
+                    if (
+                        component.applies_when is not None
+                        or fact.direction is not ScalingDirection.DECREASE
+                        or fact.amount is None
+                        or level is None
+                    ):
+                        raise RulesChanged(f"{where}: not a per-level reduction")
+                    reduced += fact.amount * max(0, level - fact.threshold)
+    if stopped:
+        return replace(profile, walk_ft=0, swim_ft=0, climb_ft=0, crawling=crawling)
+    return replace(
+        profile,
+        walk_ft=max(0, profile.walk_ft - reduced),
+        swim_ft=max(0, profile.swim_ft - reduced),
+        climb_ft=max(0, profile.climb_ft - reduced),
+        crawling=crawling,
     )
 
 
@@ -405,6 +497,8 @@ def walk(
         return Walk(steps=(), refused=NOT_YOURS)
     if route[0] != mover.square:
         return Walk(steps=(), refused=NOT_AT_START, refused_at=route[0])
+    if profile.held is not None:
+        return Walk(steps=(), refused=profile.held, refused_at=route[0])
     budget = profile.walk_ft * (2 if intent.dash else 1)
     steps: list[Step] = []
     warnings: list[tuple[str, str]] = []
@@ -529,6 +623,8 @@ def walk(
 
         # A visible pit: a planned Long Jump over every pit square in a row.
         pit = known.pit_at(b)
+        if pit is not None and profile.crawling:
+            return refuse(ONLY_CRAWLING, b)
         if pit is not None:
             j = i + 1
             while j < len(route) and known.pit_at(route[j]) is not None:
@@ -599,6 +695,9 @@ def walk(
             return refuse(TOO_NARROW, b)
         climb_ft = 0
         rise = known.height_at(b) - known.height_at(a)
+        if profile.crawling and (abs(rise) > 1 or known.char(b) == "="):
+            # Prone: crawling only, so no jump, climb or swim.
+            return refuse(ONLY_CRAWLING, b)
         if abs(rise) > 1:
             running = travelled * rules.square_ft >= rules.jump_run_up_ft
             high = max(0, rules.high_jump_base_ft + profile.strength_mod)
@@ -708,12 +807,13 @@ def _enter_cost(
         if gap == 1:
             squeezing = True
             difficult = True
+    crawl = rules.crawl_extra_per_ft if profile.crawling else 0
     if ch == "=":
         extra = 0 if profile.swim_ft else rules.swim_extra_per_ft
-        return base * (1 + extra), difficult, squeezing
+        return base * (1 + extra + crawl), difficult, squeezing
     if difficult:
-        return base * (1 + rules.difficult_extra_per_ft), True, squeezing
-    return base, False, squeezing
+        return base * (1 + rules.difficult_extra_per_ft + crawl), True, squeezing
+    return base * (1 + crawl), False, squeezing
 
 
 def squeeze_effects(squeezing: bool) -> tuple[tuple[str, str], ...]:
@@ -762,7 +862,7 @@ def allowance(
     out = Allowance(
         token_id=profile.token_id, speed_ft=profile.walk_ft, dash_ft=profile.walk_ft
     )
-    if mover is None or mover.square is None:
+    if mover is None or mover.square is None or profile.held is not None:
         return out
     best = _reachable(player, profile, rules, mover.square, profile.walk_ft * 2)
     ends = {s: c for s, (c, _, end) in best.items() if end and s != mover.square}

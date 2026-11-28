@@ -501,6 +501,71 @@ def test_a_jump_cannot_land_in_an_opening_too_narrow_to_squeeze() -> None:
     assert (p.refused, p.refused_at) == (movement.TOO_NARROW, "B9")
 
 
+CRAWLER = MoverProfile(token_id="hero", walk_ft=30, strength=14, crawling=True)
+
+
+def test_a_prone_mover_crawls_at_double_cost() -> None:
+    """Codex round 5: while Prone the only movement is crawling, 1 extra
+    foot a foot (2 extra in Difficult Terrain), ``glossary.crawling``."""
+    from afterworlds.mapper.models import SetTerrain
+
+    truth = _with(_truth(), SetTerrain(base_revision=0, squares=((2, 4),), char=","))
+    player = views.player_snapshot(truth)
+    p = preview(player, CRAWLER, rules(), MoveIntent(route=((1, 4), (1, 3), (1, 2))))
+    assert p.refused is None and p.cost_ft == 20
+    rough = preview(player, CRAWLER, rules(), MoveIntent(route=((1, 4), (2, 4))))
+    assert rough.cost_ft == 15
+    out = _resolve(truth, MoveIntent(route=((1, 4), (1, 3))), profile=CRAWLER)
+    assert out.status == "completed" and out.movement_spent_ft == 10
+    reach = allowance(player, CRAWLER, rules())
+    assert (reach.costs["B4"], reach.costs["B1"]) == (10, 40)
+
+
+def test_a_prone_mover_cannot_jump_climb_or_swim() -> None:
+    running = ((1, 4), (1, 5), (1, 6), (1, 7), (1, 8))
+    p = preview(views.player_snapshot(_truth()), CRAWLER, rules(), MoveIntent(running))
+    assert (p.refused, p.refused_at) == (movement.ONLY_CRAWLING, "B8")
+    from afterworlds.mapper.models import SetTerrain
+
+    wet = _with(_truth(), SetTerrain(base_revision=0, squares=((2, 4),), char="="))
+    swim = preview(
+        views.player_snapshot(wet), CRAWLER, rules(), MoveIntent(((1, 4), (2, 4)))
+    )
+    assert (swim.refused, swim.refused_at) == (movement.ONLY_CRAWLING, "C5")
+    crate = Level(level_id="crate", squares=((1, 3),), height_ft=4)
+    high = _truth().model_copy(update={"levels": (crate,)})
+    climb = preview(
+        views.player_snapshot(high), CRAWLER, rules(), MoveIntent(((1, 4), (1, 3)))
+    )
+    assert (climb.refused, climb.refused_at) == (movement.ONLY_CRAWLING, "B4")
+
+
+def test_a_speed_of_zero_moves_nowhere_even_with_dash() -> None:
+    still = MoverProfile(token_id="hero", walk_ft=0, strength=14)
+    p = preview(
+        views.player_snapshot(_truth()),
+        still,
+        rules(),
+        MoveIntent(route=((1, 4), (1, 3)), dash=True),
+    )
+    assert p.refused == movement.OVER_BUDGET
+    assert allowance(views.player_snapshot(_truth()), still, rules()).costs == {}
+
+
+def test_a_held_move_is_refused_with_its_reason_and_offers_no_squares() -> None:
+    held = MoverProfile(
+        token_id="hero", walk_ft=30, strength=14, held=movement.EFFECT_HELD
+    )
+    p = preview(
+        views.player_snapshot(_truth()),
+        held,
+        rules(),
+        MoveIntent(route=((1, 4), (1, 3))),
+    )
+    assert (p.refused, p.refused_at) == (movement.EFFECT_HELD, "B5")
+    assert allowance(views.player_snapshot(_truth()), held, rules()).costs == {}
+
+
 def test_heights_jump_and_climb() -> None:
     truth = _truth(with_hidden=False)
     levels = (
