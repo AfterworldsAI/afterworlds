@@ -990,17 +990,25 @@ def _reachable(
 ) -> dict[Square, tuple[int, tuple[Square, ...], bool, bool]]:
     """Cheapest ``(cost, route, can_end_there, uses_dash)`` to each square
     the mover can reach with Dash, priced as the walk prices it, single
-    steps only (jumps are planned by drawing over the pit). Ties prefer
-    fewer diagonal steps, then the earlier neighbour order. A cheaper way to
-    a square never leaves less to spend, so the cheapest one is kept."""
-    best: dict[Square, tuple[int, tuple[Square, ...], bool, bool]] = {
-        start: (0, (start,), True, False)
+    steps only (jumps are planned by drawing over the pit). A square
+    reachable without Dash reports its cheapest such way, even when a
+    cheaper way needs Dash. Ties prefer fewer diagonal steps, then the
+    earlier neighbour order. Every limit is on movement already spent, so
+    for a given Dash state a cheaper way never leaves less to spend."""
+    Key = tuple[Square, bool]
+    best: dict[Key, tuple[int, tuple[Square, ...], bool]] = {
+        (start, False): (0, (start,), True)
     }
-    heap: list[tuple[int, int, tuple[Square, ...]]] = [(0, 0, (start,))]
+
+    def beaten(square: Square, dashed: bool, cost: int) -> bool:
+        plain = best.get((square, False))
+        return dashed and plain is not None and plain[0] <= cost
+
+    heap: list[tuple[int, int, bool, tuple[Square, ...]]] = [(0, 0, False, (start,))]
     while heap:
-        cost, diag, route = heappop(heap)
+        cost, diag, dashed, route = heappop(heap)
         here = route[-1]
-        if best[here][0] < cost:
+        if best[(here, dashed)][0] < cost or beaten(here, dashed, cost):
             continue
         for dc, dr in _NEIGHBOURS:
             nxt = (here[0] + dc, here[1] + dr)
@@ -1010,12 +1018,20 @@ def _reachable(
             if step is None:
                 continue
             total = cost + step[0]
-            nd = diag + (1 if dc and dr else 0)
-            prior = best.get(nxt)
+            used = dashed or step[2]
+            if beaten(nxt, used, total):
+                continue
+            prior = best.get((nxt, used))
             if prior is None or total < prior[0]:
-                best[nxt] = (total, (*route, nxt), step[1], step[2])
-                heappush(heap, (total, nd, (*route, nxt)))
-    return best
+                best[(nxt, used)] = (total, (*route, nxt), step[1])
+                nd = diag + (1 if dc and dr else 0)
+                heappush(heap, (total, nd, used, (*route, nxt)))
+    out: dict[Square, tuple[int, tuple[Square, ...], bool, bool]] = {}
+    for (square, dashed), (cost, route, end) in best.items():
+        if dashed and (square, False) in best:
+            continue
+        out[square] = (cost, route, end, dashed)
+    return out
 
 
 def _step_cost(
@@ -1026,18 +1042,21 @@ def _step_cost(
     nxt: Square,
 ) -> tuple[int, bool, bool] | None:
     """``(cost, can_end_there, uses_dash)`` of extending *route* by one step
-    with Dash, or ``None`` if the step is refused or out of reach."""
+    with Dash, or ``None`` if the step is refused or out of reach.
+    ``uses_dash`` is for the whole route: a Dash spent on an earlier step
+    still counts after a switch to a faster speed."""
     probe = MoveIntent(route=(*route, nxt), dash=True)
     shifted = _with_mover_at(snap, profile.token_id, route[0])
     w = walk(shifted, shifted, profile, rules, probe, check_end=False)
     if w.refused is not None or len(w.steps) != len(route):
         return None
     last = w.steps[-1]
+    dashed = any(s.uses_dash for s in w.steps)
     if _can_end(shifted, profile, nxt):
-        return last.cost_ft, True, last.uses_dash
+        return last.cost_ft, True, dashed
     if not _passable(shifted, profile, nxt):
         return None
-    return last.cost_ft, False, last.uses_dash
+    return last.cost_ft, False, dashed
 
 
 def _with_mover_at(snap: Snapshot, token_id: str, square: Square) -> Snapshot:

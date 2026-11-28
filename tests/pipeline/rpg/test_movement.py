@@ -634,10 +634,11 @@ def test_deep_water_costs_swimming() -> None:
     )
 
 
-def _lake() -> Snapshot:
+def _lake(
+    water: tuple[tuple[int, int], ...] = tuple((c, 4) for c in range(2, 8)),
+) -> Snapshot:
     from afterworlds.mapper.models import SetTerrain
 
-    water = tuple((c, 4) for c in range(2, 8))
     return _with(
         _truth(with_hidden=False),
         SetTerrain(base_revision=0, squares=water, char="="),
@@ -665,6 +666,36 @@ def test_each_step_counts_against_the_speed_it_uses() -> None:
     fast_reach, slow_reach = (allowance(player, m, rules()) for m in (fast, slow))
     assert (fast_reach.costs["E5"], slow_reach.costs["E5"]) == (15, 20)
     assert "E5" not in fast_reach.warnings and "E5" not in slow_reach.warnings
+
+
+def test_the_allowance_keeps_a_dash_spent_before_a_switch() -> None:
+    """Codex round 8: two squares of floor need Dash at Speed 5, so the deep
+    water past them needs it too, though the swim itself is within the Swim
+    Speed."""
+    player = views.player_snapshot(_lake(water=((4, 4),)))
+    swimmer = MoverProfile(token_id="hero", walk_ft=5, strength=14, swim_ft=60)
+    to_e5 = ((1, 4), (2, 4), (3, 4), (4, 4))
+    assert preview(player, swimmer, rules(), MoveIntent(route=to_e5)).refused == (
+        movement.OVER_BUDGET
+    )
+    dashed = preview(player, swimmer, rules(), MoveIntent(route=to_e5, dash=True))
+    assert dashed.refused is None and dashed.uses_dash
+    reach = allowance(player, swimmer, rules())
+    assert reach.costs["E5"] == 15 and reach.warnings["E5"] == "uses your Dash"
+
+
+def test_the_allowance_prefers_a_dearer_way_that_keeps_the_dash() -> None:
+    """A cheaper way that needs Dash does not hide a dearer one that doesn't:
+    the warning is only for squares that cannot be reached without it."""
+    water = ((1, 5), (2, 6), (3, 6), (4, 5), (4, 4))
+    player = views.player_snapshot(_lake(water=water))
+    swimmer = MoverProfile(token_id="hero", walk_ft=5, strength=14, swim_ft=60)
+    # Over the floor, E5 is 15 ft with Dash; round by the water, 20 ft without.
+    reach = allowance(player, swimmer, rules())
+    assert reach.costs["E5"] == 20 and "E5" not in reach.warnings
+    around = ((1, 4), (2, 5), (3, 6), (4, 5), (4, 4))
+    p = preview(player, swimmer, rules(), MoveIntent(route=around))
+    assert p.refused is None and p.cost_ft == 20 and not p.uses_dash
 
 
 def test_dash_adds_the_speed_the_mover_chooses() -> None:
