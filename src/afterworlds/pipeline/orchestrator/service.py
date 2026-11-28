@@ -161,7 +161,15 @@ from afterworlds.pipeline.rolling_summary import (
     RollingSummaryPassResult,
     RollingSummaryPassService,
 )
+from afterworlds.pipeline.rpg.movement import MoveOutcome
 from afterworlds.pipeline.rpg.setup_writer import RpgSetupWriterService
+from afterworlds.pipeline.rpg.spatial_turn import (
+    DrawnRoute,
+    RouteRefused,
+    SceneTurn,
+    SpatialTurnService,
+    outcome_text,
+)
 from afterworlds.pipeline.safety.models import (
     SafetyPassError,
     SafetyResult,
@@ -429,6 +437,9 @@ class OrchestratorService:
         retrieval_query_builder: RetrievalQueryBuilderLike | None = None,
         rolling_summary_pass_service: RollingSummaryPassService | None = None,
         rpg_setup_writer_service: RpgSetupWriterService | None = None,
+        #: Issue #211 (mapper M1): the per-Turn scene consult, movement
+        #: resolution and staging of the spatial record's next revision.
+        spatial_turn_service: SpatialTurnService | None = None,
     ) -> None:
         self._intent_classifier = intent_classifier
         self._context_builder = context_builder
@@ -466,6 +477,7 @@ class OrchestratorService:
         )
         # ADR-015c: the RPG setup Writer envelope (same WRITER pass).
         self._rpg_setup_writer = rpg_setup_writer_service or RpgSetupWriterService()
+        self._spatial = spatial_turn_service
         self._provided_executor = executor
         # Owned executor is created once and reused for the lifetime of
         # this instance — see the Executor-lifecycle contract above.
@@ -482,6 +494,12 @@ class OrchestratorService:
         self._rpg_ooc_handler_prompt: str = load_rpg_ooc_handler_prompt()
         self._branching_ooc_handler_prompt: str = load_branching_ooc_handler_prompt()
         self._writing_ooc_handler_prompt: str = load_writing_ooc_handler_prompt()
+
+    @property
+    def spatial_turn_service(self) -> SpatialTurnService | None:
+        """The mapper's per-Turn service (issue #211), for the route
+        pre-check and the scene view; ``None`` when the mapper isn't wired."""
+        return self._spatial
 
     def close(self) -> None:
         """Release the orchestrator-owned executor.
@@ -517,6 +535,7 @@ class OrchestratorService:
         *,
         request_risk_signal: bool = False,
         writing_turn_request: WritingTurnRequest | None = None,
+        drawn_route: DrawnRoute | None = None,
     ) -> OrchestrationResult:
         """Run one full Sojourn Turn, bracketed by the RPG turn lease.
 
@@ -548,6 +567,7 @@ class OrchestratorService:
                 access_path,
                 request_risk_signal=request_risk_signal,
                 writing_turn_request=writing_turn_request,
+                drawn_route=drawn_route,
             )
         finally:
             if lease is not None:
@@ -564,6 +584,7 @@ class OrchestratorService:
         *,
         request_risk_signal: bool = False,
         writing_turn_request: WritingTurnRequest | None = None,
+        drawn_route: DrawnRoute | None = None,
     ) -> OrchestrationResult:
         """Run one full Sojourn Turn end-to-end.
 
@@ -1076,6 +1097,39 @@ class OrchestratorService:
                 )
             pre_selected_context = _sel_result.selected_context
 
+        # 2e. Issue #211: the per-Turn scene consult (one read, no model
+        # call). Whether the Sojourner has the view open never reaches here,
+        # so opening, closing or auto-opening it can't change the Turn. The
+        # scene and the intended move go after the stable prefix, in the
+        # ledger every pass renders; the stable prefix is untouched.
+        scene: SceneTurn | None = None
+        if story_mode is StoryMode.RPG and self._spatial is not None:
+            try:
+                scene = self._spatial.prepare(story_id, user_input, drawn_route)
+            except RouteRefused as exc:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"spatial route refused: {exc.reason}",
+                )
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"spatial consult failed: {exc}",
+                )
+            if scene is not None:
+                ctx.pass_forward_ledger.add("spatial_scene", scene.planner_text())
+        elif drawn_route is not None:
+            return self._pipeline_error(
+                intent_result,
+                latency,
+                turn_start,
+                "a drawn route needs an RPG story with the mapper wired",
+            )
+
         return _stamp_classifier_usage(
             self._run_narrative(
                 ctx,
@@ -1094,6 +1148,7 @@ class OrchestratorService:
                 _pre_selected_context=pre_selected_context,
                 _pre_writing_state=pre_writing_state,
                 writing_turn_request=writing_turn_request,
+                _scene=scene,
             )
         )
 
@@ -1121,6 +1176,7 @@ class OrchestratorService:
         _pre_writing_state: WritingSessionState | None = None,
         writing_turn_request: WritingTurnRequest | None = None,
         story_start: bool = False,
+        _scene: SceneTurn | None = None,
     ) -> OrchestrationResult:
         # 3. Input Safety Preflight, conditional.
         input_safety: SafetyResult | None = None
@@ -1205,6 +1261,39 @@ class OrchestratorService:
         # action-resolution sequence records it as its originating turn.
         writer_turn_id = uuid4()
 
+        # Issue #211: movement resolves in code after the Planner and before
+        # the Writer; a fall rolls on the dice rails. The Writer gets the
+        # outcome; the Planner never did.
+        movement: MoveOutcome | None = None
+        if _scene is not None and _scene.intent is not None:
+            assert self._spatial is not None  # noqa: S101 — set with _scene
+            if self._rpg_dice_service is None:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "a move needs the dice service wired",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            _spatial, _move_dice = self._spatial, self._rpg_dice_service
+            try:
+                movement, move_ms = _timed(
+                    lambda: _spatial.resolve(_scene, dice=_move_dice)
+                )
+                latency["rpg_movement"] = move_ms
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"movement resolution failed: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            if movement is not None:
+                ctx.pass_forward_ledger.add("rpg_movement", outcome_text(movement))
+
         # --- RPG Adjudication pass (Fork A→A1): runs after Planner, before Writer.
         # Result is held in memory and flushed inside the outer transaction (Fork B→B1).
         adj_result: AdjudicationPassResult | None = None
@@ -1222,6 +1311,8 @@ class OrchestratorService:
         rpg_play_status: RpgPlayStatus | None = None
         # ADR-015c: the session state this turn resolved, for setup turns.
         rpg_session_state: RpgSessionState | None = None
+        # Issue #211: whether the move's fall reached the record path below.
+        fall_recorded = False
 
         if story_mode == StoryMode.RPG and self._rpg_adjudication_service is not None:
             if (
@@ -1344,6 +1435,28 @@ class OrchestratorService:
                     )
                 # All except branches return; adj_result is set at this point.
                 assert adj_result is not None  # noqa: S101 — mypy narrowing
+                if movement is not None and movement.fall is not None:
+                    # Issue #211: the fall's damage and Prone are Sojourn's,
+                    # audited and applied with the Turn like any roll.
+                    assert _scene is not None  # noqa: S101 — set with movement
+                    fell = _with_fall(
+                        adj_result,
+                        movement,
+                        _scene.mover.roller if _scene.mover is not None else None,
+                        sheet,
+                        gm_cheating=session_state.gm_cheating,
+                    )
+                    if isinstance(fell, str):
+                        return self._pipeline_error(
+                            intent_result,
+                            latency,
+                            turn_start,
+                            fell,
+                            input_safety_result=input_safety,
+                            planner_result=planner_result,
+                        )
+                    adj_result = fell
+                    fall_recorded = True
                 if adj_result.writer_views:
                     ctx.pass_forward_ledger.add(
                         "rpg_adjudication", _serialize_adj_views(adj_result)
@@ -1396,6 +1509,18 @@ class OrchestratorService:
                     rpg_session_state = _pre_ss2
                 except Exception:  # noqa: BLE001
                     rpg_play_status = None
+        if movement is not None and movement.fall is not None and not fall_recorded:
+            # A fall never goes unrecorded: its damage and Prone need an
+            # in-play character and the adjudication path to audit them.
+            return self._pipeline_error(
+                intent_result,
+                latency,
+                turn_start,
+                "a fall needs an in-play character with RPG adjudication wired"
+                " to record its damage",
+                input_safety_result=input_safety,
+                planner_result=planner_result,
+            )
         # -------------------------------------------------------------------------
 
         # Open outer transaction now: Writer is about to persist a Turn.
@@ -1404,8 +1529,8 @@ class OrchestratorService:
         # drift, and so every raw exception in that lifecycle is mapped to a
         # typed terminal state per the orchestrator's exhaustive
         # terminal-state contract (Issue 12c).
-        result = self._run_with_transaction(
-            lambda session: self._narrative_persist(
+        def _persist(session: Session) -> OrchestrationResult:
+            persisted = self._narrative_persist(
                 session,
                 ctx,
                 story_id,
@@ -1431,7 +1556,31 @@ class OrchestratorService:
                 rpg_play_status=rpg_play_status,
                 rpg_session_state=rpg_session_state,
                 story_start=story_start,
-            ),
+            )
+            if (
+                movement is None
+                or _scene is None
+                or persisted.disposition is not PipelineDisposition.DELIVERED
+            ):
+                return persisted
+            assert self._spatial is not None  # noqa: S101 — set with _scene
+            try:
+                self._spatial.stage(
+                    session, _scene, movement, turn_id=writer_turn_id, node_id=node_id
+                )
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"spatial record update failed: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            return persisted
+
+        result = self._run_with_transaction(
+            _persist,
             intent_result,
             latency,
             turn_start,
@@ -5165,6 +5314,52 @@ def _rpg_resolution_failure(exc: Exception) -> str:
         )
         return f"[{kind}] RPG session/sheet resolution failed: {exc}"
     return f"RPG session/sheet resolution failed: {exc}"
+
+
+def _with_fall(
+    adj_result: AdjudicationPassResult,
+    movement: MoveOutcome,
+    roller: tuple[str, str] | None,
+    sheet: TurnCharacter,
+    *,
+    gm_cheating: bool,
+) -> AdjudicationPassResult | str:
+    """*adj_result* with the move's fall as one more resolved record and
+    Writer view (issue #211, ADR-015 Fork B1), or why the Turn refuses it.
+
+    The fall lands on the mover, so the mover must be this Turn's character;
+    its damage is judged on the Hit Points the Turn read, so no other record
+    of the Turn may set them; and a paused or contested Turn audits from its
+    event ledger, which a fall doesn't join."""
+    from afterworlds.pipeline.rpg.capability import AdjudicationRefusal
+    from afterworlds.pipeline.rpg.falls import HIT_POINT_TARGETS, fall_record
+
+    assert movement.fall is not None  # noqa: S101 — caller checks
+    if roller != ("character", str(sheet.sheet_id)):
+        return "a fall landed on a mover that is not this Turn's character"
+    if adj_result.sequence is not None or adj_result.completed_sequence is not None:
+        return (
+            "a fall in a Turn that starts or completes an action sequence is not"
+            " recorded yet"
+        )
+    if any(
+        e.target in HIT_POINT_TARGETS
+        and e.subject_kind in (None, "character")
+        and e.subject_id in (None, sheet.sheet_id)
+        for r in adj_result.proposals
+        for e in r.sheet_effects
+    ):
+        return "a fall in a Turn whose other rolls change the mover's Hit Points"
+    try:
+        record, view = fall_record(movement.fall, sheet, gm_cheating=gm_cheating)
+    except AdjudicationRefusal as exc:
+        return f"the fall's damage could not be adjudicated: {exc}"
+    return adj_result.model_copy(
+        update={
+            "proposals": (*adj_result.proposals, record),
+            "writer_views": (*adj_result.writer_views, view),
+        }
+    )
 
 
 def _serialize_adj_views(adj_result: AdjudicationPassResult) -> str:

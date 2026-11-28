@@ -1,0 +1,649 @@
+"""The mapper inside the Sojourn Turn (issue #211, M1 acceptance 1, 2, 5-7, 9, 12).
+
+Two routes lead from B5 to the mill door: straight along row 5, which crosses
+an unspotted pit at E5 and stops there, and by way of E3, which reaches the
+door. Each runs once drawn and once described in words.
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from typing import Any
+from uuid import UUID, uuid4
+
+import pytest
+
+from afterworlds.entitlement.enums import RuntimeAccessPath
+from afterworlds.mapper import coords, fixture, store
+from afterworlds.mapper.models import (
+    MarkExplored,
+    RefineArea,
+    SetFeatureState,
+    Snapshot,
+)
+from afterworlds.mapper.updates import apply_all
+from afterworlds.models.character_sheet import RpgCharacterSheetBase
+from afterworlds.models.context import AssembledContext
+from afterworlds.models.enums import (
+    DiceHandling,
+    IntentType,
+    RpgPlayStatus,
+    StoryMode,
+)
+from afterworlds.models.node import (
+    BranchingNodeMetadata,
+    Node,
+    NodeMetadata,
+    StateDelta,
+)
+from afterworlds.models.session import RpgSessionState
+from afterworlds.models.story import Arc, Chapter, Story
+from afterworlds.persistence.crud.character_sheet import create_rpg_base_sheet
+from afterworlds.persistence.crud.node import create_node
+from afterworlds.persistence.crud.story import create_arc, create_chapter, create_story
+from afterworlds.pipeline.orchestrator import (
+    CapabilityProfileAwareSafetyPolicy,
+    OrchestrationResult,
+    OrchestratorService,
+    PipelineDisposition,
+)
+from afterworlds.pipeline.planner.models import PlannerResult
+from afterworlds.pipeline.provider._routing import (
+    EligibleModelRoute,
+    SafetyWhitelistStatus,
+    TurnProviderBinding,
+)
+from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
+from afterworlds.pipeline.rpg.models import AdjudicationPassResult
+from afterworlds.pipeline.rpg.movement import MoverProfile
+from afterworlds.pipeline.rpg.spatial_turn import (
+    DrawnRoute,
+    Mover,
+    SpatialTurnService,
+    mover_from_token_ref,
+)
+from afterworlds.pipeline.writer.models import WriterResult
+from afterworlds.services.dnd5e_state import store as character_store
+from afterworlds.services.dnd5e_state.turn import TurnCharacter
+from tests.pipeline.orchestrator.conftest import (
+    FakeContextBuilder,
+    FakeContradictionService,
+    FakeExtractorService,
+    FakeIntentClassifier,
+    FakePlannerService,
+    FakeSafetyService,
+    FakeWriterService,
+    fixed_mode_resolver,
+    make_intent,
+)
+from tests.pipeline.rpg.movement_support import rules
+from tests.rpg_characters import srd_character
+
+NOW = datetime(2026, 11, 27, tzinfo=UTC)
+SOJOURNER = uuid4()
+HERO = MoverProfile(token_id="hero", walk_ft=30, strength=14)
+
+STRAIGHT = ("B5", "C5", "D5", "E5", "F5", "G5", "H5")
+BY_E3 = ("B5", "C4", "D3", "E3", "F4", "G5", "H5")
+ROUTES = {
+    "straight": (STRAIGHT, "I walk over to the mill door."),
+    "by_e3": (BY_E3, "I walk over to the mill door by way of E3."),
+}
+
+
+@dataclass
+class _LedgerAtCall:
+    """What each pass saw in the ledger when it ran (the ledger is mutated
+    in place as the Turn goes on)."""
+
+    planner: list[tuple[str, str]] = field(default_factory=list)
+    writer: list[tuple[str, str]] = field(default_factory=list)
+    plans: int = 0
+    writes: int = 0
+
+
+class _Planner(FakePlannerService):
+    seen: _LedgerAtCall
+
+    def plan(
+        self, built_context: AssembledContext, *, provider: Any = None
+    ) -> PlannerResult:
+        self.seen.plans += 1
+        self.seen.planner = [
+            (e.pass_name, e.content) for e in built_context.pass_forward_ledger.entries
+        ]
+        return super().plan(built_context, provider=provider)
+
+
+class _Writer(FakeWriterService):
+    seen: _LedgerAtCall
+
+    def write(self, built_context: AssembledContext, *a: Any, **k: Any) -> WriterResult:
+        self.seen.writes += 1
+        self.seen.writer = [
+            (e.pass_name, e.content) for e in built_context.pass_forward_ledger.entries
+        ]
+        return super().write(built_context, *a, **k)
+
+
+def _binding() -> object:
+    route = EligibleModelRoute(
+        provider_name="fake",
+        model_identifier="fake:model",
+        whitelist_status=SafetyWhitelistStatus.NOT_WHITELISTED,
+        supports_required_capabilities=False,
+    )
+
+    class _Adapter:
+        provider_name = "fake"
+
+        def call(self, request: object) -> object:
+            raise AssertionError("no provider call in these tests")
+
+    binding = TurnProviderBinding(
+        adapter=_Adapter(),  # type: ignore[arg-type]
+        primary_writer_route=route,
+        eligible_writer_routes=(route,),
+        access_path=RuntimeAccessPath.HOSTED,
+    )
+
+    class _Resolver:
+        def resolve_for_turn(self, access_path: object, sojourner_id: object) -> object:
+            return binding
+
+    return _Resolver()
+
+
+def _session_state(story_id: UUID) -> RpgSessionState:
+    """An in-play session for *story_id* (its character is set by callers)."""
+    return RpgSessionState(
+        story_id=story_id,
+        character_sheet_id=uuid4(),
+        dice_handling=DiceHandling.AI_ROLLS,
+        play_status=RpgPlayStatus.IN_PLAY,
+    )
+
+
+class _NoRolls:
+    """Adjudication with nothing to roll: the Turn's only roll is the fall."""
+
+    def is_adjudicable(self, sheet: object) -> bool:
+        return True
+
+    def adjudicate(self, *args: object, **kwargs: object) -> AdjudicationPassResult:
+        return AdjudicationPassResult(proposals=(), writer_views=())
+
+
+def _seed_character(
+    session_factory: Any, story_id: UUID
+) -> tuple[RpgSessionState, TurnCharacter]:
+    """The story's in-play character, persisted with its typed state and
+    bound to the accepted SRD authority (a fall's damage reads it)."""
+    template = srd_character()
+    with session_factory() as s:
+        create_rpg_base_sheet(
+            s,
+            RpgCharacterSheetBase(
+                sheet_id=template.sheet_id,
+                story_id=story_id,
+                character_name="Ilse",
+                created_at=NOW,
+                updated_at=NOW,
+            ),
+        )
+        stored = character_store.create_character_state(
+            s,
+            template.sheet_id,
+            template.stored.state,
+            template.stored.binding,
+            now="t",
+        )
+        s.commit()
+    sheet = TurnCharacter(stored, (), (), template.index)
+    state = _session_state(story_id).model_copy(
+        update={"character_sheet_id": sheet.sheet_id}
+    )
+    return state, sheet
+
+
+@dataclass
+class _Rig:
+    orch: OrchestratorService
+    spatial: SpatialTurnService
+    seen: _LedgerAtCall
+    story_id: UUID
+    node_id: UUID
+    session_factory: Any
+    sheet: TurnCharacter
+
+    def turn(self, text: str, drawn: DrawnRoute | None = None) -> OrchestrationResult:
+        return self.orch.orchestrate_turn(
+            self.story_id,
+            self.node_id,
+            text,
+            SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+            drawn_route=drawn,
+        )
+
+    def revisions(self) -> list[Any]:
+        with self.session_factory() as s:
+            scene = store.active_scene(s, self.story_id)
+            assert scene is not None
+            return store.revisions(s, scene[0].map_id)
+
+
+def _seed_story(session_factory: Any) -> tuple[UUID, UUID]:
+    """A fresh Story / Arc / Chapter / Node chain, as ``seeded_story``."""
+    with session_factory() as s:
+        story = Story(title="Mill", mode=StoryMode.RPG, created_at=NOW, updated_at=NOW)
+        create_story(s, story)
+        arc = Arc(story_id=story.story_id, title="Arc", order=0)
+        create_arc(s, arc)
+        chapter = Chapter(arc_id=arc.arc_id, title="Chapter", order=0)
+        create_chapter(s, chapter)
+        node = Node(
+            chapter_id=chapter.chapter_id,
+            content="",
+            state_delta=StateDelta(),
+            branching_logic=[],
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            metadata=NodeMetadata(timestamp=NOW),
+            mode_metadata=BranchingNodeMetadata(),
+        )
+        create_node(s, node)
+        s.commit()
+        return story.story_id, node.node_id
+
+
+def _make_rig(
+    session_factory: Any,
+    snapshot: Snapshot | None = None,
+    *,
+    adjudicated: bool = True,
+) -> _Rig:
+    story_id, node_id = _seed_story(session_factory)
+    state, sheet = _seed_character(session_factory, story_id)
+
+    def _mover(story_id: UUID, truth: object) -> Mover:
+        return Mover(
+            profile=HERO, rules=rules(), roller=("character", str(sheet.sheet_id))
+        )
+
+    wired: dict[str, Any] = (
+        {
+            "rpg_adjudication_service": _NoRolls(),
+            "rpg_session_sheet_resolver": lambda _sid: (state, sheet),
+        }
+        if adjudicated
+        else {}
+    )
+    with session_factory() as s:
+        store.begin_scene(
+            s,
+            story_id=story_id,
+            place_key=fixture.PLACE_KEY,
+            label=fixture.LABEL,
+            snapshot=snapshot if snapshot is not None else fixture.build(),
+            seed=fixture.SEED,
+            now=NOW,
+        )
+        s.commit()
+    seen = _LedgerAtCall()
+    planner, writer = _Planner(), _Writer()
+    planner.seen = writer.seen = seen
+    spatial = SpatialTurnService(session_factory, _mover, clock=lambda: NOW)
+    orch = OrchestratorService(
+        intent_classifier=FakeIntentClassifier(
+            make_intent(IntentType.IN_CHARACTER_ACTION)
+        ),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=planner,
+        writer_service=writer,
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_binding(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.RPG),
+        rpg_session_resolver=lambda _sid: state,
+        rpg_dice_service=SystemRandomDiceService(7),
+        spatial_turn_service=spatial,
+        **wired,
+    )
+    return _Rig(orch, spatial, seen, story_id, node_id, session_factory, sheet)
+
+
+@pytest.fixture()
+def rig(session_factory: Any) -> Any:
+    r = _make_rig(session_factory)
+    yield r
+    r.orch.close()
+
+
+def _facts(seen: list[tuple[str, str]]) -> dict[str, Any]:
+    [content] = [c for name, c in seen if name == "rpg_movement"]
+    return dict(json.loads(content))
+
+
+# -- acceptance 6: two routes, drawn and in words ---------------------------
+
+
+@pytest.mark.parametrize("way", ["drawn", "words"])
+@pytest.mark.parametrize("route_name", list(ROUTES))
+def test_each_route_resolves_alike_drawn_or_in_words(
+    rig: _Rig, way: str, route_name: str
+) -> None:
+    squares, words = ROUTES[route_name]
+    drawn = DrawnRoute(squares=squares) if way == "drawn" else None
+    text = "I go." if way == "drawn" else words
+    result = rig.turn(text, drawn)
+    assert result.disposition is PipelineDisposition.DELIVERED
+    facts = _facts(rig.seen.writer)
+    if route_name == "straight":
+        assert facts["status"] == "stopped"
+        assert facts["final_position"] == "E5"
+        assert facts["interruption_point"] == "E5"
+        assert facts["stopped_by"] == "a hidden pit"
+        assert facts["distance_travelled_ft"] == 15
+        assert [c["kind"] for c in facts["consequences"]] == ["fall_damage", "prone"]
+    else:
+        assert facts["status"] == "completed"
+        assert facts["final_position"] == "H5"
+        assert facts["interruption_point"] is None
+        assert facts["distance_travelled_ft"] == 30
+    latest = rig.revisions()[-1]
+    hero = latest.snapshot.token(fixture.HERO)
+    assert hero is not None and coords.label(hero.square) == facts["final_position"]
+    assert latest.turn_id == result.turn_id
+
+
+@pytest.mark.parametrize("route_name", list(ROUTES))
+def test_drawn_and_words_give_the_same_facts_and_record(
+    session_factory: Any, route_name: str
+) -> None:
+    """Same route, same dice seed: identical facts and identical record."""
+    squares, words = ROUTES[route_name]
+    outcomes = []
+    for drawn in (DrawnRoute(squares=squares), None):
+        r = _make_rig(session_factory)
+        r.turn(words, drawn)
+        outcomes.append((_facts(r.seen.writer), r.revisions()[-1].snapshot))
+        r.orch.close()
+    (facts_a, snap_a), (facts_b, snap_b) = outcomes
+    assert facts_a == facts_b
+    assert snap_a == snap_b
+
+
+def test_the_two_routes_have_different_consequences(session_factory: Any) -> None:
+    """The route itself matters: same door, different outcome."""
+    finals = []
+    for squares, _ in ROUTES.values():
+        r = _make_rig(session_factory)
+        r.turn("I go.", DrawnRoute(squares=squares))
+        finals.append(_facts(r.seen.writer)["final_position"])
+        r.orch.close()
+    assert finals == ["E5", "H5"]
+
+
+# -- acceptance 9: no model call per square --------------------------------
+
+
+@pytest.mark.parametrize("way", ["drawn", "words"])
+def test_a_seven_square_move_costs_no_model_call_per_square(
+    rig: _Rig, way: str
+) -> None:
+    """The route is walked in code: one Planner and one Writer pass for the
+    whole Turn, and the provider adapter (which raises on any call) is never
+    reached by movement resolution."""
+    squares, words = ROUTES["by_e3"]
+    drawn = DrawnRoute(squares=squares) if way == "drawn" else None
+    result = rig.turn("I go." if drawn else words, drawn)
+    assert result.disposition is PipelineDisposition.DELIVERED
+    assert _facts(rig.seen.writer)["distance_travelled_ft"] == 30
+    assert (rig.seen.plans, rig.seen.writes) == (1, 1)
+
+
+# -- acceptance 7: who sees what -------------------------------------------
+
+
+def test_planner_sees_scene_and_intent_but_no_outcome(rig: _Rig) -> None:
+    rig.turn("I walk over to the mill door.")
+    names = [n for n, _ in rig.seen.planner]
+    assert names == ["spatial_scene"]
+    scene_text = rig.seen.planner[0][1]
+    assert "Intended move (words): hero along B5 C5 D5 E5 F5 G5 H5" in scene_text
+    assert "mill door: closed, by H5" in scene_text
+    for leak in ("pit hidden", "hidden-pit", "lurker", "secret", "stopped", "fall"):
+        assert leak not in scene_text
+    writer_names = [n for n, _ in rig.seen.writer]
+    assert writer_names[:3] == ["spatial_scene", "planner", "rpg_movement"]
+
+
+def test_a_turn_without_a_move_gets_the_scene_and_changes_nothing(rig: _Rig) -> None:
+    before = rig.revisions()
+    result = rig.turn("I look around the yard.")
+    assert result.disposition is PipelineDisposition.DELIVERED
+    assert [n for n, _ in rig.seen.planner] == ["spatial_scene"]
+    assert "rpg_movement" not in [n for n, _ in rig.seen.writer]
+    assert rig.revisions() == before
+
+
+def test_naming_a_place_without_moving_is_not_a_move(rig: _Rig) -> None:
+    rig.turn("I shout at the goblin by the barrels.")
+    assert "rpg_movement" not in [n for n, _ in rig.seen.writer]
+
+
+# -- acceptance 1, 2 and 12: the view is display only -----------------------
+
+
+def test_opening_the_view_changes_nothing(rig: _Rig) -> None:
+    before = rig.revisions()
+    view = rig.spatial.view(rig.story_id)
+    again = rig.spatial.view(rig.story_id)
+    assert view is not None and view == again
+    assert rig.revisions() == before
+
+
+def test_open_and_closed_turns_resolve_alike(session_factory: Any) -> None:
+    """A Turn after the view was opened (auto-open included) and one with it
+    never opened produce the same facts and the same next revision."""
+    results = []
+    for opened in (True, False):
+        r = _make_rig(session_factory)
+        if opened:
+            r.spatial.view(r.story_id)
+        r.turn("I walk over to the mill door.")
+        results.append((_facts(r.seen.writer), r.revisions()[-1].snapshot))
+        r.orch.close()
+    assert results[0] == results[1]
+
+
+# -- the record commits with the Turn ---------------------------------------
+
+
+def test_a_stale_drawn_route_is_refused_and_nothing_is_written(rig: _Rig) -> None:
+    before = rig.revisions()
+    result = rig.turn("I go.", DrawnRoute(squares=STRAIGHT, view_hash="0" * 64))
+    assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+    assert "the scene changed since you looked" in (result.pipeline_error_summary or "")
+    assert rig.revisions() == before
+
+
+def test_a_current_view_hash_is_accepted(rig: _Rig) -> None:
+    view = rig.spatial.view(rig.story_id)
+    assert view is not None
+    drawn = DrawnRoute(squares=BY_E3, view_hash=str(view["view_hash"]))
+    assert rig.turn("I go.", drawn).disposition is PipelineDisposition.DELIVERED
+
+
+def test_the_record_rolls_back_with_a_failed_turn(rig: _Rig) -> None:
+    before = rig.revisions()
+    writer = rig.orch._writer_service
+    assert isinstance(writer, _Writer)
+    writer.raise_exc = RuntimeError("writer down")
+    result = rig.turn("I walk over to the mill door.")
+    assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+    assert rig.revisions() == before
+
+
+def test_a_drawn_route_wins_over_words_with_a_warning(rig: _Rig) -> None:
+    rig.turn("I walk over to the mill door.", DrawnRoute(squares=STRAIGHT[:3]))
+    assert _facts(rig.seen.writer)["final_position"] == "D5"
+    scene_text = rig.seen.planner[0][1]
+    assert "Route note: the drawn route ends at D5" in scene_text
+
+
+def test_a_drawn_route_must_start_on_the_mover(rig: _Rig) -> None:
+    result = rig.turn("I go.", DrawnRoute(squares=("C5", "D5")))
+    assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+    assert rig.revisions()[-1].revision == 0
+
+
+def test_the_pit_and_the_explored_squares_are_recorded(rig: _Rig) -> None:
+    rig.turn("I walk over to the mill door.")
+    latest = rig.revisions()[-1]
+    ops = [u.op for u in latest.updates]
+    assert ops[:2] == ["move_token", "set_hidden"]
+    pit = next(p for p in latest.snapshot.pits if p.pit_id == fixture.HIDDEN_PIT)
+    assert pit.hidden is False
+
+
+def test_a_pit_jump_is_saved_square_by_square(rig: _Rig) -> None:
+    """The Turn stages a Long Jump over the visible pit at B8."""
+    route = ("B5", "B6", "B7", "B8", "B9")
+    result = rig.turn("I go.", DrawnRoute(squares=route))
+    assert result.disposition is PipelineDisposition.DELIVERED
+    latest = rig.revisions()[-1]
+    assert latest.turn_id == result.turn_id
+    [move] = [u for u in latest.updates if u.op == "move_token"]
+    assert tuple(coords.label(sq) for sq in move.route) == route
+    hero = latest.snapshot.token(fixture.HERO)
+    assert hero is not None and coords.label(hero.square) == "B9"
+
+
+def test_crossing_a_closed_door_opens_it_and_saves_the_move(
+    session_factory: Any,
+) -> None:
+    closed = apply_all(
+        fixture.build(),
+        [
+            SetFeatureState(
+                base_revision=0, feature_id=fixture.MILL_DOOR, state="closed"
+            ),
+            RefineArea(base_revision=0, area="mill"),
+            MarkExplored(
+                base_revision=0,
+                squares=tuple((c, r) for c in range(8, 12) for r in range(10)),
+            ),
+        ],
+        current_revision=0,
+        seed=fixture.SEED,
+    )
+    r = _make_rig(session_factory, closed)
+    try:
+        result = r.turn("I go.", DrawnRoute(squares=(*BY_E3, "I5"), dash=True))
+        assert result.disposition is PipelineDisposition.DELIVERED
+        latest = r.revisions()[-1]
+        assert latest.turn_id == result.turn_id
+        ops = [u.op for u in latest.updates]
+        assert ops.index("set_feature_state") < ops.index("move_token")
+        door = latest.snapshot.feature(fixture.MILL_DOOR)
+        assert door is not None and door.state == "open"
+        hero = latest.snapshot.token(fixture.HERO)
+        assert hero is not None and coords.label(hero.square) == "I5"
+    finally:
+        r.orch.close()
+
+
+def test_mover_from_token_ref_finds_the_characters_token() -> None:
+    truth = fixture.build(fixture.FixtureRefs(hero_ref="character:sheet-1"))
+    resolver = mover_from_token_ref(
+        "character",
+        lambda _sid: (
+            MoverProfile(token_id="sheet-1", walk_ft=25, strength=8),
+            rules(),
+        ),
+    )
+    mover = resolver(uuid4(), truth)
+    assert mover is not None
+    assert mover.profile.token_id == fixture.HERO
+    assert mover.profile.walk_ft == 25
+    assert mover.roller == ("character", "sheet-1")
+    assert mover_from_token_ref("character", lambda _sid: None)(uuid4(), truth) is None
+
+
+# -- a fall is Sojourn's to record (ADR-015 Fork B1) -----------------------
+
+
+def _audit_rows(rig: _Rig) -> list[Any]:
+    from afterworlds.persistence.orm.rpg import RpgRollAuditORM
+
+    with rig.session_factory() as s:
+        return list(
+            s.query(RpgRollAuditORM).filter_by(story_id=str(rig.story_id)).all()
+        )
+
+
+def test_a_fall_is_audited_and_lands_on_the_sheet_with_the_turn(rig: _Rig) -> None:
+    """The straight route falls into the hidden pit: the Turn writes the
+    fall's roll to the audit and its damage and Prone to the character, all
+    with the delivered Turn. The mapper record holds only where it ended."""
+    before = rig.sheet.stored.state.hit_points
+    assert before is not None
+    result = rig.turn("I walk over to the mill door.")
+    assert result.disposition is PipelineDisposition.DELIVERED
+    [row] = _audit_rows(rig)
+    assert row.turn_id == str(result.turn_id)
+    assert row.check_label.startswith("Falling ")
+    assert row.source == "ai"
+    [fall] = [c for c in _facts(rig.seen.writer)["consequences"] if c["total"]]
+    assert row.total == fall["total"]
+    targets = [e["target"] for e in json.loads(row.sheet_effects_json)]
+    assert targets[0] == "current_hp" and targets[-1] == "prone"
+    with rig.session_factory() as s:
+        stored = character_store.get_character(s, rig.sheet.sheet_id)
+    assert stored is not None and stored.revision == rig.sheet.stored.revision + 1
+    after = stored.state.hit_points
+    assert after is not None
+    assert after.current == max(0, before.current - row.total)
+    assert any(
+        c.condition.value == "prone" and c.source is not None
+        for c in stored.state.conditions or ()
+    )
+    [views] = [c for name, c in rig.seen.writer if name == "rpg_adjudication"]
+    assert json.loads(views)["views"][0]["check_label"] == row.check_label
+
+
+def test_a_move_without_a_fall_audits_nothing(rig: _Rig) -> None:
+    result = rig.turn("I go.", DrawnRoute(squares=BY_E3))
+    assert result.disposition is PipelineDisposition.DELIVERED
+    assert _audit_rows(rig) == []
+    with rig.session_factory() as s:
+        stored = character_store.get_character(s, rig.sheet.sheet_id)
+    assert stored is not None and stored.revision == rig.sheet.stored.revision
+
+
+def test_a_fall_with_no_adjudication_wired_fails_closed(session_factory: Any) -> None:
+    """A fall never goes unrecorded: with no adjudication path the Turn
+    fails typed and nothing is written, record included."""
+    r = _make_rig(session_factory, adjudicated=False)
+    try:
+        before = r.revisions()
+        result = r.turn("I walk over to the mill door.")
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "a fall needs an in-play character" in (
+            result.pipeline_error_summary or ""
+        )
+        assert r.revisions() == before
+        assert _audit_rows(r) == []
+        # A move with no fall still needs no adjudication.
+        assert (
+            r.turn("I go.", DrawnRoute(squares=BY_E3)).disposition
+            is PipelineDisposition.DELIVERED
+        )
+    finally:
+        r.orch.close()

@@ -66,6 +66,11 @@ REGISTRY: tuple[Disposal, ...] = (
         "branching_session_states", "branching_session", "session_setup_state", STORY
     ),
     Disposal("writing_session_states", "writing_session", "session_setup_state", STORY),
+    # The mapper's spatial record (#211): revisions point at Turns with
+    # RESTRICT, so they go before ``turns``; removing a map cascades any
+    # revision no inventoried Turn names.
+    Disposal("spatial_map_revisions", "mapper", "story_state", TURN),
+    Disposal("spatial_maps", "mapper", "story_state", STORY),
     Disposal("world_states", "story_state", "story_state", STORY),
     Disposal("character_states", "story_state", "story_state", STORY),
     Disposal("sb_settings", "story_bible", "story_bible", STORY),

@@ -23,6 +23,7 @@ import afterworlds.persistence.orm.node  # noqa: F401
 import afterworlds.persistence.orm.retrieval  # noqa: F401
 import afterworlds.persistence.orm.rules_package  # noqa: F401
 import afterworlds.persistence.orm.session_state  # noqa: F401
+import afterworlds.persistence.orm.spatial  # noqa: F401
 import afterworlds.persistence.orm.state  # noqa: F401
 import afterworlds.persistence.orm.story  # noqa: F401
 import afterworlds.persistence.orm.story_bible  # noqa: F401

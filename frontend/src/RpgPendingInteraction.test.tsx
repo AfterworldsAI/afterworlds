@@ -145,6 +145,7 @@ const mocks = vi.hoisted(() => ({
   submitDecision: vi.fn(),
   resumeSequence: vi.fn(),
   submitTurn: vi.fn(),
+  getScene: vi.fn(() => Promise.resolve(null)),
 }));
 
 vi.mock("./api/client", async () => {
@@ -343,6 +344,7 @@ describe("StoryView RPG pending interaction (CRD Issue 15b)", () => {
       expect(mocks.submitTurn).toHaveBeenCalledWith(
         story.story_id,
         "(OOC) what now?",
+        undefined,
       ),
     );
   });

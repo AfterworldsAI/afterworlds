@@ -128,6 +128,7 @@ const mocks = vi.hoisted(() => ({
   getVisibleState: vi.fn(),
   getSetupState: vi.fn(),
   submitTurn: vi.fn(),
+  getScene: vi.fn(() => Promise.resolve(null)),
   submitSetup: vi.fn(),
   listPersonas: vi.fn(),
   getPendingInteraction: vi.fn(),
@@ -154,6 +155,7 @@ vi.mock("./api/client", async () => {
       getVisibleState: mocks.getVisibleState,
       getSetupState: mocks.getSetupState,
       submitTurn: mocks.submitTurn,
+      getScene: mocks.getScene,
       submitSetup: mocks.submitSetup,
       listPersonas: mocks.listPersonas,
       getPendingInteraction: mocks.getPendingInteraction,
@@ -725,7 +727,11 @@ describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
       });
       fireEvent.click(screen.getByRole("button", { name: /submit/i }));
       await waitFor(() =>
-        expect(mocks.submitTurn).toHaveBeenCalledWith(baseStory.story_id, text),
+        expect(mocks.submitTurn).toHaveBeenCalledWith(
+          baseStory.story_id,
+          text,
+          undefined,
+        ),
       );
     }
     await waitFor(() =>
