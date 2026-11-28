@@ -793,13 +793,17 @@ def walk(
         # Speed waives its own. Movement already spent counts against
         # whichever is used (glossary.speed › switching), so the cheapest
         # one that still fits leaves the most for the rest of the move.
-        climbing = climb_ft * (1 + rules.climb_extra_per_ft)
+        # Climbing costs 1 extra foot, 2 in Difficult Terrain; a Climb Speed
+        # waives only the climbing foot (glossary.climbing,
+        # glossary.difficult_terrain).
+        terrain_ft = rules.difficult_extra_per_ft if difficult else 0
+        climbing = climb_ft * (1 + rules.climb_extra_per_ft + terrain_ft)
         options = [(cost + jumped_up + climbing, profile.walk_ft)]
         if water and profile.swim_ft:
             swim, _, _ = _enter_cost(known, profile, rules, b, a, swim_speed=True)
             options.append((swim + jumped_up + climbing, profile.swim_ft))
         if climb_ft and profile.climb_ft:
-            options.append((cost + climb_ft, profile.climb_ft))
+            options.append((cost + climb_ft * (1 + terrain_ft), profile.climb_ft))
         fitting = [(c, s) for c, s in options if total + c <= s + extra]
         if not fitting:
             return refuse(OVER_BUDGET, b)
@@ -925,9 +929,13 @@ def _enter_cost(
             difficult = True
     crawl = rules.crawl_extra_per_ft if profile.crawling else 0
     if ch == "=":
+        # Swimming costs 1 extra foot, 2 in Difficult Terrain; a Swim Speed
+        # waives only the swimming foot (glossary.swimming,
+        # glossary.difficult_terrain).
         waived = bool(profile.swim_ft) if swim_speed is None else swim_speed
         extra = 0 if waived else rules.swim_extra_per_ft
-        return base * (1 + extra + crawl), difficult, squeezing
+        rough = rules.difficult_extra_per_ft if difficult else 0
+        return base * (1 + extra + rough + crawl), difficult, squeezing
     if difficult:
         return base * (1 + rules.difficult_extra_per_ft + crawl), True, squeezing
     return base * (1 + crawl), False, squeezing

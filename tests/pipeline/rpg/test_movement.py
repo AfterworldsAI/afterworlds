@@ -417,6 +417,52 @@ def test_a_foe_two_sizes_larger_is_passed_through_as_difficult_terrain() -> None
     assert out.status == "completed" and out.final_square == (5, 0)
 
 
+def test_swimming_in_difficult_terrain_keeps_its_cost() -> None:
+    """Codex round 12: deep water that is also Difficult Terrain (here, a Huge
+    foe's space) costs the Difficult Terrain foot as well as the swimming one
+    (glossary.swimming: "2 extra feet in Difficult Terrain"); a Swim Speed
+    waives only the swimming foot (glossary.difficult_terrain)."""
+    from afterworlds.mapper.models import SetTerrain
+
+    truth = _with(
+        _foe(3, (2, 0)), SetTerrain(base_revision=0, squares=((3, 2),), char="=")
+    )
+    player = views.player_snapshot(truth)
+    walker = replace_walk(HERO, 60)
+    p = preview(player, walker, rules(), MoveIntent(THROUGH_FOE))
+    assert p.refused is None and p.cost_ft == 5 + 15 + 10 + 5
+    swimmer = MoverProfile(token_id="hero", walk_ft=60, strength=14, swim_ft=30)
+    p = preview(player, swimmer, rules(), MoveIntent(THROUGH_FOE))
+    assert p.refused is None and p.cost_ft == 5 + 10 + 10 + 5
+    # The allowance prices its routes by the same walk.
+    for mover in (walker, swimmer):
+        reach = allowance(player, mover, rules())
+        route = tuple(coords.parse(q) for q in reach.routes["F1"])
+        assert preview(player, mover, rules(), MoveIntent(route)).cost_ft == (
+            reach.costs["F1"]
+        )
+
+
+def test_climbing_into_difficult_terrain_keeps_its_cost() -> None:
+    """The same rule for climbing (glossary.climbing: "2 extra feet in
+    Difficult Terrain"): each foot climbed onto rubble pays the Difficult
+    Terrain foot too, and a Climb Speed waives only the climbing foot."""
+    from afterworlds.mapper.models import SetTerrain
+
+    rubble = _with(
+        _truth(with_hidden=False),
+        SetTerrain(base_revision=0, squares=((2, 4),), char=","),
+    )
+    ledge = (Level(level_id="heap", squares=((2, 4),), height_ft=10),)
+    player = views.player_snapshot(rubble.model_copy(update={"levels": ledge}))
+    up = MoveIntent(route=((1, 4), (2, 4)))
+    long = replace_walk(HERO, 90)
+    assert preview(player, long, rules(), up).cost_ft == 10 + 10 * 3
+    climber = MoverProfile(token_id="hero", walk_ft=90, strength=14, climb_ft=40)
+    assert preview(player, climber, rules(), up).cost_ft == 10 + 10 * 2
+    assert allowance(player, climber, rules()).costs["C5"] == 10 + 10 * 2
+
+
 def test_a_foe_one_size_larger_cannot_be_passed_through() -> None:
     truth = _foe(2, (2, 1))
     route = THROUGH_FOE[:4]
