@@ -175,11 +175,13 @@ NOT_AT_START = "the route doesn't start at your character"
 THROUGH_CREATURE = "can't move through that creature"
 DIFFICULT_LANDING = "can't land a jump in difficult terrain"
 ONLY_CRAWLING = "while Prone you can only crawl"
+PIT_JUMP = "can't jump from the bottom of a pit"
 EFFECT_HELD = "an effect on you changes how you move"
 REFUSALS = frozenset(
     {
         EFFECT_HELD,
         ONLY_CRAWLING,
+        PIT_JUMP,
         THROUGH_CREATURE,
         DIFFICULT_LANDING,
         WALL,
@@ -569,6 +571,14 @@ def walk(
     # (glossary.high_jump, glossary.long_jump: "on foot immediately before
     # the jump"). A swim, a climb or a jump is not on foot, so each ends it.
     on_foot = 0
+    # A mover standing in a pit (after a fall) is at its bottom: its squares
+    # are walked as its floor, and the step out climbs or jumps its depth
+    # (glossary.climbing, glossary.high_jump). Once out, a pit is a pit again.
+    in_pit = known.pit_at(route[0])
+
+    def floor_ft(square: Square) -> int:
+        sunk = in_pit is not None and square in in_pit.squares
+        return known.height_at(square) - (in_pit.depth_ft if in_pit and sunk else 0)
 
     def refuse(reason: str, at: Square) -> Walk:
         return Walk(
@@ -658,13 +668,15 @@ def walk(
         refusal, door_opened = cross(a, b)
         if refusal is not None:
             return refuse(refusal, b)
-        if known.pit_at(b) is None and not room(a, b):
+        on_floor = in_pit is not None and b in in_pit.squares
+        open_pit = None if on_floor else known.pit_at(b)
+        if open_pit is None and not room(a, b):
             # A footprint can't pass through rock, so wherever the move is
             # cut short the record can hold the mover there.
             return refuse(NO_ROOM, b)
         # Ending on a creature is the end check's to refuse.
         mid = i + 2 < len(route)
-        if known.pit_at(b) is None and mid and not _passable(known, profile, b):
+        if open_pit is None and mid and not _passable(known, profile, b):
             return refuse(THROUGH_CREATURE, b)
 
         # Hidden facts end the move; they never refuse it.
@@ -698,9 +710,11 @@ def walk(
                 )
 
         # A visible pit: a planned Long Jump over every pit square in a row.
-        pit = known.pit_at(b)
+        pit = open_pit
         if pit is not None and profile.crawling:
             return refuse(ONLY_CRAWLING, b)
+        if pit is not None and in_pit is not None:
+            return refuse(PIT_JUMP, b)
         if pit is not None:
             j = i + 1
             while j < len(route) and known.pit_at(route[j]) is not None:
@@ -776,7 +790,7 @@ def walk(
         water = known.char(b) == "="
         climb_ft = 0
         jumped_up = 0
-        rise = known.height_at(b) - known.height_at(a)
+        rise = floor_ft(b) - floor_ft(a)
         if profile.crawling and (abs(rise) > 1 or water):
             # Prone: crawling only, so no jump, climb or swim.
             return refuse(ONLY_CRAWLING, b)
@@ -824,6 +838,8 @@ def walk(
             )
         )
         on_foot = 0 if water or climb_ft or jumped_up else on_foot + 1
+        if not on_floor:
+            in_pit = None
         i += 1
 
     end = route[-1]
